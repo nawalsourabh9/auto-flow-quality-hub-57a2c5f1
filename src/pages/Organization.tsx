@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, FolderTree } from "lucide-react";
+import { Search, Plus, Filter, FolderTree, List, LayoutList } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -20,6 +20,11 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { 
+  Collapsible, 
+  CollapsibleContent, 
+  CollapsibleTrigger 
+} from "@/components/ui/collapsible";
 
 // Define department types
 interface Department {
@@ -60,6 +65,7 @@ const Organization = () => {
   const [newDepartment, setNewDepartment] = useState<Partial<Department>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedDepartments, setExpandedDepartments] = useState<number[]>([1]); // Default expand executive
+  const [viewMode, setViewMode] = useState<"list" | "tree">("list"); // New state for view toggle
 
   // Find children of a department
   const findChildDepartments = (departmentId: number) => {
@@ -155,6 +161,68 @@ const Organization = () => {
     );
   };
 
+  // Render tree view item for the visual tree representation
+  const renderTreeViewItem = (department: Department) => {
+    const childDepartments = findChildDepartments(department.id);
+    
+    return (
+      <div key={department.id} className="mb-2">
+        <Collapsible 
+          defaultOpen={expandedDepartments.includes(department.id)}
+          onOpenChange={(isOpen) => {
+            if (isOpen) {
+              setExpandedDepartments(prev => 
+                prev.includes(department.id) ? prev : [...prev, department.id]
+              );
+            } else {
+              setExpandedDepartments(prev => 
+                prev.filter(id => id !== department.id)
+              );
+            }
+          }}
+        >
+          <div className="flex items-center">
+            {childDepartments.length > 0 ? (
+              <CollapsibleTrigger className="flex items-center text-muted-foreground hover:text-foreground">
+                <div className="w-6 h-6 rounded-full border border-border flex items-center justify-center mr-2">
+                  {expandedDepartments.includes(department.id) ? (
+                    <svg width="12" height="12" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3.13523 6.15803C3.3241 5.95657 3.64052 5.94637 3.84197 6.13523L7.5 9.56464L11.158 6.13523C11.3595 5.94637 11.6759 5.95657 11.8648 6.15803C12.0536 6.35949 12.0434 6.67591 11.842 6.86477L7.84197 10.6148C7.64964 10.7951 7.35036 10.7951 7.15803 10.6148L3.15803 6.86477C2.95657 6.67591 2.94637 6.35949 3.13523 6.15803Z" fill="currentColor"></path>
+                    </svg>
+                  ) : (
+                    <svg width="12" height="12" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.1584 3.13508C6.35985 2.94621 6.67627 2.95642 6.86514 3.15788L10.6151 7.15788C10.7954 7.3502 10.7954 7.64949 10.6151 7.84182L6.86514 11.8418C6.67627 12.0433 6.35985 12.0535 6.1584 11.8646C5.95694 11.6757 5.94673 11.3593 6.1356 11.1579L9.565 7.49985L6.1356 3.84182C5.94673 3.64036 5.95694 3.32394 6.1584 3.13508Z" fill="currentColor"></path>
+                    </svg>
+                  )}
+                </div>
+              </CollapsibleTrigger>
+            ) : (
+              <div className="w-6 h-6 mr-2"></div>
+            )}
+            
+            <div className="p-2 border border-border rounded-md flex-1 bg-background hover:bg-muted/20 transition-colors">
+              <div className="font-medium">{department.name}</div>
+              <div className="flex justify-between items-center">
+                <div className="text-xs text-muted-foreground">{department.description}</div>
+                <div className="text-xs">
+                  <span className="text-muted-foreground">Manager:</span> {getManagerName(department.managerId)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {childDepartments.length > 0 && (
+            <CollapsibleContent>
+              <div className="pl-6 border-l border-dashed border-border mt-1 ml-3">
+                {childDepartments.map(child => renderTreeViewItem(child))}
+              </div>
+            </CollapsibleContent>
+          )}
+        </Collapsible>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -178,6 +246,26 @@ const Organization = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            <div className="border rounded-md flex">
+              <Button 
+                size="sm" 
+                variant={viewMode === "list" ? "secondary" : "ghost"} 
+                className="rounded-r-none px-3 h-9"
+                onClick={() => setViewMode("list")}
+              >
+                <LayoutList className="h-4 w-4 mr-1" />
+                List View
+              </Button>
+              <Button 
+                size="sm" 
+                variant={viewMode === "tree" ? "secondary" : "ghost"} 
+                className="rounded-l-none px-3 h-9"
+                onClick={() => setViewMode("tree")}
+              >
+                <FolderTree className="h-4 w-4 mr-1" />
+                Tree View
+              </Button>
+            </div>
             <Button size="sm" variant="outline" className="excel-button">
               <Filter className="h-4 w-4 mr-1" />
               Filter
@@ -193,9 +281,15 @@ const Organization = () => {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="org-chart border-border">
-            {rootDepartments.map(dept => renderDepartmentTree(dept))}
-          </div>
+          {viewMode === "list" ? (
+            <div className="org-chart border-border">
+              {rootDepartments.map(dept => renderDepartmentTree(dept))}
+            </div>
+          ) : (
+            <div className="org-tree p-4">
+              {rootDepartments.map(dept => renderTreeViewItem(dept))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
