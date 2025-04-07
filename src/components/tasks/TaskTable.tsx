@@ -1,11 +1,13 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart, Eye } from "lucide-react";
 import { TaskDocument } from "@/components/dashboard/TaskList";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import DocumentViewer from "@/components/tasks/DocumentViewer";
 
 interface Task {
   id: string;
@@ -15,7 +17,7 @@ interface Task {
   assignee: string;
   priority: 'low' | 'medium' | 'high';
   dueDate: string;
-  status: string;
+  status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
   createdAt: string;
   isRecurring: boolean;
   recurringFrequency?: string;
