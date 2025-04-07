@@ -335,7 +335,7 @@ const Tasks = () => {
           // Update existing document type with new revision
           existingDocuments[documentIndex] = {
             ...existingDocuments[documentIndex],
-            revisions: [...existingDocuments[documentIndex].revisions, newRevision],
+            revisions: [...existingDocuments[documentIndex].revisions, newRevision],\
             currentRevisionId: newRevision.id
           };
         } else {
