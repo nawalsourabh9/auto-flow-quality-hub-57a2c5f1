@@ -19,7 +19,8 @@ import {
   CheckSquare,
   Settings,
   Users,
-  BarChart2
+  BarChart2,
+  FolderTree
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -53,6 +54,11 @@ const menuItems = [
     title: "Analytics",
     icon: BarChart2,
     path: "/analytics"
+  },
+  {
+    title: "Organization",
+    icon: FolderTree,
+    path: "/organization"
   },
   {
     title: "Users",

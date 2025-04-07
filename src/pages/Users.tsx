@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, Edit, Trash, X } from "lucide-react";
+import { Search, Plus, Filter, Edit, Trash } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -53,10 +53,10 @@ const employeeFormSchema = z.object({
   status: z.enum(["Active", "Inactive"], { message: "Please select a status." })
 });
 
-type Employee = z.infer<typeof employeeFormSchema>;
+type Employee = z.infer<typeof employeeFormSchema> & { id: number };
 
 // Dummy initial data
-const initialEmployees = [
+const initialEmployees: Employee[] = [
   { id: 1, name: "John Doe", email: "john.doe@example.com", role: "Admin", department: "Quality", status: "Active", employeeId: "EMP001", position: "Quality Manager" },
   { id: 2, name: "Jane Smith", email: "jane.smith@example.com", role: "Manager", department: "Production", status: "Active", employeeId: "EMP002", position: "Production Lead" },
   { id: 3, name: "Robert Johnson", email: "robert.johnson@example.com", role: "User", department: "Engineering", status: "Inactive", employeeId: "EMP003", position: "Design Engineer" },
@@ -103,8 +103,8 @@ const Users = () => {
   });
 
   // Handle employee creation
-  const handleAddEmployee = (data: Employee) => {
-    const newEmployee = {
+  const handleAddEmployee = (data: z.infer<typeof employeeFormSchema>) => {
+    const newEmployee: Employee = {
       id: employees.length + 1,
       ...data
     };
@@ -118,9 +118,11 @@ const Users = () => {
   };
 
   // Handle employee edit
-  const handleEditEmployee = (data: Employee) => {
+  const handleEditEmployee = (data: z.infer<typeof employeeFormSchema>) => {
+    if (!editingEmployee) return;
+    
     setEmployees(employees.map(emp => 
-      emp.id === editingEmployee?.id ? { ...emp, ...data } : emp
+      emp.id === editingEmployee.id ? { ...data, id: emp.id } : emp
     ));
     setIsEditDialogOpen(false);
     setEditingEmployee(null);
@@ -131,7 +133,7 @@ const Users = () => {
   };
 
   // Open edit dialog with employee data
-  const openEditDialog = (employee: any) => {
+  const openEditDialog = (employee: Employee) => {
     setEditingEmployee(employee);
     editForm.reset({
       name: employee.name,

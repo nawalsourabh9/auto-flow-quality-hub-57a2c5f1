@@ -14,6 +14,7 @@ import Audits from "./pages/Audits";
 import Analytics from "./pages/Analytics";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
+import Organization from "./pages/Organization";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/audits" element={<Audits />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/users" element={<Users />} />
+            <Route path="/organization" element={<Organization />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
