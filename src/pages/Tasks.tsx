@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, FileText, Database, PieChart, FileUp, History } from "lucide-react";
+import { Search, Plus, FileText, Database, PieChart, FileUp, History, CheckCircle, UserCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useSearchParams } from "react-router-dom";
 import TasksTable from "@/components/tasks/TaskTable";
 import StatusBadge from "@/components/tasks/StatusBadge";
 import PriorityBadge from "@/components/tasks/PriorityBadge";
@@ -40,9 +41,9 @@ const taskFormSchema = z.object({
   hasSOP: z.boolean().default(false),
   hasDataFormat: z.boolean().default(false),
   hasReportFormat: z.boolean().default(false),
+  isCustomerRelated: z.boolean().default(false),
+  customerName: z.string().optional(),
 });
-
-type TaskFormValues = z.infer<typeof taskFormSchema>;
 
 const departmentOptions = ["Quality", "Production", "Engineering", "HR", "Finance", "IT", "Sales", "Marketing"];
 
@@ -73,7 +74,8 @@ const initialTasks: Task[] = [
     createdAt: "2025-04-07",
     isRecurring: true,
     recurringFrequency: "daily",
-    attachmentsRequired: "required"
+    attachmentsRequired: "required",
+    isCustomerRelated: false
   },
   {
     id: "t2",
@@ -93,7 +95,8 @@ const initialTasks: Task[] = [
     createdAt: "2025-04-07",
     isRecurring: true,
     recurringFrequency: "weekly",
-    attachmentsRequired: "optional"
+    attachmentsRequired: "optional",
+    isCustomerRelated: false
   },
   {
     id: "t3",
@@ -113,11 +116,58 @@ const initialTasks: Task[] = [
     createdAt: "2025-04-07",
     isRecurring: true,
     recurringFrequency: "monthly",
-    attachmentsRequired: "required"
+    attachmentsRequired: "required",
+    isCustomerRelated: false
+  },
+  {
+    id: "t4",
+    title: "Customer Complaint Resolution - ABC Corp",
+    description: "Investigate and resolve customer complaint regarding product quality",
+    department: "Quality",
+    assignee: "1",
+    assigneeDetails: {
+      name: "John Doe",
+      initials: "JD",
+      department: "Quality",
+      position: "Quality Manager"
+    },
+    priority: "high",
+    dueDate: "2025-04-10",
+    status: "in-progress",
+    createdAt: "2025-04-06",
+    isRecurring: false,
+    attachmentsRequired: "required",
+    isCustomerRelated: true,
+    customerName: "ABC Corporation"
+  },
+  {
+    id: "t5",
+    title: "Customer Spec Review - XYZ Industries",
+    description: "Review new customer specifications for upcoming project",
+    department: "Engineering",
+    assignee: "3",
+    assigneeDetails: {
+      name: "Robert Johnson",
+      initials: "RJ",
+      department: "Engineering",
+      position: "Design Engineer"
+    },
+    priority: "high",
+    dueDate: "2025-04-15",
+    status: "not-started",
+    createdAt: "2025-04-07",
+    isRecurring: false,
+    attachmentsRequired: "optional",
+    isCustomerRelated: true,
+    customerName: "XYZ Industries"
   }
 ];
 
 const Tasks = () => {
+  const [searchParams] = useSearchParams();
+  const customerOnlyParam = searchParams.get('customerOnly');
+  const isCustomerTasksView = customerOnlyParam === 'true';
+
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [filteredDepartment, setFilteredDepartment] = useState<string | null>(null);
@@ -150,6 +200,8 @@ const Tasks = () => {
       hasSOP: false,
       hasDataFormat: false,
       hasReportFormat: false,
+      isCustomerRelated: isCustomerTasksView,
+      customerName: "",
     }
   });
 
@@ -190,7 +242,18 @@ const Tasks = () => {
     
     const newTask: Task = {
       id: `t${tasks.length + 1}`,
-      ...data,
+      title: data.title,
+      description: data.description,
+      department: data.department,
+      assignee: data.assignee,
+      priority: data.priority,
+      dueDate: data.dueDate,
+      status: data.status,
+      isRecurring: data.isRecurring,
+      recurringFrequency: data.recurringFrequency,
+      attachmentsRequired: data.attachmentsRequired,
+      isCustomerRelated: data.isCustomerRelated,
+      customerName: data.customerName,
       createdAt: new Date().toISOString().split('T')[0],
       assigneeDetails: assigneeData ? {
         name: assigneeData.name,
@@ -209,8 +272,8 @@ const Tasks = () => {
     setSelectedFiles([]);
     
     toast({
-      title: "Task Created",
-      description: "The task has been successfully created and assigned."
+      title: data.isCustomerRelated ? "Customer Task Created" : "Task Created",
+      description: `The ${data.isCustomerRelated ? 'customer task' : 'task'} has been successfully created and assigned.`
     });
   };
 
@@ -400,11 +463,16 @@ const Tasks = () => {
   };
 
   const filterTasks = () => {
-    return tasks.filter(task => {
+    let tasksToFilter = isCustomerTasksView 
+      ? tasks.filter(task => task.isCustomerRelated) 
+      : tasks;
+    
+    return tasksToFilter.filter(task => {
       const matchesSearch = 
         task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (task.assigneeDetails?.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        (task.assigneeDetails?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (task.customerName?.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesDepartment = !filteredDepartment || task.department === filteredDepartment;
       
@@ -442,9 +510,24 @@ const Tasks = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Tasks Management</h1>
-        <p className="text-muted-foreground">Assign, track and manage tasks across your organization</p>
+        <h1 className="text-2xl font-bold">{isCustomerTasksView ? "Customer Tasks" : "Tasks Management"}</h1>
+        <p className="text-muted-foreground">
+          {isCustomerTasksView 
+            ? "Manage and prioritize customer-related tasks" 
+            : "Assign, track and manage tasks across your organization"}
+        </p>
       </div>
+      
+      {isCustomerTasksView && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
+          <div className="bg-blue-100 p-1 rounded-full">
+            <UserCheck className="h-4 w-4 text-blue-700" />
+          </div>
+          <p className="text-sm text-blue-800">
+            Customer tasks are prioritized for immediate attention. These tasks directly impact customer satisfaction and service levels.
+          </p>
+        </div>
+      )}
       
       <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
         <div className="flex items-center justify-between">
@@ -480,10 +563,13 @@ const Tasks = () => {
             <Button 
               size="sm" 
               className="bg-primary hover:bg-primary/90"
-              onClick={() => setIsAddDialogOpen(true)}
+              onClick={() => {
+                form.setValue("isCustomerRelated", isCustomerTasksView);
+                setIsAddDialogOpen(true);
+              }}
             >
               <Plus className="h-4 w-4 mr-1" />
-              Add Task
+              Add {isCustomerTasksView ? "Customer Task" : "Task"}
             </Button>
           </div>
         </div>
@@ -512,7 +598,7 @@ const Tasks = () => {
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
-            <DialogTitle>Add New Task</DialogTitle>
+            <DialogTitle>Add New {form.watch("isCustomerRelated") ? "Customer Task" : "Task"}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleAddTask)} className="space-y-4">
@@ -547,6 +633,45 @@ const Tasks = () => {
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="isCustomerRelated"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Customer Related Task
+                      </FormLabel>
+                      <FormDescription>
+                        Mark if this task is directly related to a customer
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              {form.watch("isCustomerRelated") && (
+                <FormField
+                  control={form.control}
+                  name="customerName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Customer Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter customer name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -775,7 +900,7 @@ const Tasks = () => {
                 <DialogClose asChild>
                   <Button type="button" variant="outline">Cancel</Button>
                 </DialogClose>
-                <Button type="submit">Create Task</Button>
+                <Button type="submit">Create {form.watch("isCustomerRelated") ? "Customer Task" : "Task"}</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -788,7 +913,14 @@ const Tasks = () => {
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center justify-between">
-                  <span>{selectedTask.title}</span>
+                  <div className="flex items-center gap-2">
+                    <span>{selectedTask.title}</span>
+                    {selectedTask.isCustomerRelated && (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        Customer: {selectedTask.customerName || "Unnamed"}
+                      </Badge>
+                    )}
+                  </div>
                   <StatusBadge status={selectedTask.status} />
                 </DialogTitle>
               </DialogHeader>
@@ -976,7 +1108,7 @@ const Tasks = () => {
                         size="sm"
                         onClick={() => handleCompleteTask(selectedTask)}
                       >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        <CheckCircle className="h-4 w-4 mr-2" />
                         Complete Task
                       </Button>
                     )}

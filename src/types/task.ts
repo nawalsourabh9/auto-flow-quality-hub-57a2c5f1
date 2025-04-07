@@ -12,6 +12,8 @@ export interface Task {
   status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
   createdAt: string;
   isRecurring: boolean;
+  isCustomerRelated?: boolean; // Added field for customer tasks
+  customerName?: string; // Optional customer name
   recurringFrequency?: string;
   attachmentsRequired: 'none' | 'optional' | 'required';
   assigneeDetails?: {
@@ -67,4 +69,31 @@ export interface AuditFinding {
   dueDate?: string;
   createdAt: string;
   closedAt?: string;
+}
+
+// Non-Conformance interface for managing quality issues
+export interface NonConformance {
+  id: string;
+  title: string;
+  description: string;
+  department: string;
+  severity: 'critical' | 'major' | 'minor';
+  reportedBy: string;
+  reportedDate: string;
+  status: 'open' | 'under-review' | 'corrective-action' | 'closed' | 'rejected';
+  affectedProduct?: string;
+  customerImpact: boolean;
+  rootCause?: string;
+  containmentActions?: string;
+  correctiveActions?: string;
+  closedDate?: string;
+  assignedTo?: string;
+  attachments?: {
+    id: string;
+    name: string;
+    fileType: string;
+    uploadedBy: string;
+    uploadDate: string;
+    fileSize: string;
+  }[];
 }

@@ -21,7 +21,8 @@ import {
   Users,
   BarChart2,
   FolderTree,
-  CalendarCheck
+  CalendarCheck,
+  UserCheck
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -35,6 +36,12 @@ const menuItems = [
     title: "Tasks",
     icon: ClipboardList,
     path: "/tasks"
+  },
+  {
+    title: "Customer Tasks",
+    icon: UserCheck,
+    path: "/tasks?customerOnly=true",
+    highlight: true
   },
   {
     title: "Documents",
@@ -88,7 +95,10 @@ export function AppSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <Link to={item.path} className="flex items-center">
+                    <Link 
+                      to={item.path} 
+                      className={`flex items-center ${item.highlight ? 'text-primary font-medium' : ''}`}
+                    >
                       <item.icon className="mr-2 h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
