@@ -127,7 +127,6 @@ const Tasks = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   
-  // States for document management
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [documentType, setDocumentType] = useState<'sop' | 'dataFormat' | 'reportFormat' | null>(null);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -332,14 +331,12 @@ const Tasks = () => {
         const documentIndex = existingDocuments.findIndex(doc => doc.documentType === documentType);
         
         if (documentIndex >= 0) {
-          // Update existing document type with new revision
           existingDocuments[documentIndex] = {
             ...existingDocuments[documentIndex],
-            revisions: [...existingDocuments[documentIndex].revisions, newRevision],\
+            revisions: [...existingDocuments[documentIndex].revisions, newRevision],
             currentRevisionId: newRevision.id
           };
         } else {
-          // Add new document type
           existingDocuments.push({
             documentType: documentType,
             revisions: [newRevision],
@@ -512,7 +509,6 @@ const Tasks = () => {
         </TabsContent>
       </Tabs>
       
-      {/* Add Task Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
@@ -786,7 +782,6 @@ const Tasks = () => {
         </DialogContent>
       </Dialog>
       
-      {/* View Task Dialog */}
       <Dialog open={isTaskViewOpen} onOpenChange={setIsTaskViewOpen}>
         <DialogContent className="sm:max-w-[650px]">
           {selectedTask && (
@@ -851,7 +846,6 @@ const Tasks = () => {
                   </div>
                 </div>
                 
-                {/* Task Documents Section */}
                 {selectedTask.documents && selectedTask.documents.length > 0 && (
                   <div className="border rounded-md p-4 mt-2">
                     <div className="flex items-center justify-between mb-2">
@@ -912,3 +906,89 @@ const Tasks = () => {
                                       <div className="flex items-center">
                                         <FileText className="h-4 w-4 mr-2 text-gray-500" />
                                         <span className="text-sm font-medium">{currentRevision.fileName}</span>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button 
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleViewRevisionHistory(doc)}
+                                        >
+                                          <History className="h-3.5 w-3.5 mr-1" />
+                                          History
+                                        </Button>
+                                        <Button 
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            setDocumentType(doc.documentType);
+                                            setIsDocumentDialogOpen(true);
+                                          }}
+                                        >
+                                          <FileUp className="h-3.5 w-3.5 mr-1" />
+                                          Update
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <div className="p-2 mt-2 border rounded-md bg-gray-50">
+                                      <p className="text-xs text-muted-foreground">
+                                        Version {currentRevision.version} • Uploaded {new Date(currentRevision.uploadDate).toLocaleDateString()} • {currentRevision.fileSize}
+                                      </p>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
+                  </div>
+                )}
+                
+                <div className="flex justify-between mt-4">
+                  <div>
+                    {selectedTask.attachmentsRequired !== 'none' && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          toast({
+                            title: "File Upload",
+                            description: "File upload functionality would be implemented here."
+                          });
+                        }}
+                      >
+                        <FileUp className="h-4 w-4 mr-2" />
+                        Upload Files
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setIsTaskViewOpen(false)}
+                    >
+                      Close
+                    </Button>
+                    {selectedTask.status !== 'completed' && (
+                      <Button 
+                        size="sm"
+                        onClick={() => handleCompleteTask(selectedTask)}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Complete Task
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Tasks;
