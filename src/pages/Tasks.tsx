@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -218,7 +219,7 @@ const Tasks = () => {
 
     const updatedTasks = tasks.map(t => {
       if (t.id === task.id) {
-        return { ...t, status: 'completed' };
+        return { ...t, status: 'completed' as const };
       }
       return t;
     });
@@ -319,12 +320,12 @@ const Tasks = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select value={filteredDepartment || ""} onValueChange={(value) => setFilteredDepartment(value || null)}>
+            <Select value={filteredDepartment || "all"} onValueChange={(value) => setFilteredDepartment(value === "all" ? null : value)}>
               <SelectTrigger className="w-[180px] h-9">
                 <SelectValue placeholder="Filter by department" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Departments</SelectItem>
+                <SelectItem value="all">All Departments</SelectItem>
                 {departmentOptions.map(dept => (
                   <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                 ))}
@@ -448,7 +449,7 @@ const Tasks = () => {
                               </SelectItem>
                             ))
                             : 
-                            <SelectItem value="" disabled>Select department first</SelectItem>
+                            <SelectItem value="no-selection" disabled>Select department first</SelectItem>
                           }
                         </SelectContent>
                       </Select>
@@ -530,7 +531,7 @@ const Tasks = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Frequency</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <Select onValueChange={field.onChange} value={field.value || "none"}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select frequency" />

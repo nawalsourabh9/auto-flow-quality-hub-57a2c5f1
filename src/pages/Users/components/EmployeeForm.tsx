@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Employee, departmentOptions, roleOptions } from "../types";
 import { UseFormReturn } from "react-hook-form";
+import { Button } from "@/components/ui/button";
 
 interface EmployeeFormProps {
   form: UseFormReturn<Omit<Employee, "id">, any, undefined>;
@@ -129,7 +130,7 @@ export function EmployeeForm({ form, onSubmit, submitButtonText, onCancel }: Emp
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || "Active"}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
@@ -144,6 +145,15 @@ export function EmployeeForm({ form, onSubmit, submitButtonText, onCancel }: Emp
               </FormItem>
             )}
           />
+        </div>
+        
+        <div className="flex justify-end space-x-2 pt-4">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit">
+            {submitButtonText}
+          </Button>
         </div>
       </form>
     </Form>
