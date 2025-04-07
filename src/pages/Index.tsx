@@ -1,5 +1,5 @@
 
-import { CheckCircle2, AlertTriangle, ClipboardList, FileCheck, Gauge, BarChart2, CalendarCheck } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ClipboardList, FileCheck, Gauge, BarChart2, CalendarCheck, UserCheck } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TaskList } from "@/components/dashboard/TaskList";
 import { QualityMetricsChart } from "@/components/dashboard/QualityMetricsChart";
@@ -63,6 +63,8 @@ const tasks = [
       name: "Mike Brown",
       initials: "MB",
     },
+    isCustomerRelated: true,
+    customerName: "Acme Corp"
   },
 ];
 
@@ -106,6 +108,12 @@ const getAuditTypeColor = (type: string): string => {
 };
 
 const Index = () => {
+  // Count customer-related tasks
+  const customerTasksCount = tasks.filter(task => task.isCustomerRelated).length;
+  const customerTasksUrgent = tasks.filter(task => 
+    task.isCustomerRelated && (task.status === "overdue" || task.priority === "high")
+  ).length;
+  
   return (
     <div className="space-y-6">
       <div>
@@ -113,7 +121,7 @@ const Index = () => {
         <p className="text-muted-foreground">Welcome to your IATF compliant E-QMS platform</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard 
           title="Tasks Due" 
           value={8} 
@@ -121,6 +129,14 @@ const Index = () => {
           icon={ClipboardList} 
           variant="warning"
           trend={{ value: 15, positive: false }}
+        />
+        <StatCard 
+          title="Customer Tasks" 
+          value={customerTasksCount} 
+          description={`${customerTasksUrgent} urgent`} 
+          icon={UserCheck} 
+          variant="primary"
+          trend={{ value: 10, positive: true }}
         />
         <StatCard 
           title="Non-Conformances" 

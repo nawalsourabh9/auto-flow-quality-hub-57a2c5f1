@@ -12,7 +12,7 @@ interface StatCardProps {
     value: number;
     positive: boolean;
   };
-  variant?: "default" | "success" | "warning" | "danger";
+  variant?: "default" | "success" | "warning" | "danger" | "primary";
 }
 
 export function StatCard({ 
@@ -27,14 +27,16 @@ export function StatCard({
     default: "bg-white",
     success: "bg-green-50 border-green-100",
     warning: "bg-amber-50 border-amber-100",
-    danger: "bg-red-50 border-red-100"
+    danger: "bg-red-50 border-red-100",
+    primary: "bg-blue-50 border-blue-100"
   };
   
   const iconClassMap = {
     default: "text-eqms-blue bg-blue-50",
     success: "text-green-600 bg-green-100",
     warning: "text-amber-600 bg-amber-100",
-    danger: "text-red-600 bg-red-100"
+    danger: "text-red-600 bg-red-100",
+    primary: "text-blue-600 bg-blue-100"
   };
 
   return (

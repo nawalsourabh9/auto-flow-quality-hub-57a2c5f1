@@ -1,5 +1,5 @@
 
-import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart, User } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,6 +33,8 @@ interface Task {
   };
   attachmentsRequired?: 'required' | 'optional' | 'none';
   documents?: TaskDocument[];
+  isCustomerRelated?: boolean;
+  customerName?: string;
 }
 
 interface TaskListProps {
@@ -77,6 +79,16 @@ export function TaskList({ tasks }: TaskListProps) {
     }
   };
 
+  const getCustomerBadge = (isCustomerRelated?: boolean, customerName?: string) => {
+    if (!isCustomerRelated) return null;
+    
+    return (
+      <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100 flex items-center gap-1">
+        <User className="h-3 w-3" /> {customerName || 'Customer'}
+      </Badge>
+    );
+  };
+
   const getDocumentBadges = (documents?: TaskDocument[]) => {
     if (!documents || documents.length === 0) return null;
     
@@ -115,15 +127,16 @@ export function TaskList({ tasks }: TaskListProps) {
       <CardContent className="p-0">
         <ul className="divide-y divide-border">
           {tasks.map((task) => (
-            <li key={task.id} className="flex items-center justify-between p-4 hover:bg-muted/30 cursor-pointer">
+            <li key={task.id} className={`flex items-center justify-between p-4 hover:bg-muted/30 cursor-pointer ${task.isCustomerRelated ? 'bg-green-50/50' : ''}`}>
               <div className="flex items-start gap-3">
                 <div className="pt-1">{getStatusIcon(task.status)}</div>
                 <div>
                   <h3 className="font-medium">{task.title}</h3>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                  <div className="flex items-center flex-wrap gap-2 mt-1 text-sm text-muted-foreground">
                     <span>Due: {task.dueDate}</span>
                     {getPriorityBadge(task.priority)}
                     {getAttachmentBadge(task.attachmentsRequired)}
+                    {getCustomerBadge(task.isCustomerRelated, task.customerName)}
                     {getDocumentBadges(task.documents)}
                   </div>
                 </div>

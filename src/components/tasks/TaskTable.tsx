@@ -1,9 +1,10 @@
+
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart, User } from "lucide-react";
 import { TaskDocument } from "@/components/dashboard/TaskList";
 import { Task } from "@/types/task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -50,6 +51,16 @@ const TasksTable: React.FC<TasksTableProps> = ({ tasks, onViewTask }) => {
       default:
         return null;
     }
+  };
+
+  const getCustomerBadge = (isCustomerRelated?: boolean, customerName?: string) => {
+    if (!isCustomerRelated) return null;
+    
+    return (
+      <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100 flex items-center gap-1">
+        <User className="h-3 w-3" /> {customerName || 'Customer'}
+      </Badge>
+    );
   };
 
   const getDocumentBadges = (documents?: TaskDocument[]) => {
@@ -107,10 +118,13 @@ const TasksTable: React.FC<TasksTableProps> = ({ tasks, onViewTask }) => {
                 </tr>
               ) : (
                 tasks.map((task) => (
-                  <tr key={task.id} className="border-b hover:bg-muted/50">
+                  <tr key={task.id} className={`border-b hover:bg-muted/50 ${task.isCustomerRelated ? 'bg-green-50/50' : ''}`}>
                     <td className="px-4 py-3">
                       <div>
-                        <p className="font-medium">{task.title}</p>
+                        <p className="font-medium flex items-center gap-2">
+                          {task.title}
+                          {task.isCustomerRelated && getCustomerBadge(task.isCustomerRelated, task.customerName)}
+                        </p>
                         <p className="text-sm text-muted-foreground truncate max-w-[200px]">
                           {task.description}
                         </p>
