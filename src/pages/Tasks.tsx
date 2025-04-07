@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, Calendar, CalendarCheck, User } from "lucide-react";
+import { Search, Plus, Filter, Calendar, CalendarCheck, User, Paperclip, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,8 +14,9 @@ import { TaskList } from "@/components/dashboard/TaskList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
-// Task form schema
 const taskFormSchema = z.object({
   title: z.string().min(3, { message: "Task title must be at least 3 characters." }),
   description: z.string().min(5, { message: "Description must be at least 5 characters." }),
@@ -29,6 +29,9 @@ const taskFormSchema = z.object({
   }).default("not-started"),
   isRecurring: z.boolean().default(false),
   recurringFrequency: z.string().optional(),
+  attachmentsRequired: z.enum(["none", "optional", "required"], { 
+    message: "Please select attachment requirement" 
+  }).default("none"),
 });
 
 type Task = z.infer<typeof taskFormSchema> & { 
@@ -41,12 +44,18 @@ type Task = z.infer<typeof taskFormSchema> & {
     department: string;
     position: string;
   };
+  attachments?: {
+    id: string;
+    name: string;
+    fileType: string;
+    uploadedBy: string;
+    uploadDate: string;
+    fileSize: string;
+  }[];
 };
 
-// Dummy departments data
 const departmentOptions = ["Quality", "Production", "Engineering", "HR", "Finance", "IT", "Sales", "Marketing"];
 
-// Dummy employees data
 const employeesData = [
   { id: "1", name: "John Doe", department: "Quality", position: "Quality Manager", initials: "JD", avatar: "" },
   { id: "2", name: "Jane Smith", department: "Production", position: "Production Lead", initials: "JS", avatar: "" },
@@ -55,7 +64,6 @@ const employeesData = [
   { id: "5", name: "Michael Brown", department: "IT", position: "IT Support", initials: "MB", avatar: "" },
 ];
 
-// Dummy tasks data
 const initialTasks: Task[] = [
   {
     id: "t1",
@@ -74,7 +82,8 @@ const initialTasks: Task[] = [
     status: "not-started",
     createdAt: "2025-04-07",
     isRecurring: true,
-    recurringFrequency: "daily"
+    recurringFrequency: "daily",
+    attachmentsRequired: "required"
   },
   {
     id: "t2",
@@ -93,7 +102,8 @@ const initialTasks: Task[] = [
     status: "not-started",
     createdAt: "2025-04-07",
     isRecurring: true,
-    recurringFrequency: "weekly"
+    recurringFrequency: "weekly",
+    attachmentsRequired: "optional"
   },
   {
     id: "t3",
@@ -112,7 +122,8 @@ const initialTasks: Task[] = [
     status: "not-started",
     createdAt: "2025-04-07",
     isRecurring: true,
-    recurringFrequency: "monthly"
+    recurringFrequency: "monthly",
+    attachmentsRequired: "required"
   }
 ];
 
@@ -122,8 +133,10 @@ const Tasks = () => {
   const [filteredDepartment, setFilteredDepartment] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTab, setSelectedTab] = useState("all");
+  const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-  // Create form
   const form = useForm<z.infer<typeof taskFormSchema>>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
@@ -136,21 +149,19 @@ const Tasks = () => {
       status: "not-started",
       isRecurring: false,
       recurringFrequency: "",
+      attachmentsRequired: "none",
     }
   });
 
-  // Filter employees by department for assignee dropdown
   const getEmployeesByDepartment = (department: string) => {
     return employeesData.filter(emp => emp.department === department);
   };
 
-  // Handle department change in form
   const handleDepartmentChange = (value: string) => {
     form.setValue("department", value);
-    form.setValue("assignee", ""); // Reset assignee when department changes
+    form.setValue("assignee", "");
   };
 
-  // Handle task creation
   const handleAddTask = (data: z.infer<typeof taskFormSchema>) => {
     const assigneeData = employeesData.find(emp => emp.id === data.assignee);
     
@@ -164,12 +175,14 @@ const Tasks = () => {
         avatar: assigneeData.avatar,
         department: assigneeData.department,
         position: assigneeData.position,
-      } : undefined
+      } : undefined,
+      attachments: []
     };
     
     setTasks([...tasks, newTask]);
     setIsAddDialogOpen(false);
     form.reset();
+    setSelectedFiles([]);
     
     toast({
       title: "Task Created",
@@ -177,19 +190,95 @@ const Tasks = () => {
     });
   };
 
-  // Filter tasks
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setSelectedFiles(prev => [...prev, ...filesArray]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleViewTask = (task: Task) => {
+    setSelectedTask(task);
+    setIsTaskViewOpen(true);
+  };
+
+  const handleCompleteTask = (task: Task) => {
+    if (task.attachmentsRequired === 'required' && (!task.attachments || task.attachments.length === 0)) {
+      toast({
+        title: "Cannot complete task",
+        description: "This task requires attachments to be completed.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const updatedTasks = tasks.map(t => {
+      if (t.id === task.id) {
+        return { ...t, status: 'completed' };
+      }
+      return t;
+    });
+
+    setTasks(updatedTasks);
+    setIsTaskViewOpen(false);
+    
+    toast({
+      title: "Task Completed",
+      description: "The task has been marked as completed."
+    });
+  };
+
+  const handleAttachmentUpload = (task: Task) => {
+    if (selectedFiles.length === 0) {
+      toast({
+        title: "No files selected",
+        description: "Please select at least one file to upload.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newAttachments = selectedFiles.map((file, index) => ({
+      id: `a${Date.now()}-${index}`,
+      name: file.name,
+      fileType: file.type,
+      uploadedBy: "Current User",
+      uploadDate: new Date().toISOString(),
+      fileSize: `${Math.round(file.size / 1024)} KB`
+    }));
+
+    const updatedTasks = tasks.map(t => {
+      if (t.id === task.id) {
+        return { 
+          ...t, 
+          attachments: [...(t.attachments || []), ...newAttachments]
+        };
+      }
+      return t;
+    });
+
+    setTasks(updatedTasks);
+    setSelectedFiles([]);
+    
+    toast({
+      title: "Attachments Uploaded",
+      description: `${selectedFiles.length} file(s) have been uploaded successfully.`
+    });
+  };
+
   const filterTasks = () => {
     return tasks.filter(task => {
-      // Filter by search term
       const matchesSearch = 
         task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (task.assigneeDetails?.name.toLowerCase().includes(searchTerm.toLowerCase()));
       
-      // Filter by department
       const matchesDepartment = !filteredDepartment || task.department === filteredDepartment;
       
-      // Filter by tab/status
       const matchesTab = selectedTab === "all" || 
         (selectedTab === "recurring" && task.isRecurring) ||
         (selectedTab === "upcoming" && new Date(task.dueDate) > new Date() && task.status !== "completed") ||
@@ -200,7 +289,7 @@ const Tasks = () => {
       return matchesSearch && matchesDepartment && matchesTab;
     });
   };
-  
+
   const filteredTasks = filterTasks();
   
   return (
@@ -253,27 +342,26 @@ const Tasks = () => {
         </div>
         
         <TabsContent value="all" className="mt-4">
-          <TasksTable tasks={filteredTasks} />
+          <TasksTable tasks={filteredTasks} onViewTask={handleViewTask} />
         </TabsContent>
         
         <TabsContent value="recurring" className="mt-4">
-          <TasksTable tasks={filteredTasks} />
+          <TasksTable tasks={filteredTasks} onViewTask={handleViewTask} />
         </TabsContent>
         
         <TabsContent value="upcoming" className="mt-4">
-          <TasksTable tasks={filteredTasks} />
+          <TasksTable tasks={filteredTasks} onViewTask={handleViewTask} />
         </TabsContent>
         
         <TabsContent value="completed" className="mt-4">
-          <TasksTable tasks={filteredTasks} />
+          <TasksTable tasks={filteredTasks} onViewTask={handleViewTask} />
         </TabsContent>
         
         <TabsContent value="overdue" className="mt-4">
-          <TasksTable tasks={filteredTasks} />
+          <TasksTable tasks={filteredTasks} onViewTask={handleViewTask} />
         </TabsContent>
       </Tabs>
       
-      {/* Add Task Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
@@ -411,23 +499,26 @@ const Tasks = () => {
               
               <FormField
                 control={form.control}
-                name="isRecurring"
+                name="attachmentsRequired"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Recurring Task</FormLabel>
-                      <p className="text-sm text-muted-foreground">
-                        Is this a recurring task that needs to be performed regularly?
-                      </p>
-                    </div>
+                  <FormItem>
+                    <FormLabel>Attachment Requirements</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Attachment requirements" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No Attachments</SelectItem>
+                        <SelectItem value="optional">Optional Attachments</SelectItem>
+                        <SelectItem value="required">Required Attachments</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Specify if this task requires document attachments
+                    </FormDescription>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -469,12 +560,170 @@ const Tasks = () => {
           </Form>
         </DialogContent>
       </Dialog>
+      
+      <Dialog open={isTaskViewOpen} onOpenChange={setIsTaskViewOpen}>
+        <DialogContent className="sm:max-w-[650px]">
+          {selectedTask && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center justify-between">
+                  <span>{selectedTask.title}</span>
+                  <StatusBadge status={selectedTask.status} />
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="grid gap-4 py-4">
+                <div>
+                  <h3 className="text-sm font-medium">Description</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{selectedTask.description}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium">Assigned To</h3>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={selectedTask.assigneeDetails?.avatar} />
+                        <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                          {selectedTask.assigneeDetails?.initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{selectedTask.assigneeDetails?.name}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium">Due Date</h3>
+                    <p className="mt-1 text-sm">{selectedTask.dueDate}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium">Department</h3>
+                    <p className="mt-1 text-sm">{selectedTask.department}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium">Priority</h3>
+                    <div className="mt-1">
+                      <PriorityBadge priority={selectedTask.priority} />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium">Attachments</h3>
+                    <div className="mt-1">
+                      {selectedTask.attachmentsRequired === "required" ? (
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700">Required</Badge>
+                      ) : selectedTask.attachmentsRequired === "optional" ? (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700">Optional</Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">None</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {(selectedTask.attachmentsRequired === "required" || selectedTask.attachmentsRequired === "optional") && (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-medium mb-2">Uploaded Attachments</h3>
+                    
+                    {(!selectedTask.attachments || selectedTask.attachments.length === 0) ? (
+                      <p className="text-sm text-muted-foreground">No attachments uploaded yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {selectedTask.attachments.map((attachment) => (
+                          <div key={attachment.id} className="flex items-center justify-between p-2 border rounded-md">
+                            <div className="flex items-center gap-2">
+                              <Paperclip className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">{attachment.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {attachment.fileSize} • Uploaded on {new Date(attachment.uploadDate).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <Button variant="ghost" size="sm" className="h-8 px-2">
+                              Download
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="mt-4">
+                      <h3 className="text-sm font-medium mb-2">Upload New Attachments</h3>
+                      <div className="grid gap-2">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="task-attachments" className="cursor-pointer">
+                            <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-muted/50 transition-colors">
+                              <Upload className="h-4 w-4" />
+                              <span>Select files</span>
+                            </div>
+                          </Label>
+                          <input
+                            type="file"
+                            id="task-attachments"
+                            multiple
+                            className="hidden"
+                            onChange={handleFileSelect}
+                          />
+                          {selectedFiles.length > 0 && (
+                            <Button 
+                              size="sm"
+                              onClick={() => handleAttachmentUpload(selectedTask)}
+                            >
+                              Upload {selectedFiles.length} file(s)
+                            </Button>
+                          )}
+                        </div>
+                        
+                        {selectedFiles.length > 0 && (
+                          <div className="space-y-2 mt-2">
+                            {selectedFiles.map((file, index) => (
+                              <div key={index} className="flex items-center justify-between p-2 border rounded-md">
+                                <div className="flex items-center gap-2">
+                                  <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                  <div>
+                                    <p className="text-sm font-medium">{file.name}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {Math.round(file.size / 1024)} KB • {file.type || 'Unknown type'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => removeFile(index)}>
+                                  Remove
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Close</Button>
+                </DialogClose>
+                {selectedTask.status !== "completed" && (
+                  <Button onClick={() => handleCompleteTask(selectedTask)}>
+                    Mark as Completed
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-// Tasks Table Component
-const TasksTable = ({ tasks }: { tasks: Task[] }) => {
+const TasksTable = ({ tasks, onViewTask }: { tasks: Task[], onViewTask: (task: Task) => void }) => {
   return (
     <Card className="border-border">
       <CardHeader className="excel-header py-2">
@@ -492,12 +741,17 @@ const TasksTable = ({ tasks }: { tasks: Task[] }) => {
                 <th className="px-4 py-2 font-medium">Priority</th>
                 <th className="px-4 py-2 font-medium">Status</th>
                 <th className="px-4 py-2 font-medium">Recurring</th>
+                <th className="px-4 py-2 font-medium">Attachments</th>
               </tr>
             </thead>
             <tbody>
               {tasks.length > 0 ? (
                 tasks.map((task) => (
-                  <tr key={task.id} className="excel-row border-b border-border">
+                  <tr 
+                    key={task.id} 
+                    className="excel-row border-b border-border cursor-pointer hover:bg-muted/30"
+                    onClick={() => onViewTask(task)}
+                  >
                     <td className="px-4 py-2">
                       <div>
                         <div className="font-medium">{task.title}</div>
@@ -541,11 +795,26 @@ const TasksTable = ({ tasks }: { tasks: Task[] }) => {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </td>
+                    <td className="px-4 py-2">
+                      {task.attachmentsRequired === 'required' || task.attachmentsRequired === 'optional' ? (
+                        <div className="flex items-center gap-1">
+                          <Paperclip className="h-3 w-3 text-muted-foreground" />
+                          <span className="capitalize">{task.attachmentsRequired}</span>
+                          {task.attachments && task.attachments.length > 0 && (
+                            <Badge variant="secondary" className="ml-1 text-xs">
+                              {task.attachments.length}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                     No tasks found matching your criteria.
                   </td>
                 </tr>
@@ -558,7 +827,6 @@ const TasksTable = ({ tasks }: { tasks: Task[] }) => {
   );
 };
 
-// Priority Badge Component
 const PriorityBadge = ({ priority }: { priority: string }) => {
   switch (priority) {
     case 'low':
@@ -572,7 +840,6 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
   }
 };
 
-// Status Badge Component
 const StatusBadge = ({ status }: { status: string }) => {
   switch (status) {
     case 'not-started':

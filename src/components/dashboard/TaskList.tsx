@@ -1,5 +1,4 @@
-
-import { CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, Paperclip } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +14,7 @@ interface Task {
     avatar?: string;
     initials: string;
   };
+  attachmentsRequired?: 'required' | 'optional' | 'none';
 }
 
 interface TaskListProps {
@@ -44,6 +44,21 @@ export function TaskList({ tasks }: TaskListProps) {
     }
   };
 
+  const getAttachmentBadge = (attachmentsRequired?: Task['attachmentsRequired']) => {
+    switch (attachmentsRequired) {
+      case 'required':
+        return <Badge variant="outline" className="bg-purple-50 text-purple-700 hover:bg-purple-100 flex items-center gap-1">
+          <Paperclip className="h-3 w-3" /> Required
+        </Badge>;
+      case 'optional':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100 flex items-center gap-1">
+          <Paperclip className="h-3 w-3" /> Optional
+        </Badge>;
+      default:
+        return null;
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -60,6 +75,7 @@ export function TaskList({ tasks }: TaskListProps) {
                   <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                     <span>Due: {task.dueDate}</span>
                     {getPriorityBadge(task.priority)}
+                    {getAttachmentBadge(task.attachmentsRequired)}
                   </div>
                 </div>
               </div>
