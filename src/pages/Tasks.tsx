@@ -1,22 +1,22 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, Calendar, CalendarCheck, User, Paperclip, Upload } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Search, Plus, Filter, Calendar, CalendarCheck, User, Paperclip, Upload, FileText, Database, PieChart, FileUp, History } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "@/hooks/use-toast";
-import { TaskList } from "@/components/dashboard/TaskList";
+import { TaskList, DocumentRevision, TaskDocument } from "@/components/dashboard/TaskList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const taskFormSchema = z.object({
   title: z.string().min(3, { message: "Task title must be at least 3 characters." }),
@@ -33,6 +33,9 @@ const taskFormSchema = z.object({
   attachmentsRequired: z.enum(["none", "optional", "required"], { 
     message: "Please select attachment requirement" 
   }).default("none"),
+  hasSOP: z.boolean().default(false),
+  hasDataFormat: z.boolean().default(false),
+  hasReportFormat: z.boolean().default(false),
 });
 
 type Task = z.infer<typeof taskFormSchema> & { 
@@ -53,6 +56,7 @@ type Task = z.infer<typeof taskFormSchema> & {
     uploadDate: string;
     fileSize: string;
   }[];
+  documents?: TaskDocument[];
 };
 
 const departmentOptions = ["Quality", "Production", "Engineering", "HR", "Finance", "IT", "Sales", "Marketing"];
@@ -137,6 +141,14 @@ const Tasks = () => {
   const [isTaskViewOpen, setIsTaskViewOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  
+  // New states for document management
+  const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
+  const [documentType, setDocumentType] = useState<'sop' | 'dataFormat' | 'reportFormat' | null>(null);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentVersion, setDocumentVersion] = useState('');
+  const [isRevisionHistoryOpen, setIsRevisionHistoryOpen] = useState(false);
+  const [currentDocument, setCurrentDocument] = useState<TaskDocument | null>(null);
 
   const form = useForm<z.infer<typeof taskFormSchema>>({
     resolver: zodResolver(taskFormSchema),
@@ -151,6 +163,9 @@ const Tasks = () => {
       isRecurring: false,
       recurringFrequency: "",
       attachmentsRequired: "none",
+      hasSOP: false,
+      hasDataFormat: false,
+      hasReportFormat: false,
     }
   });
 
@@ -166,6 +181,29 @@ const Tasks = () => {
   const handleAddTask = (data: z.infer<typeof taskFormSchema>) => {
     const assigneeData = employeesData.find(emp => emp.id === data.assignee);
     
+    const documents: TaskDocument[] = [];
+    
+    if (data.hasSOP) {
+      documents.push({
+        documentType: 'sop',
+        revisions: [],
+      });
+    }
+    
+    if (data.hasDataFormat) {
+      documents.push({
+        documentType: 'dataFormat',
+        revisions: [],
+      });
+    }
+    
+    if (data.hasReportFormat) {
+      documents.push({
+        documentType: 'reportFormat',
+        revisions: [],
+      });
+    }
+    
     const newTask: Task = {
       id: `t${tasks.length + 1}`,
       ...data,
@@ -177,7 +215,8 @@ const Tasks = () => {
         department: assigneeData.department,
         position: assigneeData.position,
       } : undefined,
-      attachments: []
+      attachments: [],
+      documents: documents.length > 0 ? documents : undefined
     };
     
     setTasks([...tasks, newTask]);
@@ -195,6 +234,12 @@ const Tasks = () => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       setSelectedFiles(prev => [...prev, ...filesArray]);
+    }
+  };
+  
+  const handleDocumentFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setDocumentFile(e.target.files[0]);
     }
   };
 
@@ -270,6 +315,107 @@ const Tasks = () => {
       description: `${selectedFiles.length} file(s) have been uploaded successfully.`
     });
   };
+  
+  const handleAddDocument = (taskId: string) => {
+    if (!documentType || !documentFile || !documentVersion.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide document type, file and version number.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const documentTypeLabels = {
+      'sop': 'Standard Operating Procedure',
+      'dataFormat': 'Data Recording Format',
+      'reportFormat': 'Reporting Format'
+    };
+    
+    const newRevision: DocumentRevision = {
+      id: `doc-${Date.now()}`,
+      fileName: documentFile.name,
+      version: documentVersion,
+      uploadDate: new Date().toISOString(),
+      uploadedBy: "Current User",
+      fileSize: `${Math.round(documentFile.size / 1024)} KB`,
+    };
+    
+    const updatedTasks = tasks.map(t => {
+      if (t.id === taskId) {
+        const existingDocuments = [...(t.documents || [])];
+        const documentIndex = existingDocuments.findIndex(doc => doc.documentType === documentType);
+        
+        if (documentIndex >= 0) {
+          // Update existing document type with new revision
+          existingDocuments[documentIndex] = {
+            ...existingDocuments[documentIndex],
+            revisions: [...existingDocuments[documentIndex].revisions, newRevision],
+            currentRevisionId: newRevision.id
+          };
+        } else {
+          // Add new document type
+          existingDocuments.push({
+            documentType: documentType,
+            revisions: [newRevision],
+            currentRevisionId: newRevision.id
+          });
+        }
+        
+        return {
+          ...t,
+          documents: existingDocuments
+        };
+      }
+      return t;
+    });
+    
+    setTasks(updatedTasks);
+    setDocumentFile(null);
+    setDocumentVersion('');
+    setDocumentType(null);
+    setIsDocumentDialogOpen(false);
+    
+    toast({
+      title: "Document Added",
+      description: `${documentTypeLabels[documentType]} document (version ${documentVersion}) has been added successfully.`
+    });
+  };
+  
+  const handleViewRevisionHistory = (document: TaskDocument) => {
+    setCurrentDocument(document);
+    setIsRevisionHistoryOpen(true);
+  };
+  
+  const handleSetCurrentRevision = (task: Task, documentType: string, revisionId: string) => {
+    const updatedTasks = tasks.map(t => {
+      if (t.id === task.id) {
+        const updatedDocuments = t.documents?.map(doc => {
+          if (doc.documentType === documentType) {
+            return {
+              ...doc,
+              currentRevisionId: revisionId
+            };
+          }
+          return doc;
+        });
+        
+        return {
+          ...t,
+          documents: updatedDocuments
+        };
+      }
+      return t;
+    });
+    
+    setTasks(updatedTasks);
+    setIsRevisionHistoryOpen(false);
+    
+    toast({
+      title: "Revision Updated",
+      description: "Current document revision has been updated."
+    });
+  };
 
   const filterTasks = () => {
     return tasks.filter(task => {
@@ -292,6 +438,24 @@ const Tasks = () => {
   };
 
   const filteredTasks = filterTasks();
+  
+  const getDocumentTypeLabel = (type: string): string => {
+    switch (type) {
+      case 'sop': return 'Standard Operating Procedure (SOP)';
+      case 'dataFormat': return 'Data Recording Format';
+      case 'reportFormat': return 'Reporting Format';
+      default: return 'Document';
+    }
+  };
+  
+  const getDocumentTypeIcon = (type: string) => {
+    switch (type) {
+      case 'sop': return <FileText className="h-5 w-5 text-green-500" />;
+      case 'dataFormat': return <Database className="h-5 w-5 text-blue-500" />;
+      case 'reportFormat': return <PieChart className="h-5 w-5 text-amber-500" />;
+      default: return <FileText className="h-5 w-5" />;
+    }
+  };
   
   return (
     <div className="space-y-6">
@@ -524,6 +688,80 @@ const Tasks = () => {
                 )}
               />
               
+              <div className="border rounded-md p-4 space-y-4">
+                <h3 className="text-sm font-medium">Task Documents</h3>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="hasSOP"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Standard Operating Procedure (SOP)
+                          </FormLabel>
+                          <FormDescription>
+                            Include SOP document with this task
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="hasDataFormat"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Data Recording Format
+                          </FormLabel>
+                          <FormDescription>
+                            Include data recording format document with this task
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="hasReportFormat"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Reporting Format
+                          </FormLabel>
+                          <FormDescription>
+                            Include reporting format document with this task
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
               {form.watch("isRecurring") && (
                 <FormField
                   control={form.control}
@@ -626,234 +864,61 @@ const Tasks = () => {
                   </div>
                 </div>
                 
-                {(selectedTask.attachmentsRequired === "required" || selectedTask.attachmentsRequired === "optional") && (
-                  <div className="mt-4">
-                    <h3 className="text-sm font-medium mb-2">Uploaded Attachments</h3>
-                    
-                    {(!selectedTask.attachments || selectedTask.attachments.length === 0) ? (
-                      <p className="text-sm text-muted-foreground">No attachments uploaded yet.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {selectedTask.attachments.map((attachment) => (
-                          <div key={attachment.id} className="flex items-center justify-between p-2 border rounded-md">
-                            <div className="flex items-center gap-2">
-                              <Paperclip className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <p className="text-sm font-medium">{attachment.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {attachment.fileSize} • Uploaded on {new Date(attachment.uploadDate).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-                            <Button variant="ghost" size="sm" className="h-8 px-2">
-                              Download
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <div className="mt-4">
-                      <h3 className="text-sm font-medium mb-2">Upload New Attachments</h3>
-                      <div className="grid gap-2">
-                        <div className="flex items-center gap-2">
-                          <Label htmlFor="task-attachments" className="cursor-pointer">
-                            <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-muted/50 transition-colors">
-                              <Upload className="h-4 w-4" />
-                              <span>Select files</span>
-                            </div>
-                          </Label>
-                          <input
-                            type="file"
-                            id="task-attachments"
-                            multiple
-                            className="hidden"
-                            onChange={handleFileSelect}
-                          />
-                          {selectedFiles.length > 0 && (
-                            <Button 
-                              size="sm"
-                              onClick={() => handleAttachmentUpload(selectedTask)}
-                            >
-                              Upload {selectedFiles.length} file(s)
-                            </Button>
-                          )}
-                        </div>
-                        
-                        {selectedFiles.length > 0 && (
-                          <div className="space-y-2 mt-2">
-                            {selectedFiles.map((file, index) => (
-                              <div key={index} className="flex items-center justify-between p-2 border rounded-md">
-                                <div className="flex items-center gap-2">
-                                  <Paperclip className="h-4 w-4 text-muted-foreground" />
-                                  <div>
-                                    <p className="text-sm font-medium">{file.name}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {Math.round(file.size / 1024)} KB • {file.type || 'Unknown type'}
-                                    </p>
-                                  </div>
-                                </div>
-                                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => removeFile(index)}>
-                                  Remove
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                {/* Task Documents Section */}
+                {selectedTask.documents && selectedTask.documents.length > 0 && (
+                  <div className="border rounded-md p-4 mt-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium">Task Documents</h3>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 px-2 text-xs"
+                        onClick={() => {
+                          setDocumentType(null);
+                          setIsDocumentDialogOpen(true);
+                        }}
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        Add Document
+                      </Button>
                     </div>
-                  </div>
-                )}
-              </div>
-              
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Close</Button>
-                </DialogClose>
-                {selectedTask.status !== "completed" && (
-                  <Button onClick={() => handleCompleteTask(selectedTask)}>
-                    Mark as Completed
-                  </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-const TasksTable = ({ tasks, onViewTask }: { tasks: Task[], onViewTask: (task: Task) => void }) => {
-  return (
-    <Card className="border-border">
-      <CardHeader className="excel-header py-2">
-        <CardTitle className="text-lg">Tasks</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="border-border">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="excel-header border-b border-border text-left">
-                <th className="px-4 py-2 font-medium">Task</th>
-                <th className="px-4 py-2 font-medium">Department</th>
-                <th className="px-4 py-2 font-medium">Assignee</th>
-                <th className="px-4 py-2 font-medium w-[150px]">Due Date</th>
-                <th className="px-4 py-2 font-medium">Priority</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 font-medium">Recurring</th>
-                <th className="px-4 py-2 font-medium">Attachments</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.length > 0 ? (
-                tasks.map((task) => (
-                  <tr 
-                    key={task.id} 
-                    className="excel-row border-b border-border cursor-pointer hover:bg-muted/30"
-                    onClick={() => onViewTask(task)}
-                  >
-                    <td className="px-4 py-2">
-                      <div>
-                        <div className="font-medium">{task.title}</div>
-                        <div className="text-sm text-muted-foreground truncate max-w-[300px]">{task.description}</div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-2">{task.department}</td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={task.assigneeDetails?.avatar} />
-                          <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                            {task.assigneeDetails?.initials}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="text-sm font-medium">{task.assigneeDetails?.name}</div>
-                          <div className="text-xs text-muted-foreground">{task.assigneeDetails?.position}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        <span>{task.dueDate}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-2">
-                      <PriorityBadge priority={task.priority} />
-                    </td>
-                    <td className="px-4 py-2">
-                      <StatusBadge status={task.status} />
-                    </td>
-                    <td className="px-4 py-2">
-                      {task.isRecurring ? (
-                        <div className="flex items-center gap-1">
-                          <CalendarCheck className="h-3 w-3 text-blue-500" />
-                          <span className="capitalize">{task.recurringFrequency}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      {task.attachmentsRequired === 'required' || task.attachmentsRequired === 'optional' ? (
-                        <div className="flex items-center gap-1">
-                          <Paperclip className="h-3 w-3 text-muted-foreground" />
-                          <span className="capitalize">{task.attachmentsRequired}</span>
-                          {task.attachments && task.attachments.length > 0 && (
-                            <Badge variant="secondary" className="ml-1 text-xs">
-                              {task.attachments.length}
-                            </Badge>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
-                    No tasks found matching your criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-const PriorityBadge = ({ priority }: { priority: string }) => {
-  switch (priority) {
-    case 'low':
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100">Low</Badge>;
-    case 'medium':
-      return <Badge variant="outline" className="bg-amber-50 text-amber-700 hover:bg-amber-100">Medium</Badge>;
-    case 'high':
-      return <Badge variant="outline" className="bg-red-50 text-red-700 hover:bg-red-100">High</Badge>;
-    default:
-      return <Badge variant="outline">Unknown</Badge>;
-  }
-};
-
-const StatusBadge = ({ status }: { status: string }) => {
-  switch (status) {
-    case 'not-started':
-      return <Badge variant="outline" className="bg-gray-50 text-gray-700 hover:bg-gray-100">Not Started</Badge>;
-    case 'in-progress':
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100">In Progress</Badge>;
-    case 'completed':
-      return <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100">Completed</Badge>;
-    case 'overdue':
-      return <Badge variant="outline" className="bg-red-50 text-red-700 hover:bg-red-100">Overdue</Badge>;
-    default:
-      return <Badge variant="outline">Unknown</Badge>;
-  }
-};
-
-export default Tasks;
+                    
+                    <Accordion type="single" collapsible className="w-full">
+                      {selectedTask.documents.map((doc, index) => {
+                        const currentRevision = doc.revisions.find(rev => rev.id === doc.currentRevisionId);
+                        const label = getDocumentTypeLabel(doc.documentType);
+                        const icon = getDocumentTypeIcon(doc.documentType);
+                        
+                        return (
+                          <AccordionItem key={index} value={`item-${index}`}>
+                            <AccordionTrigger className="py-2">
+                              <div className="flex items-center gap-2">
+                                {icon}
+                                <span>{label}</span>
+                                {currentRevision && (
+                                  <Badge variant="outline" className="ml-2 text-xs bg-gray-50">
+                                    v{currentRevision.version}
+                                  </Badge>
+                                )}
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="py-2 space-y-3">
+                                {!currentRevision ? (
+                                  <div className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
+                                    <span className="text-sm text-muted-foreground">No document uploaded yet</span>
+                                    <Button 
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setDocumentType(doc.documentType);
+                                        setIsDocumentDialogOpen(true);
+                                      }}
+                                    >
+                                      <FileUp className="h-3.5 w-3.5 mr-1.5" />
+                                      Upload
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="

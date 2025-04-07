@@ -1,8 +1,24 @@
 
-import { CheckCircle, Clock, AlertCircle, Paperclip } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+export interface DocumentRevision {
+  id: string;
+  fileName: string;
+  version: string;
+  uploadDate: string;
+  uploadedBy: string;
+  fileSize: string;
+  fileUrl?: string;
+}
+
+export interface TaskDocument {
+  documentType: 'sop' | 'dataFormat' | 'reportFormat';
+  revisions: DocumentRevision[];
+  currentRevisionId?: string;
+}
 
 interface Task {
   id: string;
@@ -16,6 +32,7 @@ interface Task {
     initials: string;
   };
   attachmentsRequired?: 'required' | 'optional' | 'none';
+  documents?: TaskDocument[];
 }
 
 interface TaskListProps {
@@ -60,6 +77,36 @@ export function TaskList({ tasks }: TaskListProps) {
     }
   };
 
+  const getDocumentBadges = (documents?: TaskDocument[]) => {
+    if (!documents || documents.length === 0) return null;
+    
+    const documentTypes = {
+      sop: documents.find(doc => doc.documentType === 'sop'),
+      dataFormat: documents.find(doc => doc.documentType === 'dataFormat'),
+      reportFormat: documents.find(doc => doc.documentType === 'reportFormat')
+    };
+
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {documentTypes.sop && (
+          <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100 flex items-center gap-1">
+            <FileText className="h-3 w-3" /> SOP
+          </Badge>
+        )}
+        {documentTypes.dataFormat && (
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100 flex items-center gap-1">
+            <Database className="h-3 w-3" /> Data Format
+          </Badge>
+        )}
+        {documentTypes.reportFormat && (
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 hover:bg-amber-100 flex items-center gap-1">
+            <PieChart className="h-3 w-3" /> Report Format
+          </Badge>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -77,6 +124,7 @@ export function TaskList({ tasks }: TaskListProps) {
                     <span>Due: {task.dueDate}</span>
                     {getPriorityBadge(task.priority)}
                     {getAttachmentBadge(task.attachmentsRequired)}
+                    {getDocumentBadges(task.documents)}
                   </div>
                 </div>
               </div>
