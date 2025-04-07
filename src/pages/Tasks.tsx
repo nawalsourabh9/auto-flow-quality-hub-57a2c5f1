@@ -1,8 +1,9 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, FileText, Database, PieChart, FileUp, History, CheckCircle, UserCheck } from "lucide-react";
+import { Search, Plus, FileText, Database, PieChart, FileUp, History, CheckCircle, User } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,9 +39,6 @@ const taskFormSchema = z.object({
   attachmentsRequired: z.enum(["none", "optional", "required"], { 
     message: "Please select attachment requirement" 
   }).default("none"),
-  hasSOP: z.boolean().default(false),
-  hasDataFormat: z.boolean().default(false),
-  hasReportFormat: z.boolean().default(false),
   isCustomerRelated: z.boolean().default(false),
   customerName: z.string().optional(),
 });
@@ -177,12 +175,18 @@ const Tasks = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   
+  // Document upload states
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [documentType, setDocumentType] = useState<'sop' | 'dataFormat' | 'reportFormat' | null>(null);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentVersion, setDocumentVersion] = useState('');
   const [isRevisionHistoryOpen, setIsRevisionHistoryOpen] = useState(false);
   const [currentDocument, setCurrentDocument] = useState<TaskDocument | null>(null);
+  const [documentFiles, setDocumentFiles] = useState<{
+    type: 'sop' | 'dataFormat' | 'reportFormat';
+    file: File;
+    version: string;
+  }[]>([]);
 
   const form = useForm<z.infer<typeof taskFormSchema>>({
     resolver: zodResolver(taskFormSchema),
@@ -197,9 +201,6 @@ const Tasks = () => {
       isRecurring: false,
       recurringFrequency: "",
       attachmentsRequired: "none",
-      hasSOP: false,
-      hasDataFormat: false,
-      hasReportFormat: false,
       isCustomerRelated: isCustomerTasksView,
       customerName: "",
     }
@@ -213,32 +214,58 @@ const Tasks = () => {
     form.setValue("department", value);
     form.setValue("assignee", "");
   };
+  
+  const handleDocumentFileSelect = (
+    type: 'sop' | 'dataFormat' | 'reportFormat', 
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Check if this document type already exists
+      const existingIndex = documentFiles.findIndex(doc => doc.type === type);
+      
+      if (existingIndex >= 0) {
+        // Replace existing document
+        setDocumentFiles(prev => [
+          ...prev.slice(0, existingIndex),
+          { type, file, version: '1.0' },
+          ...prev.slice(existingIndex + 1)
+        ]);
+      } else {
+        // Add new document
+        setDocumentFiles(prev => [
+          ...prev,
+          { type, file, version: '1.0' }
+        ]);
+      }
+    }
+  };
+  
+  const removeDocumentFile = (type: 'sop' | 'dataFormat' | 'reportFormat') => {
+    setDocumentFiles(prev => prev.filter(doc => doc.type !== type));
+  };
 
   const handleAddTask = (data: z.infer<typeof taskFormSchema>) => {
     const assigneeData = employeesData.find(emp => emp.id === data.assignee);
     
-    const documents: TaskDocument[] = [];
-    
-    if (data.hasSOP) {
-      documents.push({
-        documentType: 'sop',
-        revisions: [],
-      });
-    }
-    
-    if (data.hasDataFormat) {
-      documents.push({
-        documentType: 'dataFormat',
-        revisions: [],
-      });
-    }
-    
-    if (data.hasReportFormat) {
-      documents.push({
-        documentType: 'reportFormat',
-        revisions: [],
-      });
-    }
+    // Create documents from the uploaded files
+    const documents: TaskDocument[] = documentFiles.map(docFile => {
+      const newRevision: DocumentRevision = {
+        id: `doc-${Date.now()}-${docFile.type}`,
+        fileName: docFile.file.name,
+        version: docFile.version,
+        uploadDate: new Date().toISOString(),
+        uploadedBy: "Current User",
+        fileSize: `${Math.round(docFile.file.size / 1024)} KB`,
+      };
+      
+      return {
+        documentType: docFile.type,
+        revisions: [newRevision],
+        currentRevisionId: newRevision.id
+      };
+    });
     
     const newTask: Task = {
       id: `t${tasks.length + 1}`,
@@ -270,6 +297,7 @@ const Tasks = () => {
     setIsAddDialogOpen(false);
     form.reset();
     setSelectedFiles([]);
+    setDocumentFiles([]);
     
     toast({
       title: data.isCustomerRelated ? "Customer Task Created" : "Task Created",
@@ -284,7 +312,7 @@ const Tasks = () => {
     }
   };
   
-  const handleDocumentFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSingleDocumentFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setDocumentFile(e.target.files[0]);
     }
@@ -394,12 +422,14 @@ const Tasks = () => {
         const documentIndex = existingDocuments.findIndex(doc => doc.documentType === documentType);
         
         if (documentIndex >= 0) {
+          // Update existing document type with new revision
           existingDocuments[documentIndex] = {
             ...existingDocuments[documentIndex],
             revisions: [...existingDocuments[documentIndex].revisions, newRevision],
             currentRevisionId: newRevision.id
           };
         } else {
+          // Add new document type
           existingDocuments.push({
             documentType: documentType,
             revisions: [newRevision],
@@ -521,7 +551,7 @@ const Tasks = () => {
       {isCustomerTasksView && (
         <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
           <div className="bg-blue-100 p-1 rounded-full">
-            <UserCheck className="h-4 w-4 text-blue-700" />
+            <User className="h-4 w-4 text-blue-700" />
           </div>
           <p className="text-sm text-blue-800">
             Customer tasks are prioritized for immediate attention. These tasks directly impact customer satisfaction and service levels.
@@ -599,6 +629,9 @@ const Tasks = () => {
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
             <DialogTitle>Add New {form.watch("isCustomerRelated") ? "Customer Task" : "Task"}</DialogTitle>
+            <DialogDescription>
+              Create a new task and assign it to a team member. You can upload task-related documents after creating the task.
+            </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleAddTask)} className="space-y-4">
@@ -795,77 +828,128 @@ const Tasks = () => {
                 )}
               />
               
-              <div className="border rounded-md p-4 space-y-4">
-                <h3 className="text-sm font-medium">Task Documents</h3>
+              <div className="border rounded-md p-4">
+                <h3 className="text-sm font-medium mb-4">Task Documents</h3>
                 <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="hasSOP"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>
-                            Standard Operating Procedure (SOP)
-                          </FormLabel>
-                          <FormDescription>
-                            Include SOP document with this task
-                          </FormDescription>
-                        </div>
-                      </FormItem>
+                  {/* SOP Document Upload */}
+                  <div className="flex items-center justify-between p-3 border rounded-md bg-gray-50">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-green-500" />
+                      <div>
+                        <h4 className="text-sm font-medium">Standard Operating Procedure (SOP)</h4>
+                        <p className="text-xs text-muted-foreground">Upload the SOP document if applicable</p>
+                      </div>
+                    </div>
+                    {documentFiles.find(doc => doc.type === 'sop') ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">
+                          {documentFiles.find(doc => doc.type === 'sop')?.file.name}
+                        </span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => removeDocumentFile('sop')}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <Input
+                          id="sop-upload"
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx"
+                          onChange={(e) => handleDocumentFileSelect('sop', e)}
+                        />
+                        <Label htmlFor="sop-upload" className="cursor-pointer">
+                          <Button type="button" variant="outline" size="sm">
+                            Upload
+                          </Button>
+                        </Label>
+                      </div>
                     )}
-                  />
+                  </div>
                   
-                  <FormField
-                    control={form.control}
-                    name="hasDataFormat"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>
-                            Data Recording Format
-                          </FormLabel>
-                          <FormDescription>
-                            Include data recording format document with this task
-                          </FormDescription>
-                        </div>
-                      </FormItem>
+                  {/* Data Format Document Upload */}
+                  <div className="flex items-center justify-between p-3 border rounded-md bg-gray-50">
+                    <div className="flex items-center gap-2">
+                      <Database className="h-5 w-5 text-blue-500" />
+                      <div>
+                        <h4 className="text-sm font-medium">Data Recording Format</h4>
+                        <p className="text-xs text-muted-foreground">Upload data recording template if applicable</p>
+                      </div>
+                    </div>
+                    {documentFiles.find(doc => doc.type === 'dataFormat') ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">
+                          {documentFiles.find(doc => doc.type === 'dataFormat')?.file.name}
+                        </span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => removeDocumentFile('dataFormat')}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <Input
+                          id="data-format-upload"
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx,.xlsx,.xls,.csv"
+                          onChange={(e) => handleDocumentFileSelect('dataFormat', e)}
+                        />
+                        <Label htmlFor="data-format-upload" className="cursor-pointer">
+                          <Button type="button" variant="outline" size="sm">
+                            Upload
+                          </Button>
+                        </Label>
+                      </div>
                     )}
-                  />
+                  </div>
                   
-                  <FormField
-                    control={form.control}
-                    name="hasReportFormat"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>
-                            Reporting Format
-                          </FormLabel>
-                          <FormDescription>
-                            Include reporting format document with this task
-                          </FormDescription>
-                        </div>
-                      </FormItem>
+                  {/* Report Format Document Upload */}
+                  <div className="flex items-center justify-between p-3 border rounded-md bg-gray-50">
+                    <div className="flex items-center gap-2">
+                      <PieChart className="h-5 w-5 text-amber-500" />
+                      <div>
+                        <h4 className="text-sm font-medium">Reporting Format</h4>
+                        <p className="text-xs text-muted-foreground">Upload reporting template if applicable</p>
+                      </div>
+                    </div>
+                    {documentFiles.find(doc => doc.type === 'reportFormat') ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">
+                          {documentFiles.find(doc => doc.type === 'reportFormat')?.file.name}
+                        </span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => removeDocumentFile('reportFormat')}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <Input
+                          id="report-format-upload"
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx,.xlsx,.xls,.ppt,.pptx"
+                          onChange={(e) => handleDocumentFileSelect('reportFormat', e)}
+                        />
+                        <Label htmlFor="report-format-upload" className="cursor-pointer">
+                          <Button type="button" variant="outline" size="sm">
+                            Upload
+                          </Button>
+                        </Label>
+                      </div>
                     )}
-                  />
+                  </div>
                 </div>
               </div>
               
@@ -907,6 +991,7 @@ const Tasks = () => {
         </DialogContent>
       </Dialog>
       
+      {/* View Task Dialog */}
       <Dialog open={isTaskViewOpen} onOpenChange={setIsTaskViewOpen}>
         <DialogContent className="sm:max-w-[650px]">
           {selectedTask && (
@@ -978,6 +1063,7 @@ const Tasks = () => {
                   </div>
                 </div>
                 
+                {/* Task Documents Section */}
                 {selectedTask.documents && selectedTask.documents.length > 0 && (
                   <div className="border rounded-md p-4 mt-2">
                     <div className="flex items-center justify-between mb-2">
@@ -1117,6 +1203,121 @@ const Tasks = () => {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Upload Dialog */}
+      <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+            <DialogDescription>
+              Add or update a document for this task
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="document-type">Document Type</Label>
+              <Select value={documentType || ''} onValueChange={(value: any) => setDocumentType(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select document type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sop">Standard Operating Procedure (SOP)</SelectItem>
+                  <SelectItem value="dataFormat">Data Recording Format</SelectItem>
+                  <SelectItem value="reportFormat">Reporting Format</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="document-file">Document File</Label>
+              <Input 
+                id="document-file" 
+                type="file" 
+                onChange={handleSingleDocumentFileSelect} 
+                accept=".pdf,.doc,.docx,.xlsx,.xls,.ppt,.pptx,.csv"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="document-version">Version</Label>
+              <Input 
+                id="document-version" 
+                value={documentVersion}
+                onChange={(e) => setDocumentVersion(e.target.value)}
+                placeholder="e.g., 1.0, 2.1"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDocumentDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => selectedTask && handleAddDocument(selectedTask.id)}>
+              Upload Document
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Revision History Dialog */}
+      <Dialog open={isRevisionHistoryOpen} onOpenChange={setIsRevisionHistoryOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Document Revision History</DialogTitle>
+          </DialogHeader>
+          
+          {currentDocument && currentDocument.revisions.length > 0 ? (
+            <div className="space-y-4 py-2">
+              <p className="text-sm font-medium">
+                {getDocumentTypeLabel(currentDocument.documentType)}
+              </p>
+              
+              <div className="border rounded-md divide-y">
+                {[...currentDocument.revisions].reverse().map((revision, index) => (
+                  <div key={index} className="p-3 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium">{revision.fileName}</span>
+                        <Badge variant="outline" className="text-xs bg-gray-50">v{revision.version}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Uploaded on {new Date(revision.uploadDate).toLocaleDateString()} • {revision.fileSize}
+                      </p>
+                    </div>
+                    
+                    {revision.id === currentDocument.currentRevisionId ? (
+                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Current</Badge>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => selectedTask && handleSetCurrentRevision(
+                          selectedTask, 
+                          currentDocument.documentType, 
+                          revision.id
+                        )}
+                      >
+                        Set as Current
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-muted-foreground py-4">No revision history available.</p>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setIsRevisionHistoryOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
