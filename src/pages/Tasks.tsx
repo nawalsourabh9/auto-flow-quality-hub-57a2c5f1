@@ -44,7 +44,6 @@ const taskFormSchema = z.object({
   customerName: z.string().optional(),
 });
 
-// Hierarchical departments data structure
 const departmentsData = [
   {
     id: "quality",
@@ -100,13 +99,11 @@ const departmentsData = [
   }
 ];
 
-// Flatten departments for filtering and create departmentOptions
 const flatDepartments = [
   ...departmentsData.map(d => ({ id: d.id, name: d.name })),
   ...departmentsData.flatMap(d => d.subDepartments)
 ];
 
-// Create department options for filtering
 const departmentOptions = flatDepartments.map(dept => dept.name);
 
 const employeesData = [
@@ -242,7 +239,6 @@ const Tasks = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   
-  // Document upload states
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [documentType, setDocumentType] = useState<'sop' | 'dataFormat' | 'reportFormat' | null>(null);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -275,17 +271,14 @@ const Tasks = () => {
   });
 
   const getEmployeesByDepartment = (departmentId: string) => {
-    // Check if it's a main department or a subdepartment
     const dept = departmentsData.find(d => d.id === departmentId);
     
     if (dept) {
-      // If it's a main department, get all employees from this department and its subdepartments
       return employeesData.filter(emp => 
         emp.department === departmentId || 
         dept.subDepartments.some(sub => sub.id === emp.subDepartment)
       );
     } else {
-      // It might be a subdepartment
       return employeesData.filter(emp => emp.subDepartment === departmentId);
     }
   };
@@ -297,18 +290,15 @@ const Tasks = () => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
-      // Check if this document type already exists
       const existingIndex = documentFiles.findIndex(doc => doc.type === type);
       
       if (existingIndex >= 0) {
-        // Replace existing document
         setDocumentFiles(prev => [
           ...prev.slice(0, existingIndex),
           { type, file, version: '1.0' },
           ...prev.slice(existingIndex + 1)
         ]);
       } else {
-        // Add new document
         setDocumentFiles(prev => [
           ...prev,
           { type, file, version: '1.0' }
@@ -326,19 +316,16 @@ const Tasks = () => {
     let departmentName = "";
     
     if (data.assignType === "employee" && data.assignee) {
-      // Directly assigned to an employee
       assigneeData = employeesData.find(emp => emp.id === data.assignee);
       if (assigneeData) {
         const dept = flatDepartments.find(d => d.id === assigneeData?.department);
         departmentName = dept?.name || "";
       }
     } else if (data.assignType === "department" && data.department) {
-      // Assigned to a department
       const dept = flatDepartments.find(d => d.id === data.department);
       departmentName = dept?.name || "";
     }
     
-    // Create documents from the uploaded files
     const documents: TaskDocument[] = documentFiles.map(docFile => {
       const newRevision: DocumentRevision = {
         id: `doc-${Date.now()}-${docFile.type}`,
@@ -516,14 +503,12 @@ const Tasks = () => {
         const documentIndex = existingDocuments.findIndex(doc => doc.documentType === documentType);
         
         if (documentIndex >= 0) {
-          // Update existing document type with new revision
           existingDocuments[documentIndex] = {
             ...existingDocuments[documentIndex],
             revisions: [...existingDocuments[documentIndex].revisions, newRevision],
             currentRevisionId: newRevision.id
           };
         } else {
-          // Add new document type
           existingDocuments.push({
             documentType: documentType,
             revisions: [newRevision],
@@ -883,4 +868,237 @@ const Tasks = () => {
                             <SelectValue placeholder="Select employee" />
                           </SelectTrigger>
                         </FormControl>
-                        <Select
+                        <SelectContent>
+                          {employeesData.map(employee => (
+                            <SelectItem key={employee.id} value={employee.id}>
+                              {employee.name} - {employee.position}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              
+              <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Priority</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Due Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="isRecurring"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Recurring Task</FormLabel>
+                      <FormDescription>
+                        Set if this task should repeat on a schedule
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {form.watch("isRecurring") && (
+                <FormField
+                  control={form.control}
+                  name="recurringFrequency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Frequency</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="quarterly">Quarterly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <FormField
+                control={form.control}
+                name="attachmentsRequired"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Attachments</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select attachment requirement" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Not Required</SelectItem>
+                        <SelectItem value="optional">Optional</SelectItem>
+                        <SelectItem value="required">Required</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="pt-6">
+                <h3 className="text-sm font-medium mb-2">Task Documents</h3>
+                
+                <div className="space-y-2">
+                  <div className="border rounded-md p-3">
+                    <h4 className="text-sm font-medium flex items-center gap-2 mb-2">
+                      <FileText className="h-4 w-4 text-green-600" />
+                      Standard Operating Procedure (SOP)
+                    </h4>
+                    {documentFiles.find(doc => doc.type === 'sop') ? (
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-muted-foreground">
+                          {documentFiles.find(doc => doc.type === 'sop')?.file.name} (v{documentFiles.find(doc => doc.type === 'sop')?.version})
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeDocumentFile('sop')}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          onChange={(e) => handleDocumentFileSelect('sop', e)}
+                          className="text-xs h-8"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="border rounded-md p-3">
+                    <h4 className="text-sm font-medium flex items-center gap-2 mb-2">
+                      <Database className="h-4 w-4 text-blue-600" />
+                      Data Recording Format
+                    </h4>
+                    {documentFiles.find(doc => doc.type === 'dataFormat') ? (
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-muted-foreground">
+                          {documentFiles.find(doc => doc.type === 'dataFormat')?.file.name} (v{documentFiles.find(doc => doc.type === 'dataFormat')?.version})
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeDocumentFile('dataFormat')}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          onChange={(e) => handleDocumentFileSelect('dataFormat', e)}
+                          className="text-xs h-8"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="border rounded-md p-3">
+                    <h4 className="text-sm font-medium flex items-center gap-2 mb-2">
+                      <PieChart className="h-4 w-4 text-amber-600" />
+                      Reporting Format
+                    </h4>
+                    {documentFiles.find(doc => doc.type === 'reportFormat') ? (
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-muted-foreground">
+                          {documentFiles.find(doc => doc.type === 'reportFormat')?.file.name} (v{documentFiles.find(doc => doc.type === 'reportFormat')?.version})
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeDocumentFile('reportFormat')}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          onChange={(e) => handleDocumentFileSelect('reportFormat', e)}
+                          className="text-xs h-8"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Create Task
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Tasks;
