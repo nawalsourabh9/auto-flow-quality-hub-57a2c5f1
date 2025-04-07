@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Plus, FileText, Database, PieChart, FileUp, History, CheckCircle, User } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,12 +23,14 @@ import TasksTable from "@/components/tasks/TaskTable";
 import StatusBadge from "@/components/tasks/StatusBadge";
 import PriorityBadge from "@/components/tasks/PriorityBadge";
 import { Task } from "@/types/task";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const taskFormSchema = z.object({
   title: z.string().min(3, { message: "Task title must be at least 3 characters." }),
   description: z.string().min(5, { message: "Description must be at least 5 characters." }),
-  department: z.string().min(1, { message: "Please select a department." }),
-  assignee: z.string().min(1, { message: "Please select an assignee." }),
+  assignType: z.enum(["department", "employee"], { message: "Please select assignment type." }),
+  department: z.string().optional(),
+  assignee: z.string().optional(),
   priority: z.enum(["low", "medium", "high"], { message: "Please select a priority level." }),
   dueDate: z.string().min(1, { message: "Due date is required." }),
   status: z.enum(["not-started", "in-progress", "completed", "overdue"], { 
@@ -43,14 +45,77 @@ const taskFormSchema = z.object({
   customerName: z.string().optional(),
 });
 
-const departmentOptions = ["Quality", "Production", "Engineering", "HR", "Finance", "IT", "Sales", "Marketing"];
+// Hierarchical departments data structure
+const departmentsData = [
+  {
+    id: "quality",
+    name: "Quality",
+    subDepartments: [
+      { id: "quality-control", name: "Quality Control" },
+      { id: "quality-assurance", name: "Quality Assurance" },
+      { id: "lab", name: "Laboratory" },
+    ]
+  },
+  {
+    id: "production",
+    name: "Production",
+    subDepartments: [
+      { id: "assembly", name: "Assembly" },
+      { id: "machining", name: "Machining" },
+      { id: "packaging", name: "Packaging" },
+    ]
+  },
+  {
+    id: "engineering",
+    name: "Engineering",
+    subDepartments: [
+      { id: "design", name: "Design" },
+      { id: "process", name: "Process Engineering" },
+      { id: "maintenance", name: "Maintenance" },
+    ]
+  },
+  {
+    id: "hr",
+    name: "HR",
+    subDepartments: []
+  },
+  {
+    id: "finance",
+    name: "Finance",
+    subDepartments: []
+  },
+  {
+    id: "it",
+    name: "IT",
+    subDepartments: []
+  },
+  {
+    id: "sales",
+    name: "Sales",
+    subDepartments: []
+  },
+  {
+    id: "marketing",
+    name: "Marketing",
+    subDepartments: []
+  }
+];
+
+// Flatten departments for filtering
+const flatDepartments = [
+  ...departmentsData.map(d => ({ id: d.id, name: d.name })),
+  ...departmentsData.flatMap(d => d.subDepartments)
+];
 
 const employeesData = [
-  { id: "1", name: "John Doe", department: "Quality", position: "Quality Manager", initials: "JD", avatar: "" },
-  { id: "2", name: "Jane Smith", department: "Production", position: "Production Lead", initials: "JS", avatar: "" },
-  { id: "3", name: "Robert Johnson", department: "Engineering", position: "Design Engineer", initials: "RJ", avatar: "" },
-  { id: "4", name: "Emily Davis", department: "Quality", position: "Quality Analyst", initials: "ED", avatar: "" },
-  { id: "5", name: "Michael Brown", department: "IT", position: "IT Support", initials: "MB", avatar: "" },
+  { id: "1", name: "John Doe", department: "quality", subDepartment: "quality-control", position: "Quality Manager", initials: "JD", avatar: "" },
+  { id: "2", name: "Jane Smith", department: "production", subDepartment: "assembly", position: "Production Lead", initials: "JS", avatar: "" },
+  { id: "3", name: "Robert Johnson", department: "engineering", subDepartment: "design", position: "Design Engineer", initials: "RJ", avatar: "" },
+  { id: "4", name: "Emily Davis", department: "quality", subDepartment: "quality-assurance", position: "Quality Analyst", initials: "ED", avatar: "" },
+  { id: "5", name: "Michael Brown", department: "it", position: "IT Support", initials: "MB", avatar: "" },
+  { id: "6", name: "Sarah Wilson", department: "quality", subDepartment: "lab", position: "Lab Technician", initials: "SW", avatar: "" },
+  { id: "7", name: "David Miller", department: "production", subDepartment: "machining", position: "Machine Operator", initials: "DM", avatar: "" },
+  { id: "8", name: "Lisa Taylor", department: "hr", position: "HR Specialist", initials: "LT", avatar: "" },
 ];
 
 const initialTasks: Task[] = [
@@ -193,6 +258,7 @@ const Tasks = () => {
     defaultValues: {
       title: "",
       description: "",
+      assignType: "department",
       department: "",
       assignee: "",
       priority: "medium",
@@ -206,13 +272,20 @@ const Tasks = () => {
     }
   });
 
-  const getEmployeesByDepartment = (department: string) => {
-    return employeesData.filter(emp => emp.department === department);
-  };
-
-  const handleDepartmentChange = (value: string) => {
-    form.setValue("department", value);
-    form.setValue("assignee", "");
+  const getEmployeesByDepartment = (departmentId: string) => {
+    // Check if it's a main department or a subdepartment
+    const dept = departmentsData.find(d => d.id === departmentId);
+    
+    if (dept) {
+      // If it's a main department, get all employees from this department and its subdepartments
+      return employeesData.filter(emp => 
+        emp.department === departmentId || 
+        dept.subDepartments.some(sub => sub.id === emp.subDepartment)
+      );
+    } else {
+      // It might be a subdepartment
+      return employeesData.filter(emp => emp.subDepartment === departmentId);
+    }
   };
   
   const handleDocumentFileSelect = (
@@ -247,7 +320,21 @@ const Tasks = () => {
   };
 
   const handleAddTask = (data: z.infer<typeof taskFormSchema>) => {
-    const assigneeData = employeesData.find(emp => emp.id === data.assignee);
+    let assigneeData;
+    let departmentName = "";
+    
+    if (data.assignType === "employee" && data.assignee) {
+      // Directly assigned to an employee
+      assigneeData = employeesData.find(emp => emp.id === data.assignee);
+      if (assigneeData) {
+        const dept = flatDepartments.find(d => d.id === assigneeData?.department);
+        departmentName = dept?.name || "";
+      }
+    } else if (data.assignType === "department" && data.department) {
+      // Assigned to a department
+      const dept = flatDepartments.find(d => d.id === data.department);
+      departmentName = dept?.name || "";
+    }
     
     // Create documents from the uploaded files
     const documents: TaskDocument[] = documentFiles.map(docFile => {
@@ -271,8 +358,8 @@ const Tasks = () => {
       id: `t${tasks.length + 1}`,
       title: data.title,
       description: data.description,
-      department: data.department,
-      assignee: data.assignee,
+      department: departmentName,
+      assignee: data.assignee || "",
       priority: data.priority,
       dueDate: data.dueDate,
       status: data.status,
@@ -286,8 +373,13 @@ const Tasks = () => {
         name: assigneeData.name,
         initials: assigneeData.initials,
         avatar: assigneeData.avatar,
-        department: assigneeData.department,
+        department: departmentName,
         position: assigneeData.position,
+      } : data.assignType === "department" ? {
+        name: departmentName,
+        initials: departmentName.substring(0, 2).toUpperCase(),
+        department: departmentName,
+        position: "Department",
       } : undefined,
       attachments: [],
       documents: documents.length > 0 ? documents : undefined
@@ -630,7 +722,7 @@ const Tasks = () => {
           <DialogHeader>
             <DialogTitle>Add New {form.watch("isCustomerRelated") ? "Customer Task" : "Task"}</DialogTitle>
             <DialogDescription>
-              Create a new task and assign it to a team member. You can upload task-related documents after creating the task.
+              Create a new task and assign it to a department or team member. You can upload task-related documents.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -706,7 +798,34 @@ const Tasks = () => {
                 />
               )}
               
-              <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="assignType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assignment Type</FormLabel>
+                    <FormControl>
+                      <RadioGroup 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        className="flex space-x-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="department" id="department" />
+                          <Label htmlFor="department">Assign to Department</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="employee" id="employee" />
+                          <Label htmlFor="employee">Assign to Employee</Label>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {form.watch("assignType") === "department" && (
                 <FormField
                   control={form.control}
                   name="department"
@@ -714,7 +833,7 @@ const Tasks = () => {
                     <FormItem>
                       <FormLabel>Department</FormLabel>
                       <Select
-                        onValueChange={(value) => handleDepartmentChange(value)}
+                        onValueChange={field.onChange}
                         value={field.value}
                       >
                         <FormControl>
@@ -723,8 +842,23 @@ const Tasks = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {departmentOptions.map(dept => (
-                            <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                          {departmentsData.map(dept => (
+                            <React.Fragment key={dept.id}>
+                              <SelectItem value={dept.id}>{dept.name}</SelectItem>
+                              {dept.subDepartments.length > 0 && (
+                                <SelectGroup>
+                                  {dept.subDepartments.map(subDept => (
+                                    <SelectItem 
+                                      key={subDept.id} 
+                                      value={subDept.id}
+                                      className="pl-6"
+                                    >
+                                      {subDept.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              )}
+                            </React.Fragment>
                           ))}
                         </SelectContent>
                       </Select>
@@ -732,7 +866,9 @@ const Tasks = () => {
                     </FormItem>
                   )}
                 />
+              )}
                 
+              {form.watch("assignType") === "employee" && (
                 <FormField
                   control={form.control}
                   name="assignee"
@@ -746,22 +882,38 @@ const Tasks = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {form.watch("department") ? 
-                            getEmployeesByDepartment(form.watch("department")).map(emp => (
-                              <SelectItem key={emp.id} value={emp.id}>
-                                {emp.name} - {emp.position}
-                              </SelectItem>
-                            ))
-                            : 
-                            <SelectItem value="no-selection" disabled>Select department first</SelectItem>
-                          }
+                          {departmentsData.map(dept => (
+                            <SelectGroup key={dept.id}>
+                              <SelectLabel>{dept.name}</SelectLabel>
+                              {getEmployeesByDepartment(dept.id).map(emp => (
+                                <SelectItem key={emp.id} value={emp.id}>
+                                  {emp.name} - {emp.position}
+                                </SelectItem>
+                              ))}
+                              {dept.subDepartments.map(subDept => {
+                                const subDeptEmployees = getEmployeesByDepartment(subDept.id);
+                                if (subDeptEmployees.length === 0) return null;
+                                
+                                return (
+                                  <React.Fragment key={subDept.id}>
+                                    <SelectLabel className="pl-4">{subDept.name}</SelectLabel>
+                                    {subDeptEmployees.map(emp => (
+                                      <SelectItem key={emp.id} value={emp.id} className="pl-8">
+                                        {emp.name} - {emp.position}
+                                      </SelectItem>
+                                    ))}
+                                  </React.Fragment>
+                                );
+                              })}
+                            </SelectGroup>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
+              )}
               
               <div className="grid grid-cols-2 gap-4">
                 <FormField
