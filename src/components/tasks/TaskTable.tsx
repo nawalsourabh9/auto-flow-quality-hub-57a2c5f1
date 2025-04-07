@@ -1,44 +1,13 @@
-
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart, Eye } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart } from "lucide-react";
 import { TaskDocument } from "@/components/dashboard/TaskList";
+import { Task } from "@/types/task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DocumentViewer from "@/components/tasks/DocumentViewer";
-
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  department: string;
-  assignee: string;
-  priority: 'low' | 'medium' | 'high';
-  dueDate: string;
-  status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
-  createdAt: string;
-  isRecurring: boolean;
-  recurringFrequency?: string;
-  attachmentsRequired: 'none' | 'optional' | 'required';
-  assigneeDetails?: {
-    name: string;
-    avatar?: string;
-    initials: string;
-    department: string;
-    position: string;
-  };
-  attachments?: {
-    id: string;
-    name: string;
-    fileType: string;
-    uploadedBy: string;
-    uploadDate: string;
-    fileSize: string;
-  }[];
-  documents?: TaskDocument[];
-}
 
 interface TasksTableProps {
   tasks: Task[];
