@@ -18,8 +18,8 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="excel-toolbar flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <SidebarTrigger />
           <div className="hidden md:block">
@@ -28,7 +28,7 @@ export function Header() {
               <Input
                 type="search"
                 placeholder="Search..."
-                className="w-[200px] pl-8 md:w-[300px] rounded-full bg-muted"
+                className="w-[200px] pl-8 md:w-[300px] rounded-sm bg-white border-border focus-visible:ring-primary"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -37,28 +37,28 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" className="relative">
+          <Button variant="outline" size="icon" className="relative border-border hover:bg-accent">
             <Bell className="h-4 w-4" />
-            <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-eqms-danger"></span>
+            <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary"></span>
           </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-accent">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="" alt="User" />
-                  <AvatarFallback className="bg-eqms-blue text-white">JD</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-white">JD</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="bg-background border-border">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Help</DropdownMenuItem>
+              <DropdownMenuItem className="hover:bg-accent">Profile</DropdownMenuItem>
+              <DropdownMenuItem className="hover:bg-accent">Settings</DropdownMenuItem>
+              <DropdownMenuItem className="hover:bg-accent">Help</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Log out</DropdownMenuItem>
+              <DropdownMenuItem className="hover:bg-accent">Log out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -63,17 +63,18 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom EQMS colors
-				eqms: {
-					blue: '#0056b3',
-					lightBlue: '#007bff',
-					darkBlue: '#003b7a',
-					gray: '#495057',
-					lightGray: '#e9ecef',
-					success: '#28a745',
-					warning: '#ffc107',
-					danger: '#dc3545',
-					info: '#17a2b8'
+				// Excel-inspired colors
+				excel: {
+					orange: '#F25C05',
+					darkOrange: '#D44A00',
+					lightOrange: '#FFD0B5',
+					darkGray: '#323130',
+					mediumGray: '#605E5C',
+					lightGray: '#F3F2F1',
+					white: '#FFFFFF',
+					ribbon: '#F3F2F1',
+					selected: '#EDEBE9',
+					hover: '#F3F2F1'
 				}
 			},
 			borderRadius: {
