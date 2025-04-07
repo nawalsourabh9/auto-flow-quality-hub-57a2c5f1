@@ -1,12 +1,16 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { TaskDocument } from "@/components/dashboard/TaskList";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Calendar, User, FileType } from "lucide-react";
+import { FileText, Download, Calendar, User, FileType, History, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
+import { Task } from "@/types/task";
 
 interface DocumentViewerProps {
   task: {
@@ -17,9 +21,21 @@ interface DocumentViewerProps {
     };
   };
   document: TaskDocument;
+  onUpdateRevision?: (documentType: string, revisionId: string) => void;
+  onAddNewRevision?: (documentType: string, fileName: string, version: string) => void;
 }
 
-const DocumentViewer: React.FC<DocumentViewerProps> = ({ task, document }) => {
+const DocumentViewer: React.FC<DocumentViewerProps> = ({ 
+  task, 
+  document, 
+  onUpdateRevision,
+  onAddNewRevision
+}) => {
+  const [isNewRevisionDialogOpen, setIsNewRevisionDialogOpen] = useState(false);
+  const [newRevisionFile, setNewRevisionFile] = useState<File | null>(null);
+  const [newRevisionVersion, setNewRevisionVersion] = useState('');
+  const [newRevisionNotes, setNewRevisionNotes] = useState('');
+
   // Find the current revision or use the latest one
   const currentRevision = document.currentRevisionId
     ? document.revisions.find(rev => rev.id === document.currentRevisionId)
@@ -41,6 +57,31 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ task, document }) => {
     );
   }
 
+  const handleNewRevisionSubmit = () => {
+    if (!newRevisionFile || !newRevisionVersion) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide both file and version number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (onAddNewRevision) {
+      onAddNewRevision(document.documentType, newRevisionFile.name, newRevisionVersion);
+      setIsNewRevisionDialogOpen(false);
+      setNewRevisionFile(null);
+      setNewRevisionVersion('');
+      setNewRevisionNotes('');
+    }
+  };
+
+  const handleSetCurrentRevision = (revisionId: string) => {
+    if (onUpdateRevision) {
+      onUpdateRevision(document.documentType, revisionId);
+    }
+  };
+
   // For this demo, we don't have actual document content to display
   // In a real application, you would fetch and render the document content here
   return (
@@ -53,9 +94,21 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ task, document }) => {
               Assigned to: {task.assigneeDetails?.name || "Unassigned"}
             </p>
           </div>
-          <Badge variant="outline" className="bg-blue-50 text-blue-700">
-            {documentTypeLabel}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-blue-50 text-blue-700">
+              {documentTypeLabel}
+            </Badge>
+            {onAddNewRevision && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setIsNewRevisionDialogOpen(true)}
+                className="flex items-center gap-1"
+              >
+                <History className="h-4 w-4" /> New Revision
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -69,6 +122,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ task, document }) => {
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-blue-600" />
               <span className="font-medium">{currentRevision.fileName}</span>
+              <Badge variant="outline">v{currentRevision.version}</Badge>
             </div>
             <Button size="sm" variant="outline" className="flex items-center gap-1">
               <Download className="h-4 w-4" /> Download
@@ -204,6 +258,15 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ task, document }) => {
               </div>
             </div>
             
+            {currentRevision.notes && (
+              <div>
+                <p className="text-sm font-medium">Revision Notes</p>
+                <p className="text-sm text-muted-foreground p-2 bg-gray-50 rounded border mt-1">
+                  {currentRevision.notes}
+                </p>
+              </div>
+            )}
+            
             <div className="mt-4">
               <h3 className="text-sm font-medium mb-2">Revision History</h3>
               <div className="border rounded">
@@ -213,6 +276,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ task, document }) => {
                       <th className="text-left p-2">Version</th>
                       <th className="text-left p-2">Date</th>
                       <th className="text-left p-2">User</th>
+                      <th className="text-left p-2">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -221,6 +285,22 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ task, document }) => {
                         <td className="p-2">v{rev.version}</td>
                         <td className="p-2">{new Date(rev.uploadDate).toLocaleDateString()}</td>
                         <td className="p-2">{rev.uploadedBy}</td>
+                        <td className="p-2">
+                          {rev.id !== currentRevision.id && onUpdateRevision ? (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 px-2"
+                              onClick={() => handleSetCurrentRevision(rev.id)}
+                            >
+                              Set Current
+                            </Button>
+                          ) : (
+                            <span className="text-xs flex items-center gap-1 text-green-600">
+                              <CheckCircle className="h-3 w-3" /> Current
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -230,6 +310,55 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ task, document }) => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isNewRevisionDialogOpen} onOpenChange={setIsNewRevisionDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Upload New Document Revision</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Document Type</label>
+              <Input value={documentTypeLabel} disabled />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Current Version</label>
+              <Input value={`v${currentRevision.version}`} disabled />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">New Version Number</label>
+              <Input 
+                placeholder="e.g., 1.2" 
+                value={newRevisionVersion} 
+                onChange={(e) => setNewRevisionVersion(e.target.value)} 
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Upload File</label>
+              <Input 
+                type="file" 
+                onChange={(e) => e.target.files && setNewRevisionFile(e.target.files[0])} 
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Revision Notes</label>
+              <Input 
+                placeholder="What changed in this revision" 
+                value={newRevisionNotes} 
+                onChange={(e) => setNewRevisionNotes(e.target.value)} 
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewRevisionDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" onClick={handleNewRevisionSubmit}>
+              Upload Revision
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

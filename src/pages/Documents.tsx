@@ -3,13 +3,16 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, FileText, Database, PieChart, Filter } from "lucide-react";
+import { Search, FileText, Database, PieChart, Filter, Plus, Upload, History } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TaskDocument } from "@/components/dashboard/TaskList";
 import { Task } from "@/types/task";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import DocumentViewer from "@/components/tasks/DocumentViewer";
+import { toast } from "@/hooks/use-toast";
 
 // Sample data for initial documents display
 const initialTasks: Task[] = [
@@ -40,13 +43,31 @@ const initialTasks: Task[] = [
           {
             id: "doc-1",
             fileName: "Assembly_Line_A_Quality_Check_SOP.pdf",
+            version: "1.0",
+            uploadDate: "2025-03-01",
+            uploadedBy: "John Doe",
+            fileSize: "1.0 MB",
+          },
+          {
+            id: "doc-1-rev1",
+            fileName: "Assembly_Line_A_Quality_Check_SOP.pdf",
+            version: "1.1",
+            uploadDate: "2025-03-10",
+            uploadedBy: "John Doe",
+            fileSize: "1.1 MB",
+            notes: "Updated inspection criteria based on new standards"
+          },
+          {
+            id: "doc-1-rev2",
+            fileName: "Assembly_Line_A_Quality_Check_SOP.pdf",
             version: "1.2",
             uploadDate: "2025-03-15",
             uploadedBy: "John Doe",
             fileSize: "1.2 MB",
+            notes: "Added section on safety procedures"
           }
         ],
-        currentRevisionId: "doc-1"
+        currentRevisionId: "doc-1-rev2"
       }
     ]
   },
@@ -91,22 +112,42 @@ const initialTasks: Task[] = [
           {
             id: "doc-3",
             fileName: "Complaint_Investigation_Report_Template.docx",
+            version: "2.0",
+            uploadDate: "2025-04-01",
+            uploadedBy: "Emily Davis",
+            fileSize: "700 KB",
+          },
+          {
+            id: "doc-3-rev1",
+            fileName: "Complaint_Investigation_Report_Template.docx",
             version: "2.1",
             uploadDate: "2025-04-06",
             uploadedBy: "John Doe",
             fileSize: "750 KB",
+            notes: "Updated to include root cause analysis section"
           }
         ],
-        currentRevisionId: "doc-3"
+        currentRevisionId: "doc-3-rev1"
       }
     ]
   }
 ];
 
 const Documents = () => {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [searchTerm, setSearchTerm] = useState("");
   const [documentType, setDocumentType] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState("all");
+  const [viewingDocument, setViewingDocument] = useState<{
+    task: Task,
+    document: TaskDocument
+  } | null>(null);
+  
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [newDocumentType, setNewDocumentType] = useState<'sop' | 'dataFormat' | 'reportFormat' | null>(null);
+  const [newDocumentTask, setNewDocumentTask] = useState<string>("");
+  const [newDocumentFile, setNewDocumentFile] = useState<File | null>(null);
+  const [newDocumentVersion, setNewDocumentVersion] = useState('1.0');
 
   // Extract all documents from tasks
   const getAllDocuments = () => {
@@ -122,9 +163,13 @@ const Documents = () => {
       department: string;
       isCustomerRelated: boolean;
       customerName?: string;
+      revisions: any[];
+      revisionCount: number;
+      task: Task;
+      document: TaskDocument;
     }[] = [];
 
-    initialTasks.forEach(task => {
+    tasks.forEach(task => {
       if (task.documents && task.documents.length > 0) {
         task.documents.forEach(doc => {
           const currentRevision = doc.revisions.find(rev => rev.id === doc.currentRevisionId);
@@ -140,7 +185,11 @@ const Documents = () => {
               uploadedBy: currentRevision.uploadedBy,
               department: task.department,
               isCustomerRelated: task.isCustomerRelated || false,
-              customerName: task.customerName
+              customerName: task.customerName,
+              revisions: doc.revisions,
+              revisionCount: doc.revisions.length,
+              task: task,
+              document: doc
             });
           }
         });
@@ -190,6 +239,140 @@ const Documents = () => {
       default: return 'Document';
     }
   };
+  
+  const handleUpdateRevision = (taskId: string, documentType: string, revisionId: string) => {
+    const updatedTasks = tasks.map(task => {
+      if (task.id === taskId && task.documents) {
+        const updatedDocs = task.documents.map(doc => {
+          if (doc.documentType === documentType) {
+            return {
+              ...doc,
+              currentRevisionId: revisionId
+            };
+          }
+          return doc;
+        });
+        
+        return {
+          ...task,
+          documents: updatedDocs
+        };
+      }
+      return task;
+    });
+    
+    setTasks(updatedTasks);
+    toast({
+      title: "Revision Updated",
+      description: "Document revision has been updated successfully"
+    });
+  };
+  
+  const handleAddNewRevision = (taskId: string, documentType: string, fileName: string, version: string) => {
+    const updatedTasks = tasks.map(task => {
+      if (task.id === taskId && task.documents) {
+        const updatedDocs = task.documents.map(doc => {
+          if (doc.documentType === documentType) {
+            const newRevision = {
+              id: `doc-${Date.now()}`,
+              fileName,
+              version,
+              uploadDate: new Date().toISOString(),
+              uploadedBy: "Current User",
+              fileSize: "1.0 MB", // Mock file size
+            };
+            
+            return {
+              ...doc,
+              revisions: [...doc.revisions, newRevision],
+              currentRevisionId: newRevision.id
+            };
+          }
+          return doc;
+        });
+        
+        return {
+          ...task,
+          documents: updatedDocs
+        };
+      }
+      return task;
+    });
+    
+    setTasks(updatedTasks);
+    toast({
+      title: "New Revision Added",
+      description: `Version ${version} has been added successfully`
+    });
+  };
+  
+  const handleUploadNewDocument = () => {
+    if (!newDocumentType || !newDocumentTask || !newDocumentFile || !newDocumentVersion) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide all required information",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const targetTask = tasks.find(task => task.id === newDocumentTask);
+    if (!targetTask) {
+      toast({
+        title: "Invalid Task",
+        description: "Selected task could not be found",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check if document type already exists for this task
+    if (targetTask.documents?.some(doc => doc.documentType === newDocumentType)) {
+      toast({
+        title: "Document Already Exists",
+        description: `This task already has a ${getDocumentTypeLabel(newDocumentType)}. You can add a new revision instead.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const newRevision = {
+      id: `doc-${Date.now()}`,
+      fileName: newDocumentFile.name,
+      version: newDocumentVersion,
+      uploadDate: new Date().toISOString(),
+      uploadedBy: "Current User",
+      fileSize: `${Math.round(newDocumentFile.size / 1024)} KB`,
+    };
+    
+    const newDocument: TaskDocument = {
+      documentType: newDocumentType,
+      revisions: [newRevision],
+      currentRevisionId: newRevision.id
+    };
+    
+    const updatedTasks = tasks.map(task => {
+      if (task.id === newDocumentTask) {
+        return {
+          ...task,
+          documents: [...(task.documents || []), newDocument]
+        };
+      }
+      return task;
+    });
+    
+    setTasks(updatedTasks);
+    setIsUploadDialogOpen(false);
+    setNewDocumentType(null);
+    setNewDocumentTask("");
+    setNewDocumentFile(null);
+    setNewDocumentVersion('1.0');
+    
+    toast({
+      title: "Document Uploaded",
+      description: `${getDocumentTypeLabel(newDocumentType)} has been added to the task successfully`
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -229,29 +412,142 @@ const Documents = () => {
                 <SelectItem value="reportFormat">Report Formats</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              size="sm"
+              className="bg-primary hover:bg-primary/90"
+              onClick={() => setIsUploadDialogOpen(true)}
+            >
+              <Upload className="h-4 w-4 mr-1" />
+              Upload Document
+            </Button>
           </div>
         </div>
         
         <TabsContent value="all" className="mt-4">
-          <DocumentsList documents={filteredDocuments} />
+          <DocumentsList 
+            documents={filteredDocuments} 
+            onViewDocument={(doc) => setViewingDocument({ task: doc.task, document: doc.document })} 
+          />
         </TabsContent>
         
         <TabsContent value="sop" className="mt-4">
-          <DocumentsList documents={filteredDocuments} />
+          <DocumentsList 
+            documents={filteredDocuments} 
+            onViewDocument={(doc) => setViewingDocument({ task: doc.task, document: doc.document })} 
+          />
         </TabsContent>
         
         <TabsContent value="dataFormat" className="mt-4">
-          <DocumentsList documents={filteredDocuments} />
+          <DocumentsList 
+            documents={filteredDocuments} 
+            onViewDocument={(doc) => setViewingDocument({ task: doc.task, document: doc.document })} 
+          />
         </TabsContent>
         
         <TabsContent value="reportFormat" className="mt-4">
-          <DocumentsList documents={filteredDocuments} />
+          <DocumentsList 
+            documents={filteredDocuments} 
+            onViewDocument={(doc) => setViewingDocument({ task: doc.task, document: doc.document })} 
+          />
         </TabsContent>
         
         <TabsContent value="customer" className="mt-4">
-          <DocumentsList documents={filteredDocuments} />
+          <DocumentsList 
+            documents={filteredDocuments} 
+            onViewDocument={(doc) => setViewingDocument({ task: doc.task, document: doc.document })} 
+          />
         </TabsContent>
       </Tabs>
+      
+      <Dialog open={!!viewingDocument} onOpenChange={() => setViewingDocument(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Document Details</DialogTitle>
+          </DialogHeader>
+          {viewingDocument && (
+            <DocumentViewer 
+              task={viewingDocument.task} 
+              document={viewingDocument.document} 
+              onUpdateRevision={(documentType, revisionId) => {
+                handleUpdateRevision(viewingDocument.task.id, documentType, revisionId);
+              }}
+              onAddNewRevision={(documentType, fileName, version) => {
+                handleAddNewRevision(viewingDocument.task.id, documentType, fileName, version);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Upload New Document</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Document Type</label>
+              <Select 
+                value={newDocumentType || ''} 
+                onValueChange={(value) => setNewDocumentType(value as any)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select document type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sop">Standard Operating Procedure (SOP)</SelectItem>
+                  <SelectItem value="dataFormat">Data Recording Format</SelectItem>
+                  <SelectItem value="reportFormat">Reporting Format</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Related Task</label>
+              <Select 
+                value={newDocumentTask} 
+                onValueChange={setNewDocumentTask}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select related task" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tasks.map(task => (
+                    <SelectItem key={task.id} value={task.id}>
+                      {task.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Document Version</label>
+              <Input 
+                placeholder="e.g., 1.0" 
+                value={newDocumentVersion} 
+                onChange={(e) => setNewDocumentVersion(e.target.value)} 
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Upload File</label>
+              <Input 
+                type="file" 
+                onChange={(e) => e.target.files && setNewDocumentFile(e.target.files[0])} 
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" onClick={handleUploadNewDocument}>
+              Upload Document
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -269,10 +565,14 @@ interface DocumentsListProps {
     department: string;
     isCustomerRelated: boolean;
     customerName?: string;
+    revisionCount: number;
+    task: Task;
+    document: TaskDocument;
   }[];
+  onViewDocument: (document: any) => void;
 }
 
-const DocumentsList = ({ documents }: DocumentsListProps) => {
+const DocumentsList = ({ documents, onViewDocument }: DocumentsListProps) => {
   if (documents.length === 0) {
     return (
       <Card className="p-6">
@@ -331,6 +631,7 @@ const DocumentsList = ({ documents }: DocumentsListProps) => {
               <th className="p-3">Department</th>
               <th className="p-3">Version</th>
               <th className="p-3">Last Updated</th>
+              <th className="p-3">Revisions</th>
               <th className="p-3">Actions</th>
             </tr>
           </thead>
@@ -376,8 +677,19 @@ const DocumentsList = ({ documents }: DocumentsListProps) => {
                   </div>
                 </td>
                 <td className="p-3">
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 flex items-center gap-1">
+                    <History className="h-3 w-3" /> {doc.revisionCount}
+                  </Badge>
+                </td>
+                <td className="p-3">
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">View</Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => onViewDocument(doc)}
+                    >
+                      View
+                    </Button>
                     <Button variant="ghost" size="sm">Download</Button>
                   </div>
                 </td>
