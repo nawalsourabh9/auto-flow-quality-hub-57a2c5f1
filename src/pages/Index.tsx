@@ -1,9 +1,11 @@
 
-import { CheckCircle2, AlertTriangle, ClipboardList, FileCheck, Gauge, BarChart2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ClipboardList, FileCheck, Gauge, BarChart2, CalendarCheck } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TaskList } from "@/components/dashboard/TaskList";
 import { QualityMetricsChart } from "@/components/dashboard/QualityMetricsChart";
 import { DocumentsStatus } from "@/components/dashboard/DocumentsStatus";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 // Sample tasks data
 const tasks = [
@@ -64,6 +66,45 @@ const tasks = [
   },
 ];
 
+// Sample upcoming audits
+const upcomingAudits = [
+  {
+    id: "a1",
+    title: "Annual ISO 9001:2015 Internal Audit",
+    scheduledDate: "2025-04-20",
+    auditType: "internal" as const,
+    department: "Quality",
+    auditor: "Jane Smith"
+  },
+  {
+    id: "a2",
+    title: "Supplier Quality Assessment - Acme Electronics",
+    scheduledDate: "2025-04-15",
+    auditType: "supplier" as const,
+    department: "Quality",
+    auditor: "Robert Johnson"
+  },
+  {
+    id: "a3",
+    title: "IATF 16949 Surveillance Audit",
+    scheduledDate: "2025-05-10",
+    auditType: "external" as const,
+    department: "Quality",
+    auditor: "External - SGS Certification"
+  }
+];
+
+const getAuditTypeColor = (type: string): string => {
+  switch (type) {
+    case "internal": return "bg-purple-100 text-purple-800";
+    case "external": return "bg-amber-100 text-amber-800";
+    case "supplier": return "bg-blue-100 text-blue-800";
+    case "customer": return "bg-green-100 text-green-800";
+    case "regulatory": return "bg-red-100 text-red-800";
+    default: return "bg-gray-100 text-gray-800";
+  }
+};
+
 const Index = () => {
   return (
     <div className="space-y-6">
@@ -115,8 +156,38 @@ const Index = () => {
         </div>
       </div>
 
-      <div>
-        <TaskList tasks={tasks} />
+      <div className="grid gap-6 md:grid-cols-6">
+        <div className="md:col-span-4">
+          <TaskList tasks={tasks} />
+        </div>
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center">
+                <CalendarCheck className="h-5 w-5 mr-2 text-purple-600" />
+                Upcoming Audits
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {upcomingAudits.map((audit) => (
+                  <div key={audit.id} className="border-b pb-3 last:border-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-medium text-sm">{audit.title}</h3>
+                      <Badge className={getAuditTypeColor(audit.auditType)} variant="outline">
+                        {audit.auditType.charAt(0).toUpperCase() + audit.auditType.slice(1)}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{audit.department}</span>
+                      <span>{audit.scheduledDate}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

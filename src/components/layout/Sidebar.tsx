@@ -20,7 +20,8 @@ import {
   Settings,
   Users,
   BarChart2,
-  FolderTree
+  FolderTree,
+  CalendarCheck
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -47,7 +48,7 @@ const menuItems = [
   },
   {
     title: "Audits",
-    icon: CheckSquare,
+    icon: CalendarCheck,
     path: "/audits"
   },
   {

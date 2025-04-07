@@ -42,3 +42,29 @@ export interface TeamMember {
   avatar?: string;
   initials: string;
 }
+
+// Audit interface for audit management
+export interface Audit {
+  id: string;
+  title: string;
+  description: string;
+  auditType: 'internal' | 'external' | 'supplier' | 'customer' | 'regulatory';
+  department: string;
+  auditor: string;
+  scheduledDate: string;
+  status: 'scheduled' | 'in-progress' | 'completed' | 'postponed' | 'cancelled';
+  createdAt: string;
+  completedAt?: string;
+  findings?: AuditFinding[];
+}
+
+export interface AuditFinding {
+  id: string;
+  description: string;
+  severity: 'critical' | 'major' | 'minor' | 'observation';
+  status: 'open' | 'in-progress' | 'closed';
+  assignedTo?: string;
+  dueDate?: string;
+  createdAt: string;
+  closedAt?: string;
+}
