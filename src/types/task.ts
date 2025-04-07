@@ -31,3 +31,14 @@ export interface Task {
   }[];
   documents?: TaskDocument[];
 }
+
+// Team member interface for organization management
+export interface TeamMember {
+  id: number;
+  name: string;
+  email: string;
+  position: string;
+  department: number;
+  avatar?: string;
+  initials: string;
+}

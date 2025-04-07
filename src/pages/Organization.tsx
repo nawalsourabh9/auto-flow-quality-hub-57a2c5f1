@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, FolderTree, List, LayoutList } from "lucide-react";
+import { Search, Plus, Filter, FolderTree, List, LayoutList, Users } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -25,6 +25,14 @@ import {
   CollapsibleContent, 
   CollapsibleTrigger 
 } from "@/components/ui/collapsible";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { TeamMembersList } from "@/components/organization/TeamMembersList";
+import { TeamMember } from "@/types/task";
 
 // Define department types
 interface Department {
@@ -59,13 +67,29 @@ const managers = [
   { id: 8, name: "Lisa Anderson" },
 ];
 
+// Mock data for team members
+const initialTeamMembers: TeamMember[] = [
+  { id: 1, name: "John Doe", email: "john.doe@example.com", position: "CEO", department: 1, initials: "JD" },
+  { id: 2, name: "Jane Smith", email: "jane.smith@example.com", position: "Quality Director", department: 2, initials: "JS" },
+  { id: 3, name: "Robert Johnson", email: "robert.johnson@example.com", position: "Production Manager", department: 3, initials: "RJ" },
+  { id: 4, name: "Emily Davis", email: "emily.davis@example.com", position: "Engineering Lead", department: 4, initials: "ED" },
+  { id: 5, name: "Michael Brown", email: "michael.brown@example.com", position: "HR Director", department: 5, initials: "MB" },
+  { id: 6, name: "Sarah Wilson", email: "sarah.wilson@example.com", position: "Finance Manager", department: 6, initials: "SW" },
+  { id: 7, name: "David Thompson", email: "david.thompson@example.com", position: "QA Manager", department: 7, initials: "DT" },
+  { id: 8, name: "Lisa Anderson", email: "lisa.anderson@example.com", position: "QC Manager", department: 8, initials: "LA" },
+  { id: 9, name: "Kevin Chen", email: "kevin.chen@example.com", position: "QA Engineer", department: 7, initials: "KC" },
+  { id: 10, name: "Maria Garcia", email: "maria.garcia@example.com", position: "QC Specialist", department: 8, initials: "MG" },
+];
+
 const Organization = () => {
   const [departments, setDepartments] = useState<Department[]>(initialDepartments);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialTeamMembers);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newDepartment, setNewDepartment] = useState<Partial<Department>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedDepartments, setExpandedDepartments] = useState<number[]>([1]); // Default expand executive
-  const [viewMode, setViewMode] = useState<"list" | "tree">("list"); // New state for view toggle
+  const [viewMode, setViewMode] = useState<"list" | "tree">("list"); // State for view toggle
+  const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null); // For team members view
 
   // Find children of a department
   const findChildDepartments = (departmentId: number) => {
@@ -125,10 +149,40 @@ const Organization = () => {
   // Get root departments (those without parent)
   const rootDepartments = filteredDepartments.filter(dept => dept.parentDepartmentId === null);
 
+  // Team members functions
+  const getDepartmentTeamMembers = (departmentId: number) => {
+    return teamMembers.filter(member => member.department === departmentId);
+  };
+
+  const handleAddTeamMember = (newMember: Omit<TeamMember, "id">) => {
+    const member: TeamMember = {
+      ...newMember,
+      id: teamMembers.length + 1
+    };
+    setTeamMembers([...teamMembers, member]);
+  };
+
+  const handleUpdateTeamMember = (updatedMember: TeamMember) => {
+    setTeamMembers(teamMembers.map(member => 
+      member.id === updatedMember.id ? updatedMember : member
+    ));
+  };
+
+  const handleDeleteTeamMember = (memberId: number) => {
+    setTeamMembers(teamMembers.filter(member => member.id !== memberId));
+  };
+
+  // Get department name by ID
+  const getDepartmentName = (departmentId: number) => {
+    const department = departments.find(dept => dept.id === departmentId);
+    return department ? department.name : "Unknown Department";
+  };
+
   // Recursively render department tree
   const renderDepartmentTree = (department: Department, level: number = 0) => {
     const childDepartments = findChildDepartments(department.id);
     const isExpanded = expandedDepartments.includes(department.id);
+    const departmentMembers = getDepartmentTeamMembers(department.id);
     
     return (
       <div key={department.id} className="department-item">
@@ -151,8 +205,22 @@ const Organization = () => {
             <div className="text-sm text-muted-foreground">{department.description}</div>
           </div>
           
-          <div className="text-sm">
-            Manager: <span className="font-medium">{getManagerName(department.managerId)}</span>
+          <div className="text-sm flex items-center gap-3">
+            <span>
+              Manager: <span className="font-medium">{getManagerName(department.managerId)}</span>
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {departmentMembers.length} members
+            </span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 flex items-center gap-1"
+              onClick={() => setSelectedDepartment(department.id)}
+            >
+              <Users className="h-3.5 w-3.5" />
+              Manage Team
+            </Button>
           </div>
         </div>
         
@@ -164,6 +232,7 @@ const Organization = () => {
   // Render tree view item for the visual tree representation
   const renderTreeViewItem = (department: Department) => {
     const childDepartments = findChildDepartments(department.id);
+    const departmentMembers = getDepartmentTeamMembers(department.id);
     
     return (
       <div key={department.id} className="mb-2">
@@ -204,8 +273,19 @@ const Organization = () => {
               <div className="font-medium">{department.name}</div>
               <div className="flex justify-between items-center">
                 <div className="text-xs text-muted-foreground">{department.description}</div>
-                <div className="text-xs">
-                  <span className="text-muted-foreground">Manager:</span> {getManagerName(department.managerId)}
+                <div className="flex items-center gap-2">
+                  <div className="text-xs">
+                    <span className="text-muted-foreground">Manager:</span> {getManagerName(department.managerId)}
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 text-xs px-2"
+                    onClick={() => setSelectedDepartment(department.id)}
+                  >
+                    <Users className="h-3 w-3 mr-1" />
+                    <span className="whitespace-nowrap">{departmentMembers.length} members</span>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -367,6 +447,34 @@ const Organization = () => {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
             <Button onClick={handleAddDepartment}>Add Department</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Team Members Dialog */}
+      <Dialog open={selectedDepartment !== null} onOpenChange={(isOpen) => !isOpen && setSelectedDepartment(null)}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDepartment !== null && getDepartmentName(selectedDepartment)} - Team Members
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedDepartment !== null && (
+            <TeamMembersList
+              departmentId={selectedDepartment}
+              departmentName={getDepartmentName(selectedDepartment)}
+              teamMembers={getDepartmentTeamMembers(selectedDepartment)}
+              onAddMember={handleAddTeamMember}
+              onUpdateMember={handleUpdateTeamMember}
+              onDeleteMember={handleDeleteTeamMember}
+            />
+          )}
+          
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button>Close</Button>
+            </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
