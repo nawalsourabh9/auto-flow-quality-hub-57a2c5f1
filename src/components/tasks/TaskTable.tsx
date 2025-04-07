@@ -7,16 +7,31 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart, User, ExternalLink } from "lucide-react";
 import { TaskDocument } from "@/components/dashboard/TaskList";
 import { Task } from "@/types/task";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DocumentViewer from "@/components/tasks/DocumentViewer";
 import { Link } from "react-router-dom";
+import { DocumentPermissions } from "@/types/document";
 
 interface TasksTableProps {
   tasks: Task[];
   onViewTask: (task: Task) => void;
+  currentUserId?: string;
+  currentUserPermissions?: DocumentPermissions;
+  teamMembers?: Array<{
+    id: string;
+    name: string;
+    position: string;
+    initials: string;
+  }>;
 }
 
-const TasksTable: React.FC<TasksTableProps> = ({ tasks, onViewTask }) => {
+const TasksTable: React.FC<TasksTableProps> = ({ 
+  tasks, 
+  onViewTask,
+  currentUserId = "1", // Default to John Doe for demo
+  currentUserPermissions,
+  teamMembers = []
+}) => {
   const [viewingDocument, setViewingDocument] = useState<{
     task: Task,
     document: TaskDocument
@@ -83,37 +98,52 @@ const TasksTable: React.FC<TasksTableProps> = ({ tasks, onViewTask }) => {
         {documentTypes.sop && (
           <Badge 
             variant="outline" 
-            className="bg-green-50 text-green-700 hover:bg-green-100 flex items-center gap-1 cursor-pointer"
+            className={`${
+              documentTypes.sop.approvalHierarchy?.status === 'approved' ? 'bg-green-50 text-green-700' : 
+              documentTypes.sop.approvalHierarchy?.status === 'rejected' ? 'bg-red-50 text-red-700' : 
+              'bg-amber-50 text-amber-700'
+            } hover:bg-green-100 flex items-center gap-1 cursor-pointer`}
             onClick={(e) => {
               e.stopPropagation();
               setViewingDocument({ task, document: documentTypes.sop! });
             }}
           >
             <FileText className="h-3 w-3" /> SOP
+            {documentTypes.sop.approvalHierarchy?.status === 'approved' && <CheckCircle className="h-2 w-2 ml-1" />}
           </Badge>
         )}
         {documentTypes.dataFormat && (
           <Badge 
             variant="outline" 
-            className="bg-blue-50 text-blue-700 hover:bg-blue-100 flex items-center gap-1 cursor-pointer"
+            className={`${
+              documentTypes.dataFormat.approvalHierarchy?.status === 'approved' ? 'bg-green-50 text-green-700' : 
+              documentTypes.dataFormat.approvalHierarchy?.status === 'rejected' ? 'bg-red-50 text-red-700' : 
+              'bg-blue-50 text-blue-700'
+            } hover:bg-blue-100 flex items-center gap-1 cursor-pointer`}
             onClick={(e) => {
               e.stopPropagation();
               setViewingDocument({ task, document: documentTypes.dataFormat! });
             }}
           >
             <Database className="h-3 w-3" /> Data
+            {documentTypes.dataFormat.approvalHierarchy?.status === 'approved' && <CheckCircle className="h-2 w-2 ml-1" />}
           </Badge>
         )}
         {documentTypes.reportFormat && (
           <Badge 
             variant="outline" 
-            className="bg-amber-50 text-amber-700 hover:bg-amber-100 flex items-center gap-1 cursor-pointer"
+            className={`${
+              documentTypes.reportFormat.approvalHierarchy?.status === 'approved' ? 'bg-green-50 text-green-700' : 
+              documentTypes.reportFormat.approvalHierarchy?.status === 'rejected' ? 'bg-red-50 text-red-700' : 
+              'bg-amber-50 text-amber-700'
+            } hover:bg-amber-100 flex items-center gap-1 cursor-pointer`}
             onClick={(e) => {
               e.stopPropagation();
               setViewingDocument({ task, document: documentTypes.reportFormat! });
             }}
           >
             <PieChart className="h-3 w-3" /> Report
+            {documentTypes.reportFormat.approvalHierarchy?.status === 'approved' && <CheckCircle className="h-2 w-2 ml-1" />}
           </Badge>
         )}
       </div>
@@ -126,6 +156,52 @@ const TasksTable: React.FC<TasksTableProps> = ({ tasks, onViewTask }) => {
     const docIndex = task.documents.findIndex(doc => doc.documentType === documentType);
     if (docIndex >= 0) {
       task.documents[docIndex].currentRevisionId = revisionId;
+    }
+  };
+  
+  const handleUpdateApprovalStatus = (
+    task: Task, 
+    documentType: string, 
+    action: 'initiate' | 'check' | 'approve' | 'reject', 
+    reason?: string
+  ) => {
+    if (!task.documents) return;
+    
+    const docIndex = task.documents.findIndex(doc => doc.documentType === documentType);
+    if (docIndex >= 0) {
+      const doc = task.documents[docIndex];
+      const now = new Date().toISOString();
+      
+      if (!doc.approvalHierarchy) {
+        doc.approvalHierarchy = {
+          initiator: currentUserId,
+          status: 'draft'
+        };
+      }
+      
+      switch(action) {
+        case 'initiate':
+          doc.approvalHierarchy.initiatorApproved = true;
+          doc.approvalHierarchy.status = 'pending-checker';
+          doc.approvalHierarchy.initiatedAt = now;
+          break;
+        case 'check':
+          doc.approvalHierarchy.checkerApproved = true;
+          doc.approvalHierarchy.status = 'pending-approval';
+          doc.approvalHierarchy.checkedAt = now;
+          break;
+        case 'approve':
+          doc.approvalHierarchy.approverApproved = true;
+          doc.approvalHierarchy.status = 'approved';
+          doc.approvalHierarchy.approvedAt = now;
+          break;
+        case 'reject':
+          doc.approvalHierarchy.status = 'rejected';
+          doc.approvalHierarchy.rejectedAt = now;
+          doc.approvalHierarchy.rejectedBy = currentUserId;
+          doc.approvalHierarchy.rejectionReason = reason;
+          break;
+      }
     }
   };
 
@@ -213,6 +289,12 @@ const TasksTable: React.FC<TasksTableProps> = ({ tasks, onViewTask }) => {
                 document={viewingDocument.document} 
                 onUpdateRevision={(documentType, revisionId) => 
                   handleUpdateRevision(viewingDocument.task, documentType, revisionId)
+                }
+                currentUserId={currentUserId}
+                currentUserPermissions={currentUserPermissions}
+                teamMembers={teamMembers}
+                onUpdateApprovalStatus={(action, reason) => 
+                  handleUpdateApprovalStatus(viewingDocument.task, viewingDocument.document.documentType, action, reason)
                 }
               />
               

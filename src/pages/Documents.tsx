@@ -1,20 +1,77 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, FileText, Database, PieChart, Filter, Plus, Upload, History } from "lucide-react";
+import { Search, FileText, Database, PieChart, Filter, Plus, Upload, History, CheckCircle, X, AlertCircle, Clock } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TaskDocument } from "@/components/dashboard/TaskList";
 import { Task } from "@/types/task";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import DocumentViewer from "@/components/tasks/DocumentViewer";
 import { toast } from "@/hooks/use-toast";
+import { DocumentType, ApprovalHierarchy, DocumentPermissions } from "@/types/document";
+import { Textarea } from "@/components/ui/textarea";
+import { DocumentApprovalFlow } from "@/components/documents/DocumentApprovalFlow";
 
-// Sample data for initial documents display
+const documentTypes: DocumentType[] = [
+  {
+    id: "dt1",
+    name: "Standard Operating Procedure (SOP)",
+    description: "Detailed step-by-step instructions for performing specific tasks",
+    allowedDepartments: ["Quality", "Production", "Engineering"],
+    requiredApprovalLevels: ["initiator", "checker", "approver"]
+  },
+  {
+    id: "dt2",
+    name: "Data Recording Format",
+    description: "Templates for recording data during quality operations",
+    allowedDepartments: ["Quality", "Production"],
+    requiredApprovalLevels: ["initiator", "checker"]
+  },
+  {
+    id: "dt3",
+    name: "Reporting Format",
+    description: "Templates for creating standardized reports",
+    allowedDepartments: ["Quality", "Engineering", "Management"],
+    requiredApprovalLevels: ["initiator", "checker", "approver"]
+  }
+];
+
+const userDocumentPermissions: Record<string, DocumentPermissions> = {
+  "1": { // John Doe (Quality Manager)
+    canInitiate: true,
+    canCheck: true,
+    canApprove: true,
+    allowedDocumentTypes: ["dt1", "dt2", "dt3"],
+    allowedDepartments: ["Quality"]
+  },
+  "2": { // Jane Smith (Production Supervisor)
+    canInitiate: true,
+    canCheck: true,
+    canApprove: false,
+    allowedDocumentTypes: ["dt1", "dt2"],
+    allowedDepartments: ["Production"]
+  },
+  "3": { // Robert Johnson (Engineer)
+    canInitiate: true,
+    canCheck: false,
+    canApprove: false,
+    allowedDocumentTypes: ["dt1"],
+    allowedDepartments: ["Engineering"]
+  }
+};
+
+const teamMembers = [
+  { id: "1", name: "John Doe", position: "Quality Manager", department: "Quality", initials: "JD" },
+  { id: "2", name: "Jane Smith", position: "Production Supervisor", department: "Production", initials: "JS" },
+  { id: "3", name: "Robert Johnson", position: "Engineer", department: "Engineering", initials: "RJ" },
+  { id: "4", name: "Emily Davis", position: "Quality Specialist", department: "Quality", initials: "ED" },
+  { id: "5", name: "Michael Brown", position: "Plant Manager", department: "Management", initials: "MB" }
+];
+
 const initialTasks: Task[] = [
   {
     id: "t1",
@@ -67,7 +124,19 @@ const initialTasks: Task[] = [
             notes: "Added section on safety procedures"
           }
         ],
-        currentRevisionId: "doc-1-rev2"
+        currentRevisionId: "doc-1-rev2",
+        approvalHierarchy: {
+          initiator: "1", // John Doe
+          checker: "4",   // Emily Davis
+          approver: "5",  // Michael Brown
+          initiatorApproved: true,
+          checkerApproved: true,
+          approverApproved: true,
+          status: "approved",
+          initiatedAt: "2025-03-15T10:00:00Z",
+          checkedAt: "2025-03-16T14:30:00Z",
+          approvedAt: "2025-03-17T09:15:00Z"
+        }
       }
     ]
   },
@@ -104,7 +173,14 @@ const initialTasks: Task[] = [
             fileSize: "450 KB",
           }
         ],
-        currentRevisionId: "doc-2"
+        currentRevisionId: "doc-2",
+        approvalHierarchy: {
+          initiator: "1", // John Doe
+          checker: "4",   // Emily Davis
+          status: "pending-checker",
+          initiatorApproved: true,
+          initiatedAt: "2025-04-06T15:45:00Z"
+        }
       },
       {
         documentType: 'reportFormat',
@@ -127,7 +203,17 @@ const initialTasks: Task[] = [
             notes: "Updated to include root cause analysis section"
           }
         ],
-        currentRevisionId: "doc-3-rev1"
+        currentRevisionId: "doc-3-rev1",
+        approvalHierarchy: {
+          initiator: "4", // Emily Davis
+          checker: "1",   // John Doe
+          approver: "5",  // Michael Brown
+          initiatorApproved: true,
+          checkerApproved: true,
+          status: "pending-approval",
+          initiatedAt: "2025-04-06T16:30:00Z",
+          checkedAt: "2025-04-06T17:15:00Z"
+        }
       }
     ]
   }
@@ -148,8 +234,16 @@ const Documents = () => {
   const [newDocumentTask, setNewDocumentTask] = useState<string>("");
   const [newDocumentFile, setNewDocumentFile] = useState<File | null>(null);
   const [newDocumentVersion, setNewDocumentVersion] = useState('1.0');
+  const [newDocumentNotes, setNewDocumentNotes] = useState('');
+  
+  const [selectedChecker, setSelectedChecker] = useState<string | null>(null);
+  const [selectedApprover, setSelectedApprover] = useState<string | null>(null);
+  const [approvalStatus, setApprovalStatus] = useState<'draft' | 'pending-checker' | 'pending-approval'>('draft');
+  const [approvalFilterStatus, setApprovalFilterStatus] = useState<string | null>(null);
 
-  // Extract all documents from tasks
+  const currentUserId = "1";
+  const currentUserPermissions = userDocumentPermissions[currentUserId];
+
   const getAllDocuments = () => {
     const documents: {
       id: string;
@@ -163,7 +257,6 @@ const Documents = () => {
       department: string;
       isCustomerRelated: boolean;
       customerName?: string;
-      revisions: any[];
       revisionCount: number;
       task: Task;
       document: TaskDocument;
@@ -201,7 +294,6 @@ const Documents = () => {
 
   const allDocuments = getAllDocuments();
 
-  // Filter documents based on search, type, and tab selection
   const filterDocuments = () => {
     return allDocuments.filter(doc => {
       const matchesSearch = 
@@ -210,13 +302,23 @@ const Documents = () => {
       
       const matchesType = !documentType || doc.documentType === documentType;
       
-      const matchesTab = selectedTab === "all" || 
-        (selectedTab === "sop" && doc.documentType === "sop") ||
-        (selectedTab === "dataFormat" && doc.documentType === "dataFormat") ||
-        (selectedTab === "reportFormat" && doc.documentType === "reportFormat") ||
-        (selectedTab === "customer" && doc.isCustomerRelated);
+      let matchesTab = selectedTab === "all";
+      if (selectedTab === "sop") matchesTab = doc.documentType === "sop";
+      else if (selectedTab === "dataFormat") matchesTab = doc.documentType === "dataFormat";
+      else if (selectedTab === "reportFormat") matchesTab = doc.documentType === "reportFormat";
+      else if (selectedTab === "customer") matchesTab = doc.isCustomerRelated;
+      else if (selectedTab === "draft") matchesTab = doc.document.approvalHierarchy?.status === "draft";
+      else if (selectedTab === "pending") {
+        matchesTab = doc.document.approvalHierarchy?.status === "pending-checker" || 
+                    doc.document.approvalHierarchy?.status === "pending-approval";
+      }
+      else if (selectedTab === "approved") matchesTab = doc.document.approvalHierarchy?.status === "approved";
+      else if (selectedTab === "rejected") matchesTab = doc.document.approvalHierarchy?.status === "rejected";
       
-      return matchesSearch && matchesType && matchesTab;
+      const matchesApprovalStatus = !approvalFilterStatus || 
+        (doc.document.approvalHierarchy && doc.document.approvalHierarchy.status === approvalFilterStatus);
+      
+      return matchesSearch && matchesType && matchesTab && matchesApprovalStatus;
     });
   };
 
@@ -233,9 +335,9 @@ const Documents = () => {
   
   const getDocumentTypeLabel = (type: string): string => {
     switch (type) {
-      case 'sop': return 'Standard Operating Procedure (SOP)';
-      case 'dataFormat': return 'Data Recording Format';
-      case 'reportFormat': return 'Reporting Format';
+      case 'sop': return 'SOP';
+      case 'dataFormat': return 'Data Format';
+      case 'reportFormat': return 'Report Format';
       default: return 'Document';
     }
   };
@@ -279,7 +381,7 @@ const Documents = () => {
               version,
               uploadDate: new Date().toISOString(),
               uploadedBy: "Current User",
-              fileSize: "1.0 MB", // Mock file size
+              fileSize: "1.0 MB",
             };
             
             return {
@@ -305,6 +407,96 @@ const Documents = () => {
       description: `Version ${version} has been added successfully`
     });
   };
+
+  const handleUpdateApprovalStatus = (
+    taskId: string, 
+    docType: string, 
+    action: 'initiate' | 'check' | 'approve' | 'reject', 
+    reason?: string
+  ) => {
+    const updatedTasks = tasks.map(task => {
+      if (task.id === taskId) {
+        const updatedDocuments = task.documents?.map(doc => {
+          if (doc.documentType === docType) {
+            let updatedHierarchy = doc.approvalHierarchy || {
+              initiator: currentUserId,
+              status: 'draft'
+            };
+            
+            const now = new Date().toISOString();
+            
+            switch(action) {
+              case 'initiate':
+                updatedHierarchy = {
+                  ...updatedHierarchy,
+                  initiator: currentUserId,
+                  initiatorApproved: true,
+                  status: 'pending-checker',
+                  initiatedAt: now
+                };
+                break;
+              case 'check':
+                updatedHierarchy = {
+                  ...updatedHierarchy,
+                  checker: currentUserId,
+                  checkerApproved: true,
+                  status: 'pending-approval',
+                  checkedAt: now
+                };
+                break;
+              case 'approve':
+                updatedHierarchy = {
+                  ...updatedHierarchy,
+                  approver: currentUserId,
+                  approverApproved: true,
+                  status: 'approved',
+                  approvedAt: now
+                };
+                break;
+              case 'reject':
+                updatedHierarchy = {
+                  ...updatedHierarchy,
+                  status: 'rejected',
+                  rejectedAt: now,
+                  rejectedBy: currentUserId,
+                  rejectionReason: reason
+                };
+                break;
+            }
+            
+            return {
+              ...doc,
+              approvalHierarchy: updatedHierarchy
+            };
+          }
+          return doc;
+        });
+        
+        return {
+          ...task,
+          documents: updatedDocuments
+        };
+      }
+      return task;
+    });
+    
+    setTasks(updatedTasks);
+    
+    toast({
+      title: `Document ${action === 'reject' ? 'Rejected' : `${action.charAt(0).toUpperCase() + action.slice(1)}d`}`,
+      description: `Document has been successfully ${action === 'reject' ? 'rejected' : `${action}d`}`
+    });
+  };
+
+  const getUserRole = (userId: string): 'initiator' | 'checker' | 'approver' | null => {
+    const permissions = userDocumentPermissions[userId];
+    if (!permissions) return null;
+    
+    if (permissions.canApprove) return 'approver';
+    if (permissions.canCheck) return 'checker';
+    if (permissions.canInitiate) return 'initiator';
+    return null;
+  };
   
   const handleUploadNewDocument = () => {
     if (!newDocumentType || !newDocumentTask || !newDocumentFile || !newDocumentVersion) {
@@ -326,7 +518,31 @@ const Documents = () => {
       return;
     }
     
-    // Check if document type already exists for this task
+    if (!currentUserPermissions.canInitiate) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to initiate documents",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const docTypeDetails = documentTypes.find(dt => 
+      (dt.name.toLowerCase().includes(newDocumentType) || 
+      (newDocumentType === 'sop' && dt.id === 'dt1') ||
+      (newDocumentType === 'dataFormat' && dt.id === 'dt2') ||
+      (newDocumentType === 'reportFormat' && dt.id === 'dt3'))
+    );
+    
+    if (docTypeDetails && !docTypeDetails.allowedDepartments.includes(targetTask.department)) {
+      toast({
+        title: "Department Restriction",
+        description: `This document type cannot be used in the ${targetTask.department} department`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (targetTask.documents?.some(doc => doc.documentType === newDocumentType)) {
       toast({
         title: "Document Already Exists",
@@ -343,12 +559,32 @@ const Documents = () => {
       uploadDate: new Date().toISOString(),
       uploadedBy: "Current User",
       fileSize: `${Math.round(newDocumentFile.size / 1024)} KB`,
+      notes: newDocumentNotes || undefined
     };
+    
+    const approvalHierarchy: ApprovalHierarchy = {
+      initiator: currentUserId,
+      status: approvalStatus
+    };
+    
+    if (selectedChecker) {
+      approvalHierarchy.checker = selectedChecker;
+    }
+    
+    if (selectedApprover) {
+      approvalHierarchy.approver = selectedApprover;
+    }
+    
+    if (approvalStatus !== 'draft') {
+      approvalHierarchy.initiatorApproved = true;
+      approvalHierarchy.initiatedAt = new Date().toISOString();
+    }
     
     const newDocument: TaskDocument = {
       documentType: newDocumentType,
       revisions: [newRevision],
-      currentRevisionId: newRevision.id
+      currentRevisionId: newRevision.id,
+      approvalHierarchy
     };
     
     const updatedTasks = tasks.map(task => {
@@ -363,15 +599,54 @@ const Documents = () => {
     
     setTasks(updatedTasks);
     setIsUploadDialogOpen(false);
+    clearDocumentUploadForm();
+    
+    toast({
+      title: "Document Uploaded",
+      description: `${getDocumentTypeLabel(newDocumentType)} has been added to the task ${
+        approvalStatus === 'draft' ? 'as a draft' : 
+        approvalStatus === 'pending-checker' ? 'and sent for checking' : 
+        'and sent for approval'
+      }`
+    });
+  };
+  
+  const clearDocumentUploadForm = () => {
     setNewDocumentType(null);
     setNewDocumentTask("");
     setNewDocumentFile(null);
     setNewDocumentVersion('1.0');
+    setNewDocumentNotes('');
+    setSelectedChecker(null);
+    setSelectedApprover(null);
+    setApprovalStatus('draft');
+  };
+
+  const getApprovalStatusBadge = (status?: string) => {
+    if (!status) return null;
     
-    toast({
-      title: "Document Uploaded",
-      description: `${getDocumentTypeLabel(newDocumentType)} has been added to the task successfully`
-    });
+    switch (status) {
+      case 'draft':
+        return <Badge variant="outline" className="bg-gray-100 text-gray-700">Draft</Badge>;
+      case 'pending-checker':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 flex items-center gap-1"><Clock className="h-3 w-3" /> Pending Check</Badge>;
+      case 'pending-approval':
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 flex items-center gap-1"><Clock className="h-3 w-3" /> Pending Approval</Badge>;
+      case 'approved':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 flex items-center gap-1"><X className="h-3 w-3" /> Rejected</Badge>;
+      default:
+        return null;
+    }
+  };
+
+  const getRequiredApprovalLevels = (docType: string): ('initiator' | 'checker' | 'approver')[] => {
+    if (docType === 'sop' || docType === 'reportFormat') {
+      return ['initiator', 'checker', 'approver'];
+    } else {
+      return ['initiator', 'checker'];
+    }
   };
 
   return (
@@ -383,12 +658,15 @@ const Documents = () => {
       
       <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
         <div className="flex items-center justify-between">
-          <TabsList className="grid grid-cols-5 w-[600px]">
+          <TabsList className="grid grid-cols-8 w-[900px]">
             <TabsTrigger value="all">All Documents</TabsTrigger>
+            <TabsTrigger value="draft">Drafts</TabsTrigger>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="approved">Approved</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected</TabsTrigger>
             <TabsTrigger value="sop">SOPs</TabsTrigger>
             <TabsTrigger value="dataFormat">Data Formats</TabsTrigger>
             <TabsTrigger value="reportFormat">Report Formats</TabsTrigger>
-            <TabsTrigger value="customer">Customer Documents</TabsTrigger>
           </TabsList>
           
           <div className="flex items-center gap-2">
@@ -412,51 +690,30 @@ const Documents = () => {
                 <SelectItem value="reportFormat">Report Formats</SelectItem>
               </SelectContent>
             </Select>
-            <Button
-              size="sm"
-              className="bg-primary hover:bg-primary/90"
-              onClick={() => setIsUploadDialogOpen(true)}
-            >
-              <Upload className="h-4 w-4 mr-1" />
-              Upload Document
-            </Button>
+            {currentUserPermissions?.canInitiate && (
+              <Button
+                size="sm"
+                className="bg-primary hover:bg-primary/90"
+                onClick={() => setIsUploadDialogOpen(true)}
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Upload Document
+              </Button>
+            )}
           </div>
         </div>
         
-        <TabsContent value="all" className="mt-4">
-          <DocumentsList 
-            documents={filteredDocuments} 
-            onViewDocument={(doc) => setViewingDocument({ task: doc.task, document: doc.document })} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="sop" className="mt-4">
-          <DocumentsList 
-            documents={filteredDocuments} 
-            onViewDocument={(doc) => setViewingDocument({ task: doc.task, document: doc.document })} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="dataFormat" className="mt-4">
-          <DocumentsList 
-            documents={filteredDocuments} 
-            onViewDocument={(doc) => setViewingDocument({ task: doc.task, document: doc.document })} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="reportFormat" className="mt-4">
-          <DocumentsList 
-            documents={filteredDocuments} 
-            onViewDocument={(doc) => setViewingDocument({ task: doc.task, document: doc.document })} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="customer" className="mt-4">
-          <DocumentsList 
-            documents={filteredDocuments} 
-            onViewDocument={(doc) => setViewingDocument({ task: doc.task, document: doc.document })} 
-          />
-        </TabsContent>
+        {['all', 'draft', 'pending', 'approved', 'rejected', 'sop', 'dataFormat', 'reportFormat', 'customer'].map(tabValue => (
+          <TabsContent key={tabValue} value={tabValue} className="mt-4">
+            <DocumentsList 
+              documents={filteredDocuments} 
+              onViewDocument={(doc) => setViewingDocument({ task: doc.task, document: doc.document })}
+              currentUserPermissions={currentUserPermissions}
+              currentUserId={currentUserId}
+              onUpdateApprovalStatus={handleUpdateApprovalStatus}
+            />
+          </TabsContent>
+        ))}
       </Tabs>
       
       <Dialog open={!!viewingDocument} onOpenChange={() => setViewingDocument(null)}>
@@ -474,30 +731,60 @@ const Documents = () => {
               onAddNewRevision={(documentType, fileName, version) => {
                 handleAddNewRevision(viewingDocument.task.id, documentType, fileName, version);
               }}
+              currentUserId={currentUserId}
+              currentUserPermissions={currentUserPermissions}
+              onUpdateApprovalStatus={(action, reason) => {
+                handleUpdateApprovalStatus(
+                  viewingDocument.task.id, 
+                  viewingDocument.document.documentType, 
+                  action, 
+                  reason
+                );
+              }}
+              teamMembers={teamMembers}
             />
           )}
         </DialogContent>
       </Dialog>
       
       <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Upload New Document</DialogTitle>
+            <DialogDescription>
+              Create a new document and set up its approval workflow
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Document Type</label>
               <Select 
                 value={newDocumentType || ''} 
-                onValueChange={(value) => setNewDocumentType(value as any)}
+                onValueChange={(value) => {
+                  setNewDocumentType(value as any);
+                  
+                  setSelectedChecker(null);
+                  setSelectedApprover(null);
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select document type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sop">Standard Operating Procedure (SOP)</SelectItem>
-                  <SelectItem value="dataFormat">Data Recording Format</SelectItem>
-                  <SelectItem value="reportFormat">Reporting Format</SelectItem>
+                  {documentTypes.filter(dt => 
+                    currentUserPermissions?.allowedDocumentTypes.includes(dt.id)
+                  ).map(dt => (
+                    <SelectItem 
+                      key={dt.id} 
+                      value={
+                        dt.name.toLowerCase().includes('sop') ? 'sop' : 
+                        dt.name.toLowerCase().includes('data') ? 'dataFormat' : 
+                        'reportFormat'
+                      }
+                    >
+                      {dt.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -512,7 +799,10 @@ const Documents = () => {
                   <SelectValue placeholder="Select related task" />
                 </SelectTrigger>
                 <SelectContent>
-                  {tasks.map(task => (
+                  {tasks.filter(task => 
+                    !currentUserPermissions?.allowedDepartments.length || 
+                    currentUserPermissions.allowedDepartments.includes(task.department)
+                  ).map(task => (
                     <SelectItem key={task.id} value={task.id}>
                       {task.title}
                     </SelectItem>
@@ -537,9 +827,118 @@ const Documents = () => {
                 onChange={(e) => e.target.files && setNewDocumentFile(e.target.files[0])} 
               />
             </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Notes/Description</label>
+              <Textarea 
+                placeholder="Provide any additional information about this document" 
+                value={newDocumentNotes} 
+                onChange={(e) => setNewDocumentNotes(e.target.value)} 
+              />
+            </div>
+            
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-sm font-medium mb-4">Document Approval Flow</h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Badge className="bg-blue-100 text-blue-700 border-none">Initiator</Badge>
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                        {teamMembers.find(m => m.id === currentUserId)?.initials || "??"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">{teamMembers.find(m => m.id === currentUserId)?.name || "Current User"}</span>
+                  </div>
+                </div>
+                
+                {newDocumentType && getRequiredApprovalLevels(newDocumentType).includes('checker') && (
+                  <div className="flex items-center gap-3">
+                    <Badge className="bg-amber-100 text-amber-700 border-none">Checker</Badge>
+                    <Select 
+                      value={selectedChecker || ''} 
+                      onValueChange={setSelectedChecker}
+                    >
+                      <SelectTrigger className="w-[280px]">
+                        <SelectValue placeholder="Select a checker" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamMembers
+                          .filter(member => 
+                            member.id !== currentUserId && 
+                            userDocumentPermissions[member.id]?.canCheck
+                          )
+                          .map(member => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.name} ({member.position})
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                {newDocumentType && getRequiredApprovalLevels(newDocumentType).includes('approver') && (
+                  <div className="flex items-center gap-3">
+                    <Badge className="bg-green-100 text-green-700 border-none">Approver</Badge>
+                    <Select 
+                      value={selectedApprover || ''} 
+                      onValueChange={setSelectedApprover}
+                    >
+                      <SelectTrigger className="w-[280px]">
+                        <SelectValue placeholder="Select an approver" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamMembers
+                          .filter(member => 
+                            member.id !== currentUserId && 
+                            member.id !== selectedChecker && 
+                            userDocumentPermissions[member.id]?.canApprove
+                          )
+                          .map(member => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.name} ({member.position})
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium w-32">Initial Status:</label>
+                  <Select 
+                    value={approvalStatus} 
+                    onValueChange={(value) => setApprovalStatus(value as any)}
+                  >
+                    <SelectTrigger className="w-[280px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Save as Draft</SelectItem>
+                      <SelectItem value="pending-checker" disabled={!selectedChecker && newDocumentType && getRequiredApprovalLevels(newDocumentType).includes('checker')}>
+                        Submit for Checking
+                      </SelectItem>
+                      <SelectItem value="pending-approval" disabled={
+                        (!selectedChecker && newDocumentType && getRequiredApprovalLevels(newDocumentType).includes('checker')) ||
+                        (!selectedApprover && newDocumentType && getRequiredApprovalLevels(newDocumentType).includes('approver'))
+                      }>
+                        Submit for Approval
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setIsUploadDialogOpen(false);
+              clearDocumentUploadForm();
+            }}>
               Cancel
             </Button>
             <Button type="submit" onClick={handleUploadNewDocument}>
@@ -570,19 +969,18 @@ interface DocumentsListProps {
     document: TaskDocument;
   }[];
   onViewDocument: (document: any) => void;
+  currentUserPermissions: DocumentPermissions | undefined;
+  currentUserId: string;
+  onUpdateApprovalStatus: (taskId: string, documentType: string, action: 'initiate' | 'check' | 'approve' | 'reject', reason?: string) => void;
 }
 
-const DocumentsList = ({ documents, onViewDocument }: DocumentsListProps) => {
-  if (documents.length === 0) {
-    return (
-      <Card className="p-6">
-        <div className="h-[200px] flex items-center justify-center">
-          <p className="text-muted-foreground">No documents found matching your criteria.</p>
-        </div>
-      </Card>
-    );
-  }
-
+const DocumentsList = ({ 
+  documents, 
+  onViewDocument,
+  currentUserPermissions,
+  currentUserId,
+  onUpdateApprovalStatus
+}: DocumentsListProps) => {
   const getDocumentTypeIcon = (type: string) => {
     switch (type) {
       case 'sop': return <FileText className="h-5 w-5 text-green-500" />;
@@ -616,6 +1014,55 @@ const DocumentsList = ({ documents, onViewDocument }: DocumentsListProps) => {
     }
   };
 
+  const getApprovalStatusBadge = (doc: any) => {
+    const status = doc.document.approvalHierarchy?.status;
+    if (!status) return null;
+    
+    switch (status) {
+      case 'draft':
+        return <Badge variant="outline" className="bg-gray-100 text-gray-700">Draft</Badge>;
+      case 'pending-checker':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 flex items-center gap-1"><Clock className="h-3 w-3" /> Pending Check</Badge>;
+      case 'pending-approval':
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 flex items-center gap-1"><Clock className="h-3 w-3" /> Pending Approval</Badge>;
+      case 'approved':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 flex items-center gap-1"><X className="h-3 w-3" /> Rejected</Badge>;
+      default:
+        return null;
+    }
+  };
+
+  const canTakeAction = (doc: any) => {
+    if (!doc.document.approvalHierarchy) return false;
+    const hierarchy = doc.document.approvalHierarchy;
+    
+    if (hierarchy.status === 'pending-checker' && 
+        hierarchy.checker === currentUserId && 
+        currentUserPermissions?.canCheck) {
+      return true;
+    }
+    
+    if (hierarchy.status === 'pending-approval' && 
+        hierarchy.approver === currentUserId && 
+        currentUserPermissions?.canApprove) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  if (documents.length === 0) {
+    return (
+      <Card className="p-6">
+        <div className="h-[200px] flex items-center justify-center">
+          <p className="text-muted-foreground">No documents found matching your criteria.</p>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="border-b">
@@ -631,7 +1078,7 @@ const DocumentsList = ({ documents, onViewDocument }: DocumentsListProps) => {
               <th className="p-3">Department</th>
               <th className="p-3">Version</th>
               <th className="p-3">Last Updated</th>
-              <th className="p-3">Revisions</th>
+              <th className="p-3">Status</th>
               <th className="p-3">Actions</th>
             </tr>
           </thead>
@@ -677,9 +1124,7 @@ const DocumentsList = ({ documents, onViewDocument }: DocumentsListProps) => {
                   </div>
                 </td>
                 <td className="p-3">
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 flex items-center gap-1">
-                    <History className="h-3 w-3" /> {doc.revisionCount}
-                  </Badge>
+                  {getApprovalStatusBadge(doc)}
                 </td>
                 <td className="p-3">
                   <div className="flex gap-2">
@@ -690,7 +1135,18 @@ const DocumentsList = ({ documents, onViewDocument }: DocumentsListProps) => {
                     >
                       View
                     </Button>
-                    <Button variant="ghost" size="sm">Download</Button>
+                    {canTakeAction(doc) && (
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => onViewDocument(doc)}
+                      >
+                        Review
+                      </Button>
+                    )}
+                    {doc.document.approvalHierarchy?.status === 'approved' && (
+                      <Button variant="ghost" size="sm">Download</Button>
+                    )}
                   </div>
                 </td>
               </tr>

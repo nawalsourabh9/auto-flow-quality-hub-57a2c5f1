@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { TaskDocument } from "@/components/dashboard/TaskList";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Calendar, User, FileType, History, CheckCircle } from "lucide-react";
+import { FileText, Download, Calendar, User, FileType, History, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { Task } from "@/types/task";
+import { DocumentPermissions } from "@/types/document";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface DocumentViewerProps {
   task: {
@@ -23,19 +26,34 @@ interface DocumentViewerProps {
   document: TaskDocument;
   onUpdateRevision?: (documentType: string, revisionId: string) => void;
   onAddNewRevision?: (documentType: string, fileName: string, version: string) => void;
+  currentUserId?: string;
+  currentUserPermissions?: DocumentPermissions;
+  onUpdateApprovalStatus?: (action: 'initiate' | 'check' | 'approve' | 'reject', reason?: string) => void;
+  teamMembers?: Array<{
+    id: string;
+    name: string;
+    position: string;
+    initials: string;
+  }>;
 }
 
 const DocumentViewer: React.FC<DocumentViewerProps> = ({ 
   task, 
   document, 
   onUpdateRevision,
-  onAddNewRevision
+  onAddNewRevision,
+  currentUserId,
+  currentUserPermissions,
+  onUpdateApprovalStatus,
+  teamMembers = []
 }) => {
   const [isNewRevisionDialogOpen, setIsNewRevisionDialogOpen] = useState(false);
   const [newRevisionFile, setNewRevisionFile] = useState<File | null>(null);
   const [newRevisionVersion, setNewRevisionVersion] = useState('');
   const [newRevisionNotes, setNewRevisionNotes] = useState('');
-
+  const [rejectReason, setRejectReason] = useState('');
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  
   // Find the current revision or use the latest one
   const currentRevision = document.currentRevisionId
     ? document.revisions.find(rev => rev.id === document.currentRevisionId)
@@ -82,6 +100,54 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     }
   };
 
+  // Determine if current user can take action on this document
+  const canTakeAction = () => {
+    if (!document.approvalHierarchy || !currentUserId || !currentUserPermissions) return false;
+    const hierarchy = document.approvalHierarchy;
+    
+    // Check if user can check the document
+    if (hierarchy.status === 'pending-checker' && 
+        hierarchy.checker === currentUserId && 
+        currentUserPermissions.canCheck) {
+      return 'check';
+    }
+    
+    // Check if user can approve the document
+    if (hierarchy.status === 'pending-approval' && 
+        hierarchy.approver === currentUserId && 
+        currentUserPermissions.canApprove) {
+      return 'approve';
+    }
+    
+    return false;
+  };
+
+  const getApprovalStatusBadge = () => {
+    const status = document.approvalHierarchy?.status;
+    if (!status) return null;
+    
+    switch (status) {
+      case 'draft':
+        return <Badge variant="outline" className="bg-gray-100 text-gray-700">Draft</Badge>;
+      case 'pending-checker':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 flex items-center gap-1"><Clock className="h-3 w-3" /> Pending Check</Badge>;
+      case 'pending-approval':
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 flex items-center gap-1"><Clock className="h-3 w-3" /> Pending Approval</Badge>;
+      case 'approved':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 flex items-center gap-1"><XCircle className="h-3 w-3" /> Rejected</Badge>;
+      default:
+        return null;
+    }
+  };
+  
+  const getUserDisplayDetails = (userId: string | undefined) => {
+    if (!userId) return { name: "Not Assigned", initials: "NA" };
+    const member = teamMembers.find(m => m.id === userId);
+    return member || { name: "Unknown User", initials: "??" };
+  };
+
   // For this demo, we don't have actual document content to display
   // In a real application, you would fetch and render the document content here
   return (
@@ -98,7 +164,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             <Badge variant="outline" className="bg-blue-50 text-blue-700">
               {documentTypeLabel}
             </Badge>
-            {onAddNewRevision && (
+            {getApprovalStatusBadge()}
+            {onAddNewRevision && document.approvalHierarchy?.status === 'approved' && (
               <Button 
                 size="sm" 
                 variant="outline" 
@@ -112,6 +179,142 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         </div>
       </div>
 
+      {document.approvalHierarchy && (
+        <Card className="bg-muted/20">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-medium mb-3">Approval Workflow</h3>
+            <div className="space-y-3">
+              {/* Initiator */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700">Initiator</Badge>
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                        {getUserDisplayDetails(document.approvalHierarchy.initiator).initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">{getUserDisplayDetails(document.approvalHierarchy.initiator).name}</span>
+                  </div>
+                </div>
+                <div>
+                  {document.approvalHierarchy.initiatorApproved ? (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" /> Initiated
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-gray-100 text-gray-700">Pending</Badge>
+                  )}
+                </div>
+              </div>
+              
+              {/* Checker */}
+              {document.approvalHierarchy.checker && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700">Checker</Badge>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                          {getUserDisplayDetails(document.approvalHierarchy.checker).initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{getUserDisplayDetails(document.approvalHierarchy.checker).name}</span>
+                    </div>
+                  </div>
+                  <div>
+                    {document.approvalHierarchy.checkerApproved ? (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" /> Checked
+                      </Badge>
+                    ) : document.approvalHierarchy.status === 'pending-checker' || 
+                       document.approvalHierarchy.status === 'pending-approval' || 
+                       document.approvalHierarchy.status === 'approved' ? (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> Pending
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-100 text-gray-700">Not Started</Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Approver */}
+              {document.approvalHierarchy.approver && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-green-50 text-green-700">Approver</Badge>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                          {getUserDisplayDetails(document.approvalHierarchy.approver).initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{getUserDisplayDetails(document.approvalHierarchy.approver).name}</span>
+                    </div>
+                  </div>
+                  <div>
+                    {document.approvalHierarchy.approverApproved ? (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" /> Approved
+                      </Badge>
+                    ) : document.approvalHierarchy.status === 'pending-approval' ? (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> Pending
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-100 text-gray-700">Not Started</Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Rejection information */}
+              {document.approvalHierarchy.status === 'rejected' && document.approvalHierarchy.rejectedBy && (
+                <div className="mt-4 p-3 bg-red-50 rounded border border-red-100">
+                  <div className="flex items-center gap-2 text-red-700 mb-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="font-medium">Rejected by {getUserDisplayDetails(document.approvalHierarchy.rejectedBy).name}</span>
+                  </div>
+                  {document.approvalHierarchy.rejectionReason && (
+                    <p className="text-sm text-gray-700">{document.approvalHierarchy.rejectionReason}</p>
+                  )}
+                </div>
+              )}
+              
+              {/* Action buttons */}
+              {canTakeAction() && document.approvalHierarchy.status !== 'approved' && document.approvalHierarchy.status !== 'rejected' && onUpdateApprovalStatus && (
+                <div className="flex justify-end gap-2 pt-3 border-t mt-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsRejectDialogOpen(true)}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    <XCircle className="h-4 w-4 mr-1" /> Reject
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={() => {
+                      if (canTakeAction() === 'check') {
+                        onUpdateApprovalStatus('check');
+                      } else if (canTakeAction() === 'approve') {
+                        onUpdateApprovalStatus('approve');
+                      }
+                    }}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" /> 
+                    {canTakeAction() === 'check' ? 'Check & Approve' : 'Approve'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="document" className="w-full">
         <TabsList className="grid grid-cols-2">
           <TabsTrigger value="document">Document Content</TabsTrigger>
@@ -124,9 +327,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               <span className="font-medium">{currentRevision.fileName}</span>
               <Badge variant="outline">v{currentRevision.version}</Badge>
             </div>
-            <Button size="sm" variant="outline" className="flex items-center gap-1">
-              <Download className="h-4 w-4" /> Download
-            </Button>
+            {document.approvalHierarchy?.status === 'approved' && (
+              <Button size="sm" variant="outline" className="flex items-center gap-1">
+                <Download className="h-4 w-4" /> Download
+              </Button>
+            )}
           </div>
           <Separator className="my-4" />
           
@@ -355,6 +560,46 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             </Button>
             <Button type="submit" onClick={handleNewRevisionSubmit}>
               Upload Revision
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Reject Document</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Document</label>
+              <Input value={`${documentTypeLabel} - ${currentRevision.fileName}`} disabled />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Rejection Reason</label>
+              <Textarea 
+                placeholder="Please provide a reason for rejection" 
+                value={rejectReason} 
+                onChange={(e) => setRejectReason(e.target.value)} 
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              variant="destructive"
+              onClick={() => {
+                if (onUpdateApprovalStatus) {
+                  onUpdateApprovalStatus('reject', rejectReason);
+                  setIsRejectDialogOpen(false);
+                  setRejectReason('');
+                }
+              }}
+            >
+              Reject Document
             </Button>
           </DialogFooter>
         </DialogContent>
