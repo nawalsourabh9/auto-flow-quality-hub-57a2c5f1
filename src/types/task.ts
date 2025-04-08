@@ -32,6 +32,13 @@ export interface Task {
     fileSize: string;
   }[];
   documents?: TaskDocument[];
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+  departmentHeadId?: string;
 }
 
 // Team member interface for organization management
@@ -90,4 +97,13 @@ export interface NonConformance {
   assignedTo: string;
   dueDate: string;
   isCustomerRelated: boolean;
+}
+
+// Department role permissions for tasks and documents
+export interface DepartmentRolePermissions {
+  departmentId: string;
+  departmentHeadId: string;
+  requiresApproval: boolean;
+  canReassign: boolean;
+  autoNotify: boolean;
 }

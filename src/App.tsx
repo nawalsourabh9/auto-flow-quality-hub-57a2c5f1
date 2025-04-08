@@ -20,6 +20,7 @@ import Organization from "./pages/Organization";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import EmailTest from "./pages/EmailTest";
+import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -29,8 +30,18 @@ const isAuthenticated = () => {
   return true;
 };
 
+// Mock admin check - in a real app, this would check if the user has admin role
+const isAdmin = () => {
+  // For demo purposes, always return true - in a real app, check if user has admin role
+  return true;
+};
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return isAuthenticated() ? <>{children}</> : <Navigate to="/login" />;
+};
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  return isAuthenticated() && isAdmin() ? <>{children}</> : <Navigate to="/" />;
 };
 
 const App = () => (
@@ -137,6 +148,14 @@ const App = () => (
                 <Help />
               </MainLayout>
             </ProtectedRoute>
+          } />
+          
+          <Route path="/admin" element={
+            <AdminRoute>
+              <MainLayout>
+                <Admin />
+              </MainLayout>
+            </AdminRoute>
           } />
           
           <Route path="*" element={<NotFound />} />
