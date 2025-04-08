@@ -1,10 +1,12 @@
 
 import { useState } from "react";
-import { Bell, Search, User } from "lucide-react";
+import { Bell, Search, LogOut, Settings, HelpCircle, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +18,18 @@ import {
 
 export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+    // In a real app, this would call an auth service logout method
+    console.log("Logging out");
+    
+    // For demo purposes, simulate logout
+    setTimeout(() => {
+      toast.success("Logged out successfully");
+      navigate("/login");
+    }, 500);
+  };
   
   return (
     <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -54,11 +68,35 @@ export function Header() {
             <DropdownMenuContent align="end" className="bg-background border-border">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="hover:bg-accent">Profile</DropdownMenuItem>
-              <DropdownMenuItem className="hover:bg-accent">Settings</DropdownMenuItem>
-              <DropdownMenuItem className="hover:bg-accent">Help</DropdownMenuItem>
+              <DropdownMenuItem 
+                className="flex items-center hover:bg-accent"
+                onClick={() => navigate("/profile")}
+              >
+                <UserRound className="mr-2 h-4 w-4" />
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="flex items-center hover:bg-accent"
+                onClick={() => navigate("/settings")}
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="flex items-center hover:bg-accent"
+                onClick={() => navigate("/help")}
+              >
+                <HelpCircle className="mr-2 h-4 w-4" />
+                Help
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="hover:bg-accent">Log out</DropdownMenuItem>
+              <DropdownMenuItem 
+                className="flex items-center hover:bg-accent text-red-500"
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Log out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

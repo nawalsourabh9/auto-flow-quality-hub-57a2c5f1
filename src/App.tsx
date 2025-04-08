@@ -14,6 +14,8 @@ import Audits from "./pages/Audits";
 import Analytics from "./pages/Analytics";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
+import Help from "./pages/Help";
 import Organization from "./pages/Organization";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
@@ -108,6 +110,22 @@ const App = () => (
             <ProtectedRoute>
               <MainLayout>
                 <Settings />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Profile />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/help" element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Help />
               </MainLayout>
             </ProtectedRoute>
           } />
