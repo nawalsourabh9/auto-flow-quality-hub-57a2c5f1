@@ -6,8 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Task } from "@/types/task";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Database, PieChart, BookOpen } from "lucide-react";
+import { FileText, Database, PieChart, BookOpen, Upload } from "lucide-react";
 import { TaskDocument } from "@/types/document";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 
 interface TaskFormProps {
   onSubmit: (task: Task) => void;
@@ -27,12 +30,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
     initialData.attachmentsRequired || "optional"
   );
   
-  // Document selection states
-  const [attachSOP, setAttachSOP] = useState(false);
-  const [attachDataFormat, setAttachDataFormat] = useState(false);
-  const [attachReportFormat, setAttachReportFormat] = useState(false);
-  const [attachRulesAndProcedures, setAttachRulesAndProcedures] = useState(false);
+  // Document selection and upload states
   const [selectedDocuments, setSelectedDocuments] = useState<TaskDocument[]>(initialData.documents || []);
+  const [documentUploads, setDocumentUploads] = useState({
+    sop: { selected: false, file: null as File | null },
+    dataFormat: { selected: false, file: null as File | null },
+    reportFormat: { selected: false, file: null as File | null },
+    rulesAndProcedures: { selected: false, file: null as File | null },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,16 +73,15 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
       };
     }
 
-    // Create placeholder documents based on selections
+    // Create documents based on selections and uploads
     const documents: TaskDocument[] = [];
     
-    // These would typically be populated from a documents library or selector
-    // For now we're just creating placeholder entries to demonstrate the UI
-    if (attachSOP) {
+    // Create placeholder documents based on selections
+    if (documentUploads.sop.selected) {
       documents.push({
         id: `doc-sop-${Math.random().toString(36).substring(2, 9)}`,
-        fileName: "Standard Operating Procedure",
-        fileType: "pdf",
+        fileName: documentUploads.sop.file?.name || "Standard Operating Procedure",
+        fileType: documentUploads.sop.file?.type || "pdf",
         documentType: "sop",
         version: "1.0",
         uploadDate: new Date().toISOString(),
@@ -85,11 +89,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
       });
     }
     
-    if (attachDataFormat) {
+    if (documentUploads.dataFormat.selected) {
       documents.push({
         id: `doc-df-${Math.random().toString(36).substring(2, 9)}`,
-        fileName: "Data Recording Format",
-        fileType: "xlsx",
+        fileName: documentUploads.dataFormat.file?.name || "Data Recording Format",
+        fileType: documentUploads.dataFormat.file?.type || "xlsx",
         documentType: "dataFormat",
         version: "1.0",
         uploadDate: new Date().toISOString(),
@@ -97,11 +101,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
       });
     }
     
-    if (attachReportFormat) {
+    if (documentUploads.reportFormat.selected) {
       documents.push({
         id: `doc-rf-${Math.random().toString(36).substring(2, 9)}`,
-        fileName: "Report Format",
-        fileType: "docx",
+        fileName: documentUploads.reportFormat.file?.name || "Report Format",
+        fileType: documentUploads.reportFormat.file?.type || "docx",
         documentType: "reportFormat",
         version: "1.0",
         uploadDate: new Date().toISOString(),
@@ -109,11 +113,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
       });
     }
     
-    if (attachRulesAndProcedures) {
+    if (documentUploads.rulesAndProcedures.selected) {
       documents.push({
         id: `doc-rp-${Math.random().toString(36).substring(2, 9)}`,
-        fileName: "Rules and Procedures",
-        fileType: "pdf",
+        fileName: documentUploads.rulesAndProcedures.file?.name || "Rules and Procedures",
+        fileType: documentUploads.rulesAndProcedures.file?.type || "pdf",
         documentType: "rulesAndProcedures",
         version: "1.0",
         uploadDate: new Date().toISOString(),
@@ -140,6 +144,32 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
     };
 
     onSubmit(newTask);
+  };
+
+  const handleDocumentSelect = (
+    docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", 
+    selected: boolean
+  ) => {
+    setDocumentUploads(prev => ({
+      ...prev,
+      [docType]: { 
+        ...prev[docType], 
+        selected 
+      }
+    }));
+  };
+
+  const handleFileUpload = (
+    docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", 
+    file: File | null
+  ) => {
+    setDocumentUploads(prev => ({
+      ...prev,
+      [docType]: { 
+        ...prev[docType], 
+        file 
+      }
+    }));
   };
 
   return (
@@ -261,73 +291,124 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
         <Separator className="my-2" />
         
         <div>
-          <h3 className="text-sm font-medium mb-3">Required Documents</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="attachSOP"
-                checked={attachSOP}
-                onChange={(e) => setAttachSOP(e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="attachSOP" className="text-sm flex items-center">
-                <FileText className="h-4 w-4 text-green-500 mr-2" />
-                Standard Operating Procedure
-              </label>
+          <h3 className="text-sm font-medium mb-3">Documents</h3>
+          
+          <div className="space-y-4">
+            {/* Standard Operating Procedure */}
+            <div className="border rounded-md p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Checkbox 
+                  id="docSOP"
+                  checked={documentUploads.sop.selected}
+                  onCheckedChange={(checked) => handleDocumentSelect("sop", checked === true)}
+                />
+                <Label htmlFor="docSOP" className="flex items-center">
+                  <FileText className="h-4 w-4 text-green-500 mr-2" />
+                  Standard Operating Procedure
+                </Label>
+              </div>
+              
+              {documentUploads.sop.selected && (
+                <div className="ml-6 mt-2 flex gap-2 items-center">
+                  <Input 
+                    type="file" 
+                    id="sopFile"
+                    onChange={(e) => handleFileUpload("sop", e.target.files?.[0] || null)}
+                    className="flex-1 text-sm"
+                  />
+                  <Upload size={16} className="text-muted-foreground" />
+                </div>
+              )}
             </div>
             
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="attachDataFormat"
-                checked={attachDataFormat}
-                onChange={(e) => setAttachDataFormat(e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="attachDataFormat" className="text-sm flex items-center">
-                <Database className="h-4 w-4 text-blue-500 mr-2" />
-                Data Recording Format
-              </label>
+            {/* Data Recording Format */}
+            <div className="border rounded-md p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Checkbox 
+                  id="docDataFormat"
+                  checked={documentUploads.dataFormat.selected}
+                  onCheckedChange={(checked) => handleDocumentSelect("dataFormat", checked === true)}
+                />
+                <Label htmlFor="docDataFormat" className="flex items-center">
+                  <Database className="h-4 w-4 text-blue-500 mr-2" />
+                  Data Recording Format
+                </Label>
+              </div>
+              
+              {documentUploads.dataFormat.selected && (
+                <div className="ml-6 mt-2 flex gap-2 items-center">
+                  <Input 
+                    type="file" 
+                    id="dataFormatFile"
+                    onChange={(e) => handleFileUpload("dataFormat", e.target.files?.[0] || null)}
+                    className="flex-1 text-sm"
+                  />
+                  <Upload size={16} className="text-muted-foreground" />
+                </div>
+              )}
             </div>
             
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="attachReportFormat"
-                checked={attachReportFormat}
-                onChange={(e) => setAttachReportFormat(e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="attachReportFormat" className="text-sm flex items-center">
-                <PieChart className="h-4 w-4 text-amber-500 mr-2" />
-                Report Format
-              </label>
+            {/* Report Format */}
+            <div className="border rounded-md p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Checkbox 
+                  id="docReportFormat"
+                  checked={documentUploads.reportFormat.selected}
+                  onCheckedChange={(checked) => handleDocumentSelect("reportFormat", checked === true)}
+                />
+                <Label htmlFor="docReportFormat" className="flex items-center">
+                  <PieChart className="h-4 w-4 text-amber-500 mr-2" />
+                  Report Format
+                </Label>
+              </div>
+              
+              {documentUploads.reportFormat.selected && (
+                <div className="ml-6 mt-2 flex gap-2 items-center">
+                  <Input 
+                    type="file" 
+                    id="reportFormatFile"
+                    onChange={(e) => handleFileUpload("reportFormat", e.target.files?.[0] || null)}
+                    className="flex-1 text-sm"
+                  />
+                  <Upload size={16} className="text-muted-foreground" />
+                </div>
+              )}
             </div>
             
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="attachRulesAndProcedures"
-                checked={attachRulesAndProcedures}
-                onChange={(e) => setAttachRulesAndProcedures(e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="attachRulesAndProcedures" className="text-sm flex items-center">
-                <BookOpen className="h-4 w-4 text-purple-500 mr-2" />
-                Rules and Procedures
-              </label>
+            {/* Rules and Procedures */}
+            <div className="border rounded-md p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Checkbox 
+                  id="docRulesProc"
+                  checked={documentUploads.rulesAndProcedures.selected}
+                  onCheckedChange={(checked) => handleDocumentSelect("rulesAndProcedures", checked === true)}
+                />
+                <Label htmlFor="docRulesProc" className="flex items-center">
+                  <BookOpen className="h-4 w-4 text-purple-500 mr-2" />
+                  Rules and Procedures
+                </Label>
+              </div>
+              
+              {documentUploads.rulesAndProcedures.selected && (
+                <div className="ml-6 mt-2 flex gap-2 items-center">
+                  <Input 
+                    type="file" 
+                    id="rulesProcFile"
+                    onChange={(e) => handleFileUpload("rulesAndProcedures", e.target.files?.[0] || null)}
+                    className="flex-1 text-sm"
+                  />
+                  <Upload size={16} className="text-muted-foreground" />
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
+          <Checkbox
             id="isCustomerRelated"
             checked={isCustomerRelated}
-            onChange={(e) => setIsCustomerRelated(e.target.checked)}
-            className="rounded border-gray-300"
+            onCheckedChange={(checked) => setIsCustomerRelated(checked === true)}
           />
           <label htmlFor="isCustomerRelated" className="text-sm">
             Customer Related Task
