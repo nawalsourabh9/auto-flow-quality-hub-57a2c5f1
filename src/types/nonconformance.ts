@@ -12,4 +12,18 @@ export interface NonConformance {
   dueDate: string;
   isCustomerRelated: boolean;
   customerName?: string;
+  affectedProduct?: string;
+  customerImpact: boolean;
+  rootCause?: string;
+  containmentActions?: string;
+  correctiveActions?: string;
+  closedDate?: string;
+  attachments?: {
+    id: string;
+    name: string;
+    fileType: string;
+    uploadedBy: string;
+    uploadDate: string;
+    fileSize: string;
+  }[];
 }

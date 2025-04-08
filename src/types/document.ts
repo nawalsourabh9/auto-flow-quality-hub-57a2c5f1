@@ -1,3 +1,4 @@
+
 export interface DocumentRevision {
   id: string;
   fileName: string;
@@ -6,7 +7,7 @@ export interface DocumentRevision {
   uploadedBy: string;
   fileSize: string;
   fileUrl?: string;
-  notes?: string; // Added notes property as it was missing
+  notes?: string;
 }
 
 export interface ApprovalHierarchy {
@@ -42,10 +43,10 @@ export interface DocumentPermissions {
   allowedDepartments: string[];
 }
 
-// Update TaskDocument interface to include approval hierarchy
+// Update TaskDocument interface to include the new document type
 export interface TaskDocument {
-  documentType: 'sop' | 'dataFormat' | 'reportFormat';
+  documentType: 'sop' | 'dataFormat' | 'reportFormat' | 'rulesAndProcedures';
   revisions: DocumentRevision[];
   currentRevisionId: string;
-  approvalHierarchy?: ApprovalHierarchy; // Added approvalHierarchy property
+  approvalHierarchy?: ApprovalHierarchy;
 }

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,15 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Database, PieChart } from "lucide-react";
+import { FileText, Database, PieChart, BookOpen } from "lucide-react";
 import { ApprovalHierarchy, DocumentPermissions } from "@/types/document";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface DocumentUploadDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpload: (documentType: 'sop' | 'dataFormat' | 'reportFormat', file: File, version: string, notes: string, approvalHierarchy: ApprovalHierarchy) => void;
-  documentType: 'sop' | 'dataFormat' | 'reportFormat';
+  onUpload: (documentType: 'sop' | 'dataFormat' | 'reportFormat' | 'rulesAndProcedures', file: File, version: string, notes: string, approvalHierarchy: ApprovalHierarchy) => void;
+  documentType: 'sop' | 'dataFormat' | 'reportFormat' | 'rulesAndProcedures';
   currentUserId: string;
   currentUserPermissions: DocumentPermissions;
   teamMembers: Array<{
@@ -54,22 +53,22 @@ const DocumentUploadDialog: React.FC<DocumentUploadDialogProps> = ({
   const documentTypeLabels = {
     'sop': 'Standard Operating Procedure',
     'dataFormat': 'Data Recording Format',
-    'reportFormat': 'Reporting Format'
+    'reportFormat': 'Reporting Format',
+    'rulesAndProcedures': 'Rules and Procedures'
   };
 
   const documentTypeIcons = {
     'sop': <FileText className="h-5 w-5 text-green-500" />,
     'dataFormat': <Database className="h-5 w-5 text-blue-500" />,
-    'reportFormat': <PieChart className="h-5 w-5 text-amber-500" />
+    'reportFormat': <PieChart className="h-5 w-5 text-amber-500" />,
+    'rulesAndProcedures': <BookOpen className="h-5 w-5 text-purple-500" />
   };
 
   const handleUpload = () => {
     if (!file || !version) return;
     
-    // Find the selected document type configuration
     const docTypeConfig = documentTypes.find(dt => dt.id === selectedDocType);
     
-    // Create approval hierarchy based on document type requirements
     const approvalHierarchy: ApprovalHierarchy = {
       initiator: currentUserId,
       status: 'draft',
@@ -77,7 +76,6 @@ const DocumentUploadDialog: React.FC<DocumentUploadDialogProps> = ({
       initiatedAt: new Date().toISOString()
     };
     
-    // Add checker and approver if required by document type
     if (docTypeConfig?.requiredApprovalLevels.includes('checker') && checker) {
       approvalHierarchy.checker = checker;
       approvalHierarchy.status = 'pending-checker';
@@ -102,12 +100,10 @@ const DocumentUploadDialog: React.FC<DocumentUploadDialogProps> = ({
     onClose();
   };
 
-  // Filter eligible document types based on user permissions
   const eligibleDocumentTypes = documentTypes.filter(dt => 
     currentUserPermissions.allowedDocumentTypes.includes(dt.id)
   );
 
-  // Filter eligible checkers and approvers (exclude current user)
   const eligibleCheckers = teamMembers.filter(member => 
     member.id !== currentUserId
   );
