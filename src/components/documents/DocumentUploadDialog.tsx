@@ -138,14 +138,13 @@ const DocumentUploadDialog: React.FC<DocumentUploadDialogProps> = ({
                     </SelectItem>
                   ))
                 ) : (
-                  // Fix: Ensure SelectItem has a non-empty value prop
-                  <SelectItem value="no-types-available-fallback">
+                  <SelectItem key="no-types" value="no-types-available">
                     No document types available
                   </SelectItem>
                 )}
               </SelectContent>
             </Select>
-            {selectedDocType && selectedDocType !== "no-types-available-fallback" && (
+            {selectedDocType && selectedDocType !== "no-types-available" && (
               <p className="text-xs text-muted-foreground mt-1">
                 {documentTypes.find(dt => dt.id === selectedDocType)?.description}
               </p>
