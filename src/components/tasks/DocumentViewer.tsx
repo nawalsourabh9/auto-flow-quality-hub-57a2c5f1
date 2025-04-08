@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { TaskDocument } from "@/components/dashboard/TaskList";
+import { TaskDocument } from "@/types/document";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Calendar, User, FileType, History, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
@@ -14,6 +14,7 @@ import { Task } from "@/types/task";
 import { DocumentPermissions } from "@/types/document";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { DocumentApprovalFlow } from "@/components/documents/DocumentApprovalFlow";
 
 interface DocumentViewerProps {
   task: {
@@ -183,134 +184,51 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         <Card className="bg-muted/20">
           <CardContent className="p-4">
             <h3 className="text-sm font-medium mb-3">Approval Workflow</h3>
-            <div className="space-y-3">
-              {/* Initiator */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700">Initiator</Badge>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                        {getUserDisplayDetails(document.approvalHierarchy.initiator).initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{getUserDisplayDetails(document.approvalHierarchy.initiator).name}</span>
-                  </div>
+            <DocumentApprovalFlow 
+              approvalHierarchy={document.approvalHierarchy}
+              teamMembers={teamMembers}
+            />
+            
+            {/* Rejection information */}
+            {document.approvalHierarchy.status === 'rejected' && document.approvalHierarchy.rejectedBy && (
+              <div className="mt-4 p-3 bg-red-50 rounded border border-red-100">
+                <div className="flex items-center gap-2 text-red-700 mb-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="font-medium">Rejected by {getUserDisplayDetails(document.approvalHierarchy.rejectedBy).name}</span>
                 </div>
-                <div>
-                  {document.approvalHierarchy.initiatorApproved ? (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3" /> Initiated
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-gray-100 text-gray-700">Pending</Badge>
-                  )}
-                </div>
+                {document.approvalHierarchy.rejectionReason && (
+                  <p className="text-sm text-gray-700">{document.approvalHierarchy.rejectionReason}</p>
+                )}
               </div>
-              
-              {/* Checker */}
-              {document.approvalHierarchy.checker && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-amber-50 text-amber-700">Checker</Badge>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                          {getUserDisplayDetails(document.approvalHierarchy.checker).initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{getUserDisplayDetails(document.approvalHierarchy.checker).name}</span>
-                    </div>
-                  </div>
-                  <div>
-                    {document.approvalHierarchy.checkerApproved ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1">
-                        <CheckCircle className="h-3 w-3" /> Checked
-                      </Badge>
-                    ) : document.approvalHierarchy.status === 'pending-checker' || 
-                       document.approvalHierarchy.status === 'pending-approval' || 
-                       document.approvalHierarchy.status === 'approved' ? (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Pending
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-gray-100 text-gray-700">Not Started</Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Approver */}
-              {document.approvalHierarchy.approver && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-green-50 text-green-700">Approver</Badge>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                          {getUserDisplayDetails(document.approvalHierarchy.approver).initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{getUserDisplayDetails(document.approvalHierarchy.approver).name}</span>
-                    </div>
-                  </div>
-                  <div>
-                    {document.approvalHierarchy.approverApproved ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1">
-                        <CheckCircle className="h-3 w-3" /> Approved
-                      </Badge>
-                    ) : document.approvalHierarchy.status === 'pending-approval' ? (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Pending
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-gray-100 text-gray-700">Not Started</Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Rejection information */}
-              {document.approvalHierarchy.status === 'rejected' && document.approvalHierarchy.rejectedBy && (
-                <div className="mt-4 p-3 bg-red-50 rounded border border-red-100">
-                  <div className="flex items-center gap-2 text-red-700 mb-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="font-medium">Rejected by {getUserDisplayDetails(document.approvalHierarchy.rejectedBy).name}</span>
-                  </div>
-                  {document.approvalHierarchy.rejectionReason && (
-                    <p className="text-sm text-gray-700">{document.approvalHierarchy.rejectionReason}</p>
-                  )}
-                </div>
-              )}
-              
-              {/* Action buttons */}
-              {canTakeAction() && document.approvalHierarchy.status !== 'approved' && document.approvalHierarchy.status !== 'rejected' && onUpdateApprovalStatus && (
-                <div className="flex justify-end gap-2 pt-3 border-t mt-4">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setIsRejectDialogOpen(true)}
-                    className="text-red-600 border-red-200 hover:bg-red-50"
-                  >
-                    <XCircle className="h-4 w-4 mr-1" /> Reject
-                  </Button>
-                  <Button 
-                    variant="default" 
-                    size="sm"
-                    onClick={() => {
-                      if (canTakeAction() === 'check') {
-                        onUpdateApprovalStatus('check');
-                      } else if (canTakeAction() === 'approve') {
-                        onUpdateApprovalStatus('approve');
-                      }
-                    }}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-1" /> 
-                    {canTakeAction() === 'check' ? 'Check & Approve' : 'Approve'}
-                  </Button>
-                </div>
-              )}
-            </div>
+            )}
+            
+            {/* Action buttons */}
+            {canTakeAction() && document.approvalHierarchy.status !== 'approved' && document.approvalHierarchy.status !== 'rejected' && onUpdateApprovalStatus && (
+              <div className="flex justify-end gap-2 pt-3 border-t mt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsRejectDialogOpen(true)}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  <XCircle className="h-4 w-4 mr-1" /> Reject
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => {
+                    if (canTakeAction() === 'check') {
+                      onUpdateApprovalStatus('check');
+                    } else if (canTakeAction() === 'approve') {
+                      onUpdateApprovalStatus('approve');
+                    }
+                  }}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" /> 
+                  {canTakeAction() === 'check' ? 'Check & Approve' : 'Approve'}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
