@@ -108,6 +108,11 @@ const Tasks = () => {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
+  const handleViewTask = (task: Task) => {
+    console.log("View task:", task);
+    // Task viewing logic here
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -155,7 +160,7 @@ const Tasks = () => {
         </Select>
       </div>
 
-      <TasksTable tasks={filteredTasks} />
+      <TasksTable tasks={filteredTasks} onViewTask={handleViewTask} />
     </div>
   );
 };

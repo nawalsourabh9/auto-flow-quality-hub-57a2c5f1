@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { 
   Card, 
   CardContent, 
@@ -139,6 +139,22 @@ const employeesData = [
   { id: "5", name: "Michael Brown", department: "Logistics", position: "Logistics Manager", initials: "MB" }
 ];
 
+const sampleNonConformances: NonConformance[] = [
+  {
+    id: "nc-5",
+    title: "Sample Non-Conformance",
+    description: "This is a sample non-conformance record",
+    department: "Quality",
+    severity: "minor",
+    reportedBy: "Current User",
+    reportedDate: new Date().toISOString().split('T')[0],
+    status: "open",
+    assignedTo: "John Doe",
+    dueDate: "2025-04-15",
+    isCustomerRelated: false
+  }
+];
+
 const NonConformances = () => {
   const [nonConformances, setNonConformances] = useState<NonConformance[]>(initialNonConformances);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -146,7 +162,9 @@ const NonConformances = () => {
   const [selectedNC, setSelectedNC] = useState<NonConformance | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  
+  const [editingNonConformance, setEditingNonConformance] = useState<NonConformance | null>(null);
+  const [currentUser, setCurrentUser] = useState({ id: "current-user-id" });
+
   const form = useForm<z.infer<typeof nonConformanceFormSchema>>({
     resolver: zodResolver(nonConformanceFormSchema),
     defaultValues: {
@@ -184,12 +202,47 @@ const NonConformances = () => {
       description: "The non-conformance has been recorded and assigned."
     });
   };
-  
+
+  const handleCreateOrUpdateNonConformance = (data: Partial<NonConformance>) => {
+    if (editingNonConformance) {
+      setNonConformances(prev => 
+        prev.map(nc => nc.id === editingNonConformance.id ? { ...nc, ...data } : nc)
+      );
+      toast({
+        title: "Non-Conformance Updated",
+        description: "Non-conformance has been successfully updated."
+      });
+    } else {
+      const newNonConformance: NonConformance = {
+        id: `nc-${Date.now()}`,
+        title: data.title || "New Non-Conformance",
+        description: data.description || "",
+        department: data.department || "Quality",
+        severity: data.severity || "minor",
+        reportedBy: data.reportedBy || currentUser.id,
+        reportedDate: data.reportedDate || new Date().toISOString(),
+        status: data.status || "open",
+        assignedTo: data.assignedTo || "",
+        dueDate: data.dueDate || "",
+        isCustomerRelated: data.isCustomerRelated || false
+      };
+      
+      setNonConformances(prev => [newNonConformance, ...prev]);
+      toast({
+        title: "Non-Conformance Created",
+        description: "New non-conformance has been successfully created."
+      });
+    }
+    
+    setIsDialogOpen(false);
+    setEditingNonConformance(null);
+  };
+
   const handleViewNC = (nc: NonConformance) => {
     setSelectedNC(nc);
     setIsViewDialogOpen(true);
   };
-  
+
   const getSeverityBadge = (severity: NonConformance['severity']) => {
     switch (severity) {
       case 'critical':
@@ -200,7 +253,7 @@ const NonConformances = () => {
         return <Badge variant="outline" className="bg-blue-50 text-blue-700">Minor</Badge>;
     }
   };
-  
+
   const getStatusBadge = (status: NonConformance['status']) => {
     switch (status) {
       case 'open':
@@ -215,7 +268,7 @@ const NonConformances = () => {
         return <Badge variant="outline" className="bg-gray-50 text-gray-700">Rejected</Badge>;
     }
   };
-  
+
   const filteredNCs = nonConformances.filter(nc => {
     const matchesSearch = 
       nc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

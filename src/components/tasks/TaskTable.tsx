@@ -1,11 +1,10 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart, User, ExternalLink } from "lucide-react";
-import { TaskDocument } from "@/components/dashboard/TaskList";
+import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart, User, ExternalLink, BookOpen } from "lucide-react";
+import { TaskDocument } from "@/types/document";
 import { Task } from "@/types/task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DocumentViewer from "@/components/tasks/DocumentViewer";
@@ -90,7 +89,8 @@ const TasksTable: React.FC<TasksTableProps> = ({
     const documentTypes = {
       sop: task.documents.find(doc => doc.documentType === 'sop'),
       dataFormat: task.documents.find(doc => doc.documentType === 'dataFormat'),
-      reportFormat: task.documents.find(doc => doc.documentType === 'reportFormat')
+      reportFormat: task.documents.find(doc => doc.documentType === 'reportFormat'),
+      rulesAndProcedures: task.documents.find(doc => doc.documentType === 'rulesAndProcedures')
     };
 
     return (
@@ -144,6 +144,23 @@ const TasksTable: React.FC<TasksTableProps> = ({
           >
             <PieChart className="h-3 w-3" /> Report
             {documentTypes.reportFormat.approvalHierarchy?.status === 'approved' && <CheckCircle className="h-2 w-2 ml-1" />}
+          </Badge>
+        )}
+        {documentTypes.rulesAndProcedures && (
+          <Badge 
+            variant="outline" 
+            className={`${
+              documentTypes.rulesAndProcedures.approvalHierarchy?.status === 'approved' ? 'bg-green-50 text-green-700' : 
+              documentTypes.rulesAndProcedures.approvalHierarchy?.status === 'rejected' ? 'bg-red-50 text-red-700' : 
+              'bg-purple-50 text-purple-700'
+            } hover:bg-purple-100 flex items-center gap-1 cursor-pointer`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setViewingDocument({ task, document: documentTypes.rulesAndProcedures! });
+            }}
+          >
+            <BookOpen className="h-3 w-3" /> R&P
+            {documentTypes.rulesAndProcedures.approvalHierarchy?.status === 'approved' && <CheckCircle className="h-2 w-2 ml-1" />}
           </Badge>
         )}
       </div>

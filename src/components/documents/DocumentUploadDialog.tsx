@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -130,14 +131,19 @@ const DocumentUploadDialog: React.FC<DocumentUploadDialogProps> = ({
                 <SelectValue placeholder="Select document type configuration" />
               </SelectTrigger>
               <SelectContent>
-                {eligibleDocumentTypes.map(dt => (
-                  <SelectItem key={dt.id} value={dt.id}>
-                    {dt.name}
-                  </SelectItem>
-                ))}
+                {eligibleDocumentTypes.length > 0 ? (
+                  eligibleDocumentTypes.map(dt => (
+                    <SelectItem key={dt.id} value={dt.id}>
+                      {dt.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  // This is what we need to fix - we can't have an empty value here
+                  <SelectItem value="no-types-available">No document types available</SelectItem>
+                )}
               </SelectContent>
             </Select>
-            {selectedDocType && (
+            {selectedDocType && selectedDocType !== "no-types-available" && (
               <p className="text-xs text-muted-foreground mt-1">
                 {documentTypes.find(dt => dt.id === selectedDocType)?.description}
               </p>

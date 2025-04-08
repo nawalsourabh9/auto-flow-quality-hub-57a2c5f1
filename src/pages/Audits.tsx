@@ -1,467 +1,378 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchIcon, PlusIcon, CalendarIcon, CheckSquare, AlertTriangle } from "lucide-react";
+import { Search, Plus, FileText, Database, PieChart, FileUp, History, CheckCircle, User, BookOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "@/hooks/use-toast";
+import { DocumentRevision, TaskDocument, ApprovalHierarchy } from "@/types/document";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Audit } from "@/types/audit";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useSearchParams } from "react-router-dom";
+import TasksTable from "@/components/tasks/TaskTable";
+import StatusBadge from "@/components/tasks/StatusBadge";
+import PriorityBadge from "@/components/tasks/PriorityBadge";
+import { Task } from "@/types/task";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import DocumentUploadDialog from "@/components/documents/DocumentUploadDialog";
+import { useQuery } from "@tanstack/react-query";
+import { Audit } from "@/types/task";
 
-const auditFormSchema = z.object({
-  title: z.string().min(3, { message: "Audit title must be at least 3 characters." }),
-  description: z.string().min(5, { message: "Description must be at least 5 characters." }),
-  auditType: z.enum(["internal", "external", "supplier", "customer", "regulatory"], { 
-    message: "Please select a valid audit type." 
-  }),
-  department: z.string().min(1, { message: "Please select a department." }),
-  auditor: z.string().min(1, { message: "Please enter the auditor name." }),
-  scheduledDate: z.string().min(1, { message: "Scheduled date is required." }),
-  status: z.enum(["scheduled", "in-progress", "completed", "postponed", "cancelled"], { 
-    message: "Please select a status." 
-  }).default("scheduled"),
-});
-
-type AuditFormValues = z.infer<typeof auditFormSchema>;
-
-const departmentOptions = ["Quality", "Production", "Engineering", "HR", "Finance", "IT", "Sales", "Marketing"];
-
-// Sample audit data
-const initialAudits: Audit[] = [
+// Sample data for demonstration
+const sampleAudits: Audit[] = [
   {
     id: "audit-1",
-    title: "ISO 9001:2015 Internal Audit - Quality Management System",
-    description: "Comprehensive review of the QMS against ISO 9001:2015 requirements",
-    auditType: "internal" as const,
-    department: "Quality",
-    auditor: "Jane Wilson",
-    scheduledDate: "2025-04-15",
-    status: "scheduled" as const,
-    createdAt: "2025-03-10"
+    title: "Internal Audit - Production Line 1",
+    description: "Review of production processes and documentation",
+    auditType: "internal",
+    department: "Production",
+    auditor: "JD",
+    scheduledDate: "2025-05-01",
+    status: "scheduled",
+    createdAt: "2025-04-15"
   },
   {
     id: "audit-2",
-    title: "Supplier Quality Assessment - ABC Electronics",
-    description: "On-site audit of supplier manufacturing processes and quality controls",
-    auditType: "supplier" as const,
-    department: "Purchasing",
-    auditor: "Robert Johnson",
-    scheduledDate: "2025-04-20",
-    status: "scheduled" as const,
-    createdAt: "2025-03-12"
+    title: "Supplier Audit - Component Supplier XYZ",
+    description: "Assessment of supplier's quality management system",
+    auditType: "supplier",
+    department: "Quality",
+    auditor: "SM",
+    scheduledDate: "2025-05-15",
+    status: "in-progress",
+    createdAt: "2025-04-20"
+  },
+  {
+    id: "audit-3",
+    title: "Regulatory Compliance Audit - Environmental Standards",
+    description: "Verification of compliance with environmental regulations",
+    auditType: "regulatory",
+    department: "HSE",
+    auditor: "RJ",
+    scheduledDate: "2025-05-22",
+    status: "completed",
+    createdAt: "2025-04-25",
+    completedAt: "2025-05-22"
   }
 ];
 
-const getAuditTypeColor = (type: Audit["auditType"]): string => {
-  switch (type) {
-    case "internal": return "bg-purple-100 hover:bg-purple-200 text-purple-800";
-    case "external": return "bg-amber-100 hover:bg-amber-200 text-amber-800";
-    case "supplier": return "bg-blue-100 hover:bg-blue-200 text-blue-800";
-    case "customer": return "bg-green-100 hover:bg-green-200 text-green-800";
-    case "regulatory": return "bg-red-100 hover:bg-red-200 text-red-800";
-  }
-};
-
-const getAuditStatusColor = (status: Audit["status"]): string => {
-  switch (status) {
-    case "scheduled": return "bg-blue-100 text-blue-800";
-    case "in-progress": return "bg-amber-100 text-amber-800";
-    case "completed": return "bg-green-100 text-green-800";
-    case "postponed": return "bg-purple-100 text-purple-800";
-    case "cancelled": return "bg-red-100 text-red-800";
-  }
-};
-
 const Audits = () => {
-  const [audits, setAudits] = useState<Audit[]>(initialAudits);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedTab, setSelectedTab] = useState("all");
+  const [audits, setAudits] = useState<Audit[]>(sampleAudits);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredDepartment, setFilteredDepartment] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [auditTypeFilter, setAuditTypeFilter] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingAudit, setEditingAudit] = useState<Audit | null>(null);
 
-  const form = useForm<AuditFormValues>({
-    resolver: zodResolver(auditFormSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      auditType: "internal",
-      department: "",
-      auditor: "",
-      scheduledDate: "",
-      status: "scheduled"
-    }
+  // Dummy user data for demonstration
+  const currentUser = {
+    id: "1",
+    name: "John Doe",
+    department: "Quality"
+  };
+
+  const filteredAudits = audits.filter(audit => {
+    const matchesSearch =
+      audit.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      audit.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = !statusFilter || audit.status === statusFilter;
+    const matchesAuditType = !auditTypeFilter || audit.auditType === auditTypeFilter;
+
+    return matchesSearch && matchesStatus && matchesAuditType;
   });
 
-  const handleAddAudit = (data: AuditFormValues) => {
-    const newAudit: Audit = {
-      id: `audit-${Date.now()}`,
-      ...data,
-      createdAt: new Date().toISOString()
-    };
-    
-    setAudits([...audits, newAudit]);
-    setIsAddDialogOpen(false);
-    form.reset();
-    
-    toast({
-      title: "Audit Created",
-      description: "The audit has been scheduled successfully."
-    });
+  const handleOpenDialog = () => {
+    setIsDialogOpen(true);
+    setEditingAudit(null);
   };
 
-  const filterAudits = () => {
-    return audits.filter(audit => {
-      const matchesSearch = 
-        audit.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        audit.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        audit.auditor.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesDepartment = !filteredDepartment || audit.department === filteredDepartment;
-      
-      const matchesTab = selectedTab === "all" || selectedTab === audit.status;
-      
-      return matchesSearch && matchesDepartment && matchesTab;
-    });
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingAudit(null);
   };
 
-  const filteredAudits = filterAudits();
+  const handleEditAudit = (audit: Audit) => {
+    setEditingAudit(audit);
+    setIsDialogOpen(true);
+  };
+  
+  // Function to create or update audit
+  const handleCreateOrUpdateAudit = (data: Partial<Audit>) => {
+    if (editingAudit) {
+      // Update existing
+      setAudits(prev => 
+        prev.map(audit => audit.id === editingAudit.id ? { ...audit, ...data } : audit)
+      );
+      toast({
+        title: "Audit Updated",
+        description: "Audit has been successfully updated."
+      });
+    } else {
+      // Create new - ensure all required fields are included
+      const newAudit: Audit = {
+        id: `audit-${Date.now()}`,
+        title: data.title || "New Audit", // Make sure title is not optional
+        description: data.description || "", 
+        auditType: data.auditType || "internal",
+        department: data.department || "Quality",
+        auditor: data.auditor || currentUser.id,
+        scheduledDate: data.scheduledDate || new Date().toISOString(),
+        status: data.status || "scheduled",
+        createdAt: data.createdAt || new Date().toISOString()
+      };
+      
+      setAudits(prev => [newAudit, ...prev]);
+      toast({
+        title: "Audit Created",
+        description: "New audit has been successfully created."
+      });
+    }
+    
+    setIsDialogOpen(false);
+    setEditingAudit(null);
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Audit Management</h1>
-        <p className="text-muted-foreground">Plan, execute and track internal and external audits</p>
-      </div>
-      
-      <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <div className="flex items-center justify-between">
-          <TabsList className="grid grid-cols-5 w-[600px]">
-            <TabsTrigger value="all">All Audits</TabsTrigger>
-            <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
-            <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-            <TabsTrigger value="postponed">Postponed</TabsTrigger>
-          </TabsList>
-          
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search audits..." 
-                className="pl-8 h-9 w-[200px] rounded-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Select value={filteredDepartment || "all"} onValueChange={(value) => setFilteredDepartment(value === "all" ? null : value)}>
-              <SelectTrigger className="w-[180px] h-9">
-                <SelectValue placeholder="Filter by department" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                {departmentOptions.map(dept => (
-                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button 
-              size="sm" 
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => setIsAddDialogOpen(true)}
-            >
-              <PlusIcon className="h-4 w-4 mr-1" />
-              Schedule Audit
-            </Button>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Audits</h1>
+          <p className="text-muted-foreground">Manage and track all your audits</p>
         </div>
-        
-        <TabsContent value="all" className="mt-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            {filteredAudits.length > 0 ? filteredAudits.map(audit => (
-              <Card key={audit.id} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between">
-                    <CardTitle className="text-lg">{audit.title}</CardTitle>
-                    <Badge className={getAuditStatusColor(audit.status)}>
-                      {audit.status.charAt(0).toUpperCase() + audit.status.slice(1)}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">{audit.description}</p>
-                    
-                    <div className="flex justify-between text-sm">
-                      <div className="space-y-1">
-                        <div className="flex items-center">
-                          <Badge className={getAuditTypeColor(audit.auditType)} variant="outline">
-                            {audit.auditType.charAt(0).toUpperCase() + audit.auditType.slice(1)} Audit
-                          </Badge>
-                        </div>
-                        <div className="flex items-center text-muted-foreground">
-                          <span className="truncate">{audit.department} Department</span>
-                        </div>
-                      </div>
-                      <div className="text-right space-y-1">
-                        <div className="flex items-center justify-end">
-                          <CalendarIcon className="h-4 w-4 mr-1 text-muted-foreground" />
-                          <span>{audit.scheduledDate}</span>
-                        </div>
-                        <div className="text-muted-foreground">
-                          Auditor: {audit.auditor}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-2 flex justify-end gap-2">
-                      <Button variant="outline" size="sm">View Details</Button>
-                      {audit.status === "scheduled" && (
-                        <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700">
-                          Start Audit
+        <Button onClick={handleOpenDialog}>
+          <Plus className="mr-1 h-4 w-4" /> New Audit
+        </Button>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search audits..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value || null)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="in-progress">In Progress</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="postponed">Postponed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={auditTypeFilter || ""} onValueChange={(value) => setAuditTypeFilter(value || null)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Audit Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Types</SelectItem>
+            <SelectItem value="internal">Internal</SelectItem>
+            <SelectItem value="external">External</SelectItem>
+            <SelectItem value="supplier">Supplier</SelectItem>
+            <SelectItem value="customer">Customer</SelectItem>
+            <SelectItem value="regulatory">Regulatory</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <div className="rounded-md border">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="px-4 py-3 text-left text-sm font-medium">Title</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Type</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Department</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Auditor</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Scheduled Date</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAudits.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
+                      No audits found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAudits.map((audit) => (
+                    <tr key={audit.id} className="border-b hover:bg-muted/50">
+                      <td className="px-4 py-3">{audit.title}</td>
+                      <td className="px-4 py-3">{audit.auditType}</td>
+                      <td className="px-4 py-3">{audit.department}</td>
+                      <td className="px-4 py-3">{audit.auditor}</td>
+                      <td className="px-4 py-3">{audit.scheduledDate}</td>
+                      <td className="px-4 py-3">{audit.status}</td>
+                      <td className="px-4 py-3">
+                        <Button size="sm" variant="outline" onClick={() => handleEditAudit(audit)}>
+                          View
                         </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )) : (
-              <Card className="col-span-2 p-6">
-                <div className="h-40 flex flex-col items-center justify-center">
-                  <AlertTriangle className="h-10 w-10 text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">No audits found matching your criteria.</p>
-                </div>
-              </Card>
-            )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="scheduled" className="mt-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            {filteredAudits.length > 0 ? filteredAudits.map(audit => (
-              <Card key={audit.id} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between">
-                    <CardTitle className="text-lg">{audit.title}</CardTitle>
-                    <Badge className={getAuditStatusColor(audit.status)}>
-                      {audit.status.charAt(0).toUpperCase() + audit.status.slice(1)}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">{audit.description}</p>
-                    
-                    <div className="flex justify-between text-sm">
-                      <div className="space-y-1">
-                        <div className="flex items-center">
-                          <Badge className={getAuditTypeColor(audit.auditType)} variant="outline">
-                            {audit.auditType.charAt(0).toUpperCase() + audit.auditType.slice(1)} Audit
-                          </Badge>
-                        </div>
-                        <div className="flex items-center text-muted-foreground">
-                          <span className="truncate">{audit.department} Department</span>
-                        </div>
-                      </div>
-                      <div className="text-right space-y-1">
-                        <div className="flex items-center justify-end">
-                          <CalendarIcon className="h-4 w-4 mr-1 text-muted-foreground" />
-                          <span>{audit.scheduledDate}</span>
-                        </div>
-                        <div className="text-muted-foreground">
-                          Auditor: {audit.auditor}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-2 flex justify-end gap-2">
-                      <Button variant="outline" size="sm">View Details</Button>
-                      {audit.status === "scheduled" && (
-                        <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700">
-                          Start Audit
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )) : (
-              <Card className="col-span-2 p-6">
-                <div className="h-40 flex flex-col items-center justify-center">
-                  <AlertTriangle className="h-10 w-10 text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">No scheduled audits found.</p>
-                </div>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="in-progress" className="mt-4">
-          <Card className="p-6">
-            <div className="h-40 flex flex-col items-center justify-center">
-              <CheckSquare className="h-10 w-10 text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">No audits currently in progress.</p>
-            </div>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="completed" className="mt-4">
-          <Card className="p-6">
-            <div className="h-40 flex flex-col items-center justify-center">
-              <CheckSquare className="h-10 w-10 text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">No completed audits yet.</p>
-            </div>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="postponed" className="mt-4">
-          <Card className="p-6">
-            <div className="h-40 flex flex-col items-center justify-center">
-              <AlertTriangle className="h-10 w-10 text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">No postponed audits.</p>
-            </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
-      
-      {/* Add Audit Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
-            <DialogTitle>Schedule New Audit</DialogTitle>
-            <DialogDescription>
-              Enter the details to schedule an internal or external audit.
-            </DialogDescription>
+            <DialogTitle>{editingAudit ? "Edit Audit" : "Create New Audit"}</DialogTitle>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleAddAudit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Audit Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter audit title" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <textarea 
-                        className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                        placeholder="Enter audit description"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="auditType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Audit Type</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select audit type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="internal">Internal</SelectItem>
-                          <SelectItem value="external">External</SelectItem>
-                          <SelectItem value="supplier">Supplier</SelectItem>
-                          <SelectItem value="customer">Customer</SelectItem>
-                          <SelectItem value="regulatory">Regulatory</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Department</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {departmentOptions.map(dept => (
-                            <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="auditor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Auditor</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Auditor name/organization" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="scheduledDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Scheduled Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <DialogFooter className="pt-4">
-                <DialogClose asChild>
-                  <Button type="button" variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button type="submit" className="bg-purple-600 hover:bg-purple-700">Schedule Audit</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          <div className="py-4">
+            <AuditForm
+              audit={editingAudit}
+              onSubmit={handleCreateOrUpdateAudit}
+              onCancel={handleCloseDialog}
+            />
+          </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+};
+
+interface AuditFormProps {
+  audit?: Audit;
+  onSubmit: (data: Partial<Audit>) => void;
+  onCancel: () => void;
+}
+
+const AuditForm: React.FC<AuditFormProps> = ({ audit, onSubmit, onCancel }) => {
+  const [title, setTitle] = useState(audit?.title || "");
+  const [description, setDescription] = useState(audit?.description || "");
+  const [auditType, setAuditType] = useState(audit?.auditType || "internal");
+  const [department, setDepartment] = useState(audit?.department || "Quality");
+  const [auditor, setAuditor] = useState(audit?.auditor || "JD");
+  const [scheduledDate, setScheduledDate] = useState(audit?.scheduledDate || new Date().toISOString());
+  const [status, setStatus] = useState(audit?.status || "scheduled");
+
+  const handleSubmit = () => {
+    onSubmit({
+      title,
+      description,
+      auditType,
+      department,
+      auditor,
+      scheduledDate,
+      status
+    });
+  };
+
+  return (
+    <div className="grid gap-4">
+      <FormField>
+        <FormItem>
+          <FormLabel>Title</FormLabel>
+          <FormControl>
+            <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      <FormField>
+        <FormItem>
+          <FormLabel>Description</FormLabel>
+          <FormControl>
+            <Input type="text" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      <FormField>
+        <FormItem>
+          <FormLabel>Audit Type</FormLabel>
+          <Select value={auditType} onValueChange={setAuditType}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select audit type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="internal">Internal</SelectItem>
+              <SelectItem value="external">External</SelectItem>
+              <SelectItem value="supplier">Supplier</SelectItem>
+              <SelectItem value="customer">Customer</SelectItem>
+              <SelectItem value="regulatory">Regulatory</SelectItem>
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      <FormField>
+        <FormItem>
+          <FormLabel>Department</FormLabel>
+          <FormControl>
+            <Input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      <FormField>
+        <FormItem>
+          <FormLabel>Auditor</FormLabel>
+          <FormControl>
+            <Input type="text" value={auditor} onChange={(e) => setAuditor(e.target.value)} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      <FormField>
+        <FormItem>
+          <FormLabel>Scheduled Date</FormLabel>
+          <FormControl>
+            <Input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      <FormField>
+        <FormItem>
+          <FormLabel>Status</FormLabel>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="in-progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="postponed">Postponed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      <div className="flex justify-end space-x-2">
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit}>
+          {audit ? "Update Audit" : "Create Audit"}
+        </Button>
+      </div>
     </div>
   );
 };
