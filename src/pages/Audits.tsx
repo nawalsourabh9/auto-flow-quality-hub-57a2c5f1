@@ -128,7 +128,7 @@ const Audits = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Select value={auditTypeFilter || ""} onValueChange={(value) => setAuditTypeFilter(value === "all-types" ? null : value)}>
+        <Select value={auditTypeFilter || "all-types"} onValueChange={(value) => setAuditTypeFilter(value === "all-types" ? null : value)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Audit Type" />
           </SelectTrigger>
@@ -141,7 +141,7 @@ const Audits = () => {
             <SelectItem value="regulatory">Regulatory</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value === "all-statuses" ? null : value)}>
+        <Select value={statusFilter || "all-statuses"} onValueChange={(value) => setStatusFilter(value === "all-statuses" ? null : value)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
