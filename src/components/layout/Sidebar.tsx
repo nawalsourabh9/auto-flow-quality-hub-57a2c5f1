@@ -85,7 +85,7 @@ export function AppSidebar() {
     <ShadcnSidebar>
       <SidebarContent>
         <div className="px-3 py-4">
-          <h2 className="text-lg font-semibold text-eqms-blue">E-QMS Portal</h2>
+          <h2 className="text-lg font-semibold text-eqms-blue">BDS Manufacturing</h2>
           <p className="text-xs text-muted-foreground">IATF Compliant Quality Management</p>
         </div>
         <SidebarGroup>
