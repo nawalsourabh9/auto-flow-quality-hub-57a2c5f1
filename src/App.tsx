@@ -19,6 +19,7 @@ import Help from "./pages/Help";
 import Organization from "./pages/Organization";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
+import EmailTest from "./pages/EmailTest";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,14 @@ const App = () => (
             <ProtectedRoute>
               <MainLayout>
                 <Index />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/email-test" element={
+            <ProtectedRoute>
+              <MainLayout>
+                <EmailTest />
               </MainLayout>
             </ProtectedRoute>
           } />
