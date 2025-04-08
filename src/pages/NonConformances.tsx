@@ -1,662 +1,285 @@
-import React, { useState } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter,
-  DialogClose 
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from "@/components/ui/form";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  Search, 
-  Plus, 
-  AlertTriangle, 
-  AlertCircle,
-  FileX 
-} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Search, Plus, FileText, Database, PieChart, FileUp, History, CheckCircle, User, BookOpen, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { NonConformance } from "@/types/nonconformance";
 import { toast } from "@/hooks/use-toast";
+import { DocumentRevision, TaskDocument, ApprovalHierarchy } from "@/types/document";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useSearchParams } from "react-router-dom";
+import { Textarea } from "@/components/ui/textarea";
+import { AuditFinding, NonConformance } from "@/types/task";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn } from "@/lib/utils";
 
-const nonConformanceFormSchema = z.object({
-  title: z.string().min(3, { message: "Title must be at least 3 characters." }),
-  description: z.string().min(5, { message: "Description is required." }),
-  department: z.string().min(1, { message: "Please select a department." }),
-  severity: z.enum(["critical", "major", "minor"], { message: "Please select severity." }),
+const formSchema = z.object({
+  title: z.string().min(2, {
+    message: "Title must be at least 2 characters.",
+  }),
+  description: z.string().min(10, {
+    message: "Description must be at least 10 characters.",
+  }),
+  department: z.string().min(2, {
+    message: "Department must be at least 2 characters.",
+  }),
+  severity: z.enum(['critical', 'major', 'minor']),
+  reportedBy: z.string().min(2, {
+    message: "Reported by must be at least 2 characters.",
+  }),
+  reportedDate: z.string(),
+  status: z.enum(['open', 'under-review', 'corrective-action', 'closed', 'rejected']),
   affectedProduct: z.string().optional(),
   customerImpact: z.boolean().default(false),
-  status: z.enum(["open", "under-review", "corrective-action", "closed", "rejected"]).default("open"),
-  assignedTo: z.string().optional(),
   rootCause: z.string().optional(),
   containmentActions: z.string().optional(),
   correctiveActions: z.string().optional(),
+  assignedTo: z.string().min(2, {
+    message: "Assigned to must be at least 2 characters.",
+  }),
+  dueDate: z.string(),
+  isCustomerRelated: z.boolean().default(false),
 });
 
-const initialNonConformances: NonConformance[] = [
-  {
-    id: "nc-1",
-    title: "Defective Assembly in Component A",
-    description: "Multiple units found with defective assembly in the drive mechanism",
-    department: "Production",
-    severity: "major" as const,
-    reportedBy: "John Smith",
-    reportedDate: "2025-03-15",
-    status: "open" as const,
-    affectedProduct: "Drive Unit X200",
-    customerImpact: true,
-    assignedTo: "Sarah Johnson",
-    dueDate: "2025-04-15",
-    isCustomerRelated: true
-  },
-  {
-    id: "nc-2",
-    title: "Missing Documentation for Supplier Parts",
-    description: "Required certification documents missing for parts from Supplier X",
-    department: "Quality",
-    severity: "minor" as const,
-    reportedBy: "Lisa Chen",
-    reportedDate: "2025-03-20",
-    status: "under-review" as const,
-    customerImpact: false,
-    assignedTo: "Robert Kim",
-    dueDate: "2025-04-10",
-    isCustomerRelated: false
-  },
-  {
-    id: "nc-3",
-    title: "Label Printing Errors",
-    description: "Product labels showing incorrect dates and lot numbers",
-    department: "Production",
-    severity: "minor" as const,
-    reportedBy: "Mike Johnson",
-    reportedDate: "2025-03-22",
-    status: "corrective-action" as const,
-    customerImpact: false,
-    assignedTo: "Jane Wilson",
-    dueDate: "2025-04-05",
-    isCustomerRelated: false
-  },
-  {
-    id: "nc-4",
-    title: "Hydraulic System Leakage",
-    description: "Multiple units showing hydraulic fluid leakage during final testing",
-    department: "Engineering",
-    severity: "critical" as const,
-    reportedBy: "Alex Rodriguez",
-    reportedDate: "2025-03-25",
-    status: "open" as const,
-    affectedProduct: "Hydraulic System H100",
-    customerImpact: true,
-    assignedTo: "Thomas Lee",
-    dueDate: "2025-04-01",
-    isCustomerRelated: true
-  }
-];
-
-const departmentOptions = ["Quality", "Production", "Engineering", "HR", "Finance", "IT", "Sales", "Marketing", "Logistics"];
-
-const employeesData = [
-  { id: "1", name: "John Doe", department: "Quality", position: "Quality Manager", initials: "JD" },
-  { id: "2", name: "Jane Smith", department: "Production", position: "Production Lead", initials: "JS" },
-  { id: "3", name: "Robert Johnson", department: "Engineering", position: "Design Engineer", initials: "RJ" },
-  { id: "4", name: "Emily Davis", department: "Quality", position: "Quality Analyst", initials: "ED" },
-  { id: "5", name: "Michael Brown", department: "Logistics", position: "Logistics Manager", initials: "MB" }
-];
-
-const sampleNonConformances: NonConformance[] = [
-  {
-    id: "nc-5",
-    title: "Sample Non-Conformance",
-    description: "This is a sample non-conformance record",
-    department: "Quality",
-    severity: "minor",
-    reportedBy: "Current User",
-    reportedDate: new Date().toISOString().split('T')[0],
-    status: "open",
-    assignedTo: "John Doe",
-    dueDate: "2025-04-15",
-    isCustomerRelated: false
-  }
-];
-
+// Add/update the function component to ensure all required properties are present
 const NonConformances = () => {
-  const [nonConformances, setNonConformances] = useState<NonConformance[]>(initialNonConformances);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [selectedNC, setSelectedNC] = useState<NonConformance | null>(null);
+  const [nonConformances, setNonConformances] = useState<NonConformance[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [editingNonConformance, setEditingNonConformance] = useState<NonConformance | null>(null);
-  const [currentUser, setCurrentUser] = useState({ id: "current-user-id" });
+  const [severityFilter, setSeverityFilter] = useState<string | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState("John Doe");
 
-  const form = useForm<z.infer<typeof nonConformanceFormSchema>>({
-    resolver: zodResolver(nonConformanceFormSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      department: "",
-      severity: "minor",
-      affectedProduct: "",
-      customerImpact: false,
-      status: "open",
-      assignedTo: "",
+  useEffect(() => {
+    // Load non-conformances from local storage on component mount
+    const storedNonConformances = localStorage.getItem('nonConformances');
+    if (storedNonConformances) {
+      setNonConformances(JSON.parse(storedNonConformances));
+    }
+  }, []);
+
+  useEffect(() => {
+    // Save non-conformances to local storage whenever the state changes
+    localStorage.setItem('nonConformances', JSON.stringify(nonConformances));
+  }, [nonConformances]);
+
+  // Ensure the sample data has all required properties
+  const sampleNonConformances = [
+    {
+      id: "1",
+      title: "Incorrect Product Labeling",
+      description: "Product labels showing incorrect expiration dates",
+      department: "Production",
+      severity: "major" as "major",
+      reportedBy: "John Smith",
+      reportedDate: "2025-03-15",
+      status: "open" as "open",
+      affectedProduct: "ABC-123",
+      customerImpact: true,
       rootCause: "",
-      containmentActions: "",
+      containmentActions: "Segregated affected batch",
       correctiveActions: "",
+      assignedTo: "Mary Johnson",
+      dueDate: "2025-04-15",
+      isCustomerRelated: true
+    },
+    {
+      id: "2",
+      title: "Process Parameter Deviation",
+      description: "Temperature exceeded upper control limit during production",
+      department: "Engineering",
+      severity: "minor" as "minor",
+      reportedBy: "Robert Chen",
+      reportedDate: "2025-04-01",
+      status: "open" as "open",
+      customerImpact: false,
+      assignedTo: "Sarah Williams",
+      dueDate: "2025-04-10",
+      isCustomerRelated: false
     }
+  ];
+
+  useEffect(() => {
+    setNonConformances(sampleNonConformances);
+  }, []);
+
+  const filteredNonConformances = nonConformances.filter(nonConformance => {
+    const matchesSearch =
+      nonConformance.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      nonConformance.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = !statusFilter || nonConformance.status === statusFilter;
+    const matchesSeverity = !severityFilter || nonConformance.severity === severityFilter;
+
+    return matchesSearch && matchesStatus && matchesSeverity;
   });
 
-  const handleAddNC = (data: z.infer<typeof nonConformanceFormSchema>) => {
-    const assignedPerson = employeesData.find(emp => emp.id === data.assignedTo);
-    
-    const newNC: NonConformance = {
-      id: `NC${(nonConformances.length + 1).toString().padStart(3, '0')}`,
-      ...data,
-      reportedBy: "Current User",
-      reportedDate: new Date().toISOString().split('T')[0],
-      assignedTo: assignedPerson?.name
+  const generateId = () => {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  };
+
+  const handleAddNonConformance = (data: any) => {
+    // Ensure all required fields are present when creating a new non-conformance
+    const newNonConformance = {
+      id: generateId(),
+      title: data.title,
+      description: data.description,
+      department: data.department,
+      severity: data.severity,
+      reportedBy: data.reportedBy || currentUser,
+      reportedDate: data.reportedDate || new Date().toISOString().split('T')[0],
+      status: data.status || 'open',
+      assignedTo: data.assignedTo,
+      dueDate: data.dueDate,
+      isCustomerRelated: data.isCustomerRelated || false,
+      customerImpact: data.customerImpact || false,
+      // Add other fields as needed
+      affectedProduct: data.affectedProduct || "",
+      rootCause: data.rootCause || "",
+      containmentActions: data.containmentActions || "",
+      correctiveActions: data.correctiveActions || ""
     };
-    
-    setNonConformances([...nonConformances, newNC]);
+
+    setNonConformances([...nonConformances, newNonConformance]);
     setIsAddDialogOpen(false);
-    form.reset();
-    
-    toast({
-      title: "Non-Conformance Created",
-      description: "The non-conformance has been recorded and assigned."
-    });
   };
 
-  const handleCreateOrUpdateNonConformance = (data: Partial<NonConformance>) => {
-    if (editingNonConformance) {
-      setNonConformances(prev => 
-        prev.map(nc => nc.id === editingNonConformance.id ? { ...nc, ...data } : nc)
-      );
-      toast({
-        title: "Non-Conformance Updated",
-        description: "Non-conformance has been successfully updated."
-      });
-    } else {
-      const newNonConformance: NonConformance = {
-        id: `nc-${Date.now()}`,
-        title: data.title || "New Non-Conformance",
-        description: data.description || "",
-        department: data.department || "Quality",
-        severity: data.severity || "minor",
-        reportedBy: data.reportedBy || currentUser.id,
-        reportedDate: data.reportedDate || new Date().toISOString(),
-        status: data.status || "open",
-        assignedTo: data.assignedTo || "",
-        dueDate: data.dueDate || "",
-        isCustomerRelated: data.isCustomerRelated || false
-      };
-      
-      setNonConformances(prev => [newNonConformance, ...prev]);
-      toast({
-        title: "Non-Conformance Created",
-        description: "New non-conformance has been successfully created."
-      });
-    }
-    
-    setIsDialogOpen(false);
-    setEditingNonConformance(null);
+  const severityColorMap = {
+    critical: "bg-red-500 text-white",
+    major: "bg-orange-500 text-white",
+    minor: "bg-yellow-500 text-gray-800",
   };
 
-  const handleViewNC = (nc: NonConformance) => {
-    setSelectedNC(nc);
-    setIsViewDialogOpen(true);
-  };
-
-  const getSeverityBadge = (severity: NonConformance['severity']) => {
-    switch (severity) {
-      case 'critical':
-        return <Badge variant="outline" className="bg-red-50 text-red-700">Critical</Badge>;
-      case 'major':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700">Major</Badge>;
-      case 'minor':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700">Minor</Badge>;
-    }
-  };
-
-  const getStatusBadge = (status: NonConformance['status']) => {
-    switch (status) {
-      case 'open':
-        return <Badge variant="outline" className="bg-red-50 text-red-700">Open</Badge>;
-      case 'under-review':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700">Under Review</Badge>;
-      case 'corrective-action':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700">Corrective Action</Badge>;
-      case 'closed':
-        return <Badge variant="outline" className="bg-green-50 text-green-700">Closed</Badge>;
-      case 'rejected':
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700">Rejected</Badge>;
-    }
-  };
-
-  const filteredNCs = nonConformances.filter(nc => {
-    const matchesSearch = 
-      nc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      nc.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (nc.affectedProduct && nc.affectedProduct.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (nc.assignedTo && nc.assignedTo.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesStatus = !statusFilter || nc.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  const getSeverityIcon = (severity: NonConformance['severity']) => {
-    switch (severity) {
-      case 'critical':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
-      case 'major':
-        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
-      case 'minor':
-        return <FileX className="h-5 w-5 text-blue-500" />;
-    }
+  const getSeverityBadge = (severity: 'critical' | 'major' | 'minor') => {
+    const className = severityColorMap[severity] || "bg-gray-400 text-white";
+    return (
+      <Badge className={className}>
+        {severity.charAt(0).toUpperCase() + severity.slice(1)}
+      </Badge>
+    );
   };
 
   return (
+    // Make sure you're using setIsAddDialogOpen instead of setIsDialogOpen
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Non-Conformance</h1>
-        <p className="text-muted-foreground">Track and manage non-conformances and corrective actions</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Non-Conformances</h1>
+          <p className="text-muted-foreground">Manage and track all non-conformances</p>
+        </div>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="mr-1 h-4 w-4" /> Add Non-Conformance
+        </Button>
       </div>
-      
+
+      <div className="flex items-center space-x-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search non-conformances..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value || null)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="open">Open</SelectItem>
+            <SelectItem value="under-review">Under Review</SelectItem>
+            <SelectItem value="corrective-action">Corrective Action</SelectItem>
+            <SelectItem value="closed">Closed</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={severityFilter || ""} onValueChange={(value) => setSeverityFilter(value || null)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Severity" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Severities</SelectItem>
+            <SelectItem value="critical">Critical</SelectItem>
+            <SelectItem value="major">Major</SelectItem>
+            <SelectItem value="minor">Minor</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Non-Conformance Records</CardTitle>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search records..." 
-                className="pl-8 h-9 w-[200px]"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? null : value)}>
-              <SelectTrigger className="w-[160px] h-9">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="under-review">Under Review</SelectItem>
-                <SelectItem value="corrective-action">Corrective Action</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button 
-              onClick={() => setIsAddDialogOpen(true)} 
-              className="bg-primary hover:bg-primary/90"
-              size="sm"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              New Record
-            </Button>
+        <CardContent className="p-0">
+          <div className="rounded-md border">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="px-4 py-3 text-left text-sm font-medium">Title</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Department</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Severity</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Reported By</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Reported Date</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredNonConformances.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
+                      No non-conformances found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredNonConformances.map((nonConformance) => (
+                    <tr key={nonConformance.id} className="border-b hover:bg-muted/50">
+                      <td className="px-4 py-3">
+                        <div className="font-medium">{nonConformance.title}</div>
+                        <div className="text-sm text-muted-foreground">{nonConformance.description}</div>
+                      </td>
+                      <td className="px-4 py-3">{nonConformance.department}</td>
+                      <td className="px-4 py-3">{getSeverityBadge(nonConformance.severity)}</td>
+                      <td className="px-4 py-3">{nonConformance.reportedBy}</td>
+                      <td className="px-4 py-3">{nonConformance.reportedDate}</td>
+                      <td className="px-4 py-3">{nonConformance.status}</td>
+                      <td className="px-4 py-3">
+                        <Button size="sm" variant="outline">
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Reported Date</TableHead>
-                <TableHead>Assigned To</TableHead>
-                <TableHead>Customer Impact</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredNCs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
-                    No non-conformance records found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredNCs.map((nc) => (
-                  <TableRow key={nc.id} onClick={() => handleViewNC(nc)} className="cursor-pointer">
-                    <TableCell className="font-medium">{nc.id}</TableCell>
-                    <TableCell>{nc.title}</TableCell>
-                    <TableCell>{nc.department}</TableCell>
-                    <TableCell>{getSeverityBadge(nc.severity)}</TableCell>
-                    <TableCell>{getStatusBadge(nc.status)}</TableCell>
-                    <TableCell>{nc.reportedDate}</TableCell>
-                    <TableCell>{nc.assignedTo || '—'}</TableCell>
-                    <TableCell>
-                      {nc.customerImpact ? 
-                        <Badge variant="outline" className="bg-red-50 text-red-700">Yes</Badge> : 
-                        <Badge variant="outline" className="bg-gray-50 text-gray-700">No</Badge>}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
         </CardContent>
       </Card>
-      
-      {/* Add Non-Conformance Dialog */}
+
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[625px]">
           <DialogHeader>
-            <DialogTitle>Create Non-Conformance Record</DialogTitle>
+            <DialogTitle>Add Non-Conformance</DialogTitle>
+            <DialogDescription>
+              Create a new non-conformance to track quality issues.
+            </DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleAddNC)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter non-conformance title" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <textarea 
-                        className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                        placeholder="Describe the non-conformance"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Department</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {departmentOptions.map(dept => (
-                            <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="severity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Severity</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select severity" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="critical">Critical</SelectItem>
-                          <SelectItem value="major">Major</SelectItem>
-                          <SelectItem value="minor">Minor</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="affectedProduct"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Affected Product/Process</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter affected product or process" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="assignedTo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Assign To</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select person responsible" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {employeesData.map(emp => (
-                          <SelectItem key={emp.id} value={emp.id}>
-                            {emp.name} - {emp.position}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="customerImpact"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0 p-1">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Customer Impact
-                      </FormLabel>
-                      <FormDescription>
-                        Check if this non-conformance could impact customers
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid gap-4">
-                <FormField
-                  control={form.control}
-                  name="containmentActions"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Containment Actions</FormLabel>
-                      <FormControl>
-                        <textarea 
-                          className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                          placeholder="Describe any immediate containment actions"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button type="submit">Create Record</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-      
-      {/* View Non-Conformance Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          {selectedNC && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <span>{selectedNC.id}: {selectedNC.title}</span>
-                </DialogTitle>
-              </DialogHeader>
-              
-              <div className="grid gap-4 py-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {getSeverityIcon(selectedNC.severity)}
-                    {getSeverityBadge(selectedNC.severity)}
-                  </div>
-                  {getStatusBadge(selectedNC.status)}
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium">Description</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{selectedNC.description}</p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-sm font-medium">Department</h3>
-                    <p className="mt-1 text-sm">{selectedNC.department}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium">Affected Product</h3>
-                    <p className="mt-1 text-sm">{selectedNC.affectedProduct || '—'}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-sm font-medium">Reported By</h3>
-                    <p className="mt-1 text-sm">{selectedNC.reportedBy}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium">Reported Date</h3>
-                    <p className="mt-1 text-sm">{selectedNC.reportedDate}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-sm font-medium">Assigned To</h3>
-                    <p className="mt-1 text-sm">{selectedNC.assignedTo || '—'}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium">Customer Impact</h3>
-                    <div className="mt-1">
-                      {selectedNC.customerImpact ? 
-                        <Badge variant="outline" className="bg-red-50 text-red-700">Yes</Badge> : 
-                        <Badge variant="outline" className="bg-gray-50 text-gray-700">No</Badge>}
-                    </div>
-                  </div>
-                </div>
-                
-                {selectedNC.containmentActions && (
-                  <div>
-                    <h3 className="text-sm font-medium">Containment Actions</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{selectedNC.containmentActions}</p>
-                  </div>
-                )}
-                
-                {selectedNC.correctiveActions && (
-                  <div>
-                    <h3 className="text-sm font-medium">Corrective Actions</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{selectedNC.correctiveActions}</p>
-                  </div>
-                )}
-                
-                {selectedNC.rootCause && (
-                  <div>
-                    <h3 className="text-sm font-medium">Root Cause</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{selectedNC.rootCause}</p>
-                  </div>
-                )}
-              </div>
-              
-              <DialogFooter>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsViewDialogOpen(false)}
-                >
-                  Close
-                </Button>
-              </DialogFooter>
-            </>
-          )}
+          <NonConformanceForm onSubmit={handleAddNonConformance} />
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -664,3 +287,280 @@ const NonConformances = () => {
 };
 
 export default NonConformances;
+
+interface NonConformanceFormProps {
+  onSubmit: (data: z.infer<typeof formSchema>) => void;
+}
+
+const NonConformanceForm: React.FC<NonConformanceFormProps> = ({ onSubmit }) => {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      department: "",
+      severity: "minor",
+      reportedBy: "",
+      reportedDate: new Date().toISOString().split('T')[0],
+      status: "open",
+      affectedProduct: "",
+      customerImpact: false,
+      rootCause: "",
+      containmentActions: "",
+      correctiveActions: "",
+      assignedTo: "",
+      dueDate: new Date().toISOString().split('T')[0],
+      isCustomerRelated: false,
+    },
+  });
+
+  function onSubmitForm(values: z.infer<typeof formSchema>) {
+    onSubmit(values);
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmitForm)} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="Title" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department</FormLabel>
+                <FormControl>
+                  <Input placeholder="Department" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Description"
+                  className="resize-none"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="severity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Severity</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a severity" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="critical">Critical</SelectItem>
+                    <SelectItem value="major">Major</SelectItem>
+                    <SelectItem value="minor">Minor</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="under-review">Under Review</SelectItem>
+                    <SelectItem value="corrective-action">Corrective Action</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="reportedBy"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reported By</FormLabel>
+                <FormControl>
+                  <Input placeholder="Reported By" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="reportedDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reported Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="assignedTo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Assigned To</FormLabel>
+                <FormControl>
+                  <Input placeholder="Assigned To" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="dueDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Due Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="affectedProduct"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Affected Product (Optional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Affected Product" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="isCustomerRelated"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-md border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel>Customer Related?</FormLabel>
+                  <FormDescription>
+                    Is this non-conformance related to a customer?
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <FormField
+          control={form.control}
+          name="rootCause"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Root Cause (Optional)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Root Cause"
+                  className="resize-none"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="containmentActions"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Containment Actions (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Containment Actions"
+                    className="resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="correctiveActions"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Corrective Actions (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Corrective Actions"
+                    className="resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <Button type="submit">Submit</Button>
+      </form>
+    </Form>
+  );
+};

@@ -1,3 +1,4 @@
+
 export interface TaskDocument {
   id: string;
   fileName: string;
@@ -14,6 +15,7 @@ export interface TaskDocument {
 
 export interface DocumentRevision {
   id: string;
+  fileName: string;  // Added to fix document viewer errors
   version: string;
   uploadDate: string;
   uploadedBy: string;
