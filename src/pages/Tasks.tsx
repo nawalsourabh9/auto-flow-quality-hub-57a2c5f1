@@ -126,7 +126,7 @@ const Tasks = () => {
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="all-statuses">All Statuses</SelectItem>
             <SelectItem value="not-started">Not Started</SelectItem>
             <SelectItem value="in-progress">In Progress</SelectItem>
             <SelectItem value="overdue">Overdue</SelectItem>
@@ -138,7 +138,7 @@ const Tasks = () => {
             <SelectValue placeholder="Priority" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Priorities</SelectItem>
+            <SelectItem value="all-priorities">All Priorities</SelectItem>
             <SelectItem value="low">Low</SelectItem>
             <SelectItem value="medium">Medium</SelectItem>
             <SelectItem value="high">High</SelectItem>
