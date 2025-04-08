@@ -4,6 +4,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import TaskList from "@/components/dashboard/TaskList";
 import { QualityMetricsChart } from "@/components/dashboard/QualityMetricsChart";
 import { DocumentsStatus } from "@/components/dashboard/DocumentsStatus";
+import { NotificationDemo } from "@/components/notifications/NotificationDemo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -162,6 +163,8 @@ const Index = () => {
           trend={{ value: 5, positive: true }}
         />
       </div>
+
+      <NotificationDemo />
 
       <div className="grid gap-6 md:grid-cols-6">
         <div className="md:col-span-4">

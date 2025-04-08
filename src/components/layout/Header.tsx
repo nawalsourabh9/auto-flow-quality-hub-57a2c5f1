@@ -7,6 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useNotifications } from "@/hooks/use-notifications";
+import { NotificationsList } from "@/components/notifications/NotificationsList";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +21,7 @@ import {
 export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { unreadCount } = useNotifications();
   
   const handleLogout = () => {
     // In a real app, this would call an auth service logout method
@@ -51,10 +54,21 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" className="relative border-border hover:bg-accent">
-            <Bell className="h-4 w-4" />
-            <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary"></span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="relative border-border hover:bg-accent">
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary"></span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80 bg-background border-border">
+              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <NotificationsList />
+            </DropdownMenuContent>
+          </DropdownMenu>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
