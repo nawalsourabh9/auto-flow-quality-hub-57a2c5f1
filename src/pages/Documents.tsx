@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,6 +35,13 @@ const documentTypes: DocumentType[] = [
     name: "Reporting Format",
     description: "Templates for creating standardized reports",
     allowedDepartments: ["Quality", "Engineering", "Management"],
+    requiredApprovalLevels: ["initiator", "checker", "approver"]
+  },
+  {
+    id: "dt4",
+    name: "Rules and Procedures",
+    description: "Organizational rules and standard procedures",
+    allowedDepartments: ["Quality", "Engineering", "Management", "Production"],
     requiredApprovalLevels: ["initiator", "checker", "approver"]
   }
 ];
@@ -230,7 +236,7 @@ const Documents = () => {
   } | null>(null);
   
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [newDocumentType, setNewDocumentType] = useState<'sop' | 'dataFormat' | 'reportFormat' | null>(null);
+  const [newDocumentType, setNewDocumentType] = useState<'sop' | 'dataFormat' | 'reportFormat' | 'rulesAndProcedures' | null>(null);
   const [newDocumentTask, setNewDocumentTask] = useState<string>("");
   const [newDocumentFile, setNewDocumentFile] = useState<File | null>(null);
   const [newDocumentVersion, setNewDocumentVersion] = useState('1.0');
@@ -306,7 +312,7 @@ const Documents = () => {
       if (selectedTab === "sop") matchesTab = doc.documentType === "sop";
       else if (selectedTab === "dataFormat") matchesTab = doc.documentType === "dataFormat";
       else if (selectedTab === "reportFormat") matchesTab = doc.documentType === "reportFormat";
-      else if (selectedTab === "customer") matchesTab = doc.isCustomerRelated;
+      else if (selectedTab === "rulesAndProcedures") matchesTab = doc.documentType === "rulesAndProcedures";
       else if (selectedTab === "draft") matchesTab = doc.document.approvalHierarchy?.status === "draft";
       else if (selectedTab === "pending") {
         matchesTab = doc.document.approvalHierarchy?.status === "pending-checker" || 
@@ -329,6 +335,7 @@ const Documents = () => {
       case 'sop': return <FileText className="h-5 w-5 text-green-500" />;
       case 'dataFormat': return <Database className="h-5 w-5 text-blue-500" />;
       case 'reportFormat': return <PieChart className="h-5 w-5 text-amber-500" />;
+      case 'rulesAndProcedures': return <BookOpen className="h-5 w-5 text-purple-500" />;
       default: return <FileText className="h-5 w-5" />;
     }
   };
@@ -338,6 +345,7 @@ const Documents = () => {
       case 'sop': return 'SOP';
       case 'dataFormat': return 'Data Format';
       case 'reportFormat': return 'Report Format';
+      case 'rulesAndProcedures': return 'Rules and Procedures';
       default: return 'Document';
     }
   };
@@ -531,7 +539,8 @@ const Documents = () => {
       (dt.name.toLowerCase().includes(newDocumentType) || 
       (newDocumentType === 'sop' && dt.id === 'dt1') ||
       (newDocumentType === 'dataFormat' && dt.id === 'dt2') ||
-      (newDocumentType === 'reportFormat' && dt.id === 'dt3'))
+      (newDocumentType === 'reportFormat' && dt.id === 'dt3') ||
+      (newDocumentType === 'rulesAndProcedures' && dt.id === 'dt4'))
     );
     
     if (docTypeDetails && !docTypeDetails.allowedDepartments.includes(targetTask.department)) {
@@ -658,7 +667,7 @@ const Documents = () => {
       
       <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
         <div className="flex items-center justify-between">
-          <TabsList className="grid grid-cols-8 w-[900px]">
+          <TabsList className="grid grid-cols-9 w-full max-w-[1000px]">
             <TabsTrigger value="all">All Documents</TabsTrigger>
             <TabsTrigger value="draft">Drafts</TabsTrigger>
             <TabsTrigger value="pending">Pending</TabsTrigger>
@@ -667,6 +676,7 @@ const Documents = () => {
             <TabsTrigger value="sop">SOPs</TabsTrigger>
             <TabsTrigger value="dataFormat">Data Formats</TabsTrigger>
             <TabsTrigger value="reportFormat">Report Formats</TabsTrigger>
+            <TabsTrigger value="rulesAndProcedures">Rules & Procedures</TabsTrigger>
           </TabsList>
           
           <div className="flex items-center gap-2">
@@ -688,6 +698,7 @@ const Documents = () => {
                 <SelectItem value="sop">SOPs</SelectItem>
                 <SelectItem value="dataFormat">Data Formats</SelectItem>
                 <SelectItem value="reportFormat">Report Formats</SelectItem>
+                <SelectItem value="rulesAndProcedures">Rules & Procedures</SelectItem>
               </SelectContent>
             </Select>
             {currentUserPermissions?.canInitiate && (
@@ -703,7 +714,7 @@ const Documents = () => {
           </div>
         </div>
         
-        {['all', 'draft', 'pending', 'approved', 'rejected', 'sop', 'dataFormat', 'reportFormat', 'customer'].map(tabValue => (
+        {['all', 'draft', 'pending', 'approved', 'rejected', 'sop', 'dataFormat', 'reportFormat', 'rulesAndProcedures', 'customer'].map(tabValue => (
           <TabsContent key={tabValue} value={tabValue} className="mt-4">
             <DocumentsList 
               documents={filteredDocuments} 
@@ -779,6 +790,7 @@ const Documents = () => {
                       value={
                         dt.name.toLowerCase().includes('sop') ? 'sop' : 
                         dt.name.toLowerCase().includes('data') ? 'dataFormat' : 
+                        dt.name.toLowerCase().includes('rules') ? 'rulesAndProcedures' : 
                         'reportFormat'
                       }
                     >
@@ -986,6 +998,7 @@ const DocumentsList = ({
       case 'sop': return <FileText className="h-5 w-5 text-green-500" />;
       case 'dataFormat': return <Database className="h-5 w-5 text-blue-500" />;
       case 'reportFormat': return <PieChart className="h-5 w-5 text-amber-500" />;
+      case 'rulesAndProcedures': return <BookOpen className="h-5 w-5 text-purple-500" />;
       default: return <FileText className="h-5 w-5" />;
     }
   };
@@ -995,6 +1008,7 @@ const DocumentsList = ({
       case 'sop': return 'SOP';
       case 'dataFormat': return 'Data Format';
       case 'reportFormat': return 'Report Format';
+      case 'rulesAndProcedures': return 'Rules and Procedures';
       default: return 'Document';
     }
   };

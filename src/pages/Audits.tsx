@@ -35,37 +35,26 @@ const departmentOptions = ["Quality", "Production", "Engineering", "HR", "Financ
 // Sample audit data
 const initialAudits: Audit[] = [
   {
-    id: "a1",
-    title: "Annual ISO 9001:2015 Internal Audit",
-    description: "Comprehensive internal audit of all quality management system processes",
-    auditType: "internal",
+    id: "audit-1",
+    title: "ISO 9001:2015 Internal Audit - Quality Management System",
+    description: "Comprehensive review of the QMS against ISO 9001:2015 requirements",
+    auditType: "internal" as const,
     department: "Quality",
-    auditor: "Jane Smith",
-    scheduledDate: "2025-04-20",
-    status: "scheduled",
-    createdAt: "2025-04-05"
-  },
-  {
-    id: "a2",
-    title: "Supplier Quality Assessment - Acme Electronics",
-    description: "On-site audit of key component supplier's manufacturing processes",
-    auditType: "supplier",
-    department: "Quality",
-    auditor: "Robert Johnson",
+    auditor: "Jane Wilson",
     scheduledDate: "2025-04-15",
-    status: "scheduled",
-    createdAt: "2025-04-02"
+    status: "scheduled" as const,
+    createdAt: "2025-03-10"
   },
   {
-    id: "a3",
-    title: "IATF 16949 Surveillance Audit",
-    description: "External surveillance audit by certification body",
-    auditType: "external",
-    department: "Quality",
-    auditor: "External - SGS Certification",
-    scheduledDate: "2025-05-10",
-    status: "scheduled",
-    createdAt: "2025-04-01"
+    id: "audit-2",
+    title: "Supplier Quality Assessment - ABC Electronics",
+    description: "On-site audit of supplier manufacturing processes and quality controls",
+    auditType: "supplier" as const,
+    department: "Purchasing",
+    auditor: "Robert Johnson",
+    scheduledDate: "2025-04-20",
+    status: "scheduled" as const,
+    createdAt: "2025-03-12"
   }
 ];
 
@@ -111,9 +100,9 @@ const Audits = () => {
 
   const handleAddAudit = (data: AuditFormValues) => {
     const newAudit: Audit = {
-      id: `a${audits.length + 1}`,
+      id: `audit-${Date.now()}`,
       ...data,
-      createdAt: new Date().toISOString().split('T')[0]
+      createdAt: new Date().toISOString()
     };
     
     setAudits([...audits, newAudit]);
@@ -121,8 +110,8 @@ const Audits = () => {
     form.reset();
     
     toast({
-      title: "Audit Scheduled",
-      description: "The audit has been successfully scheduled."
+      title: "Audit Created",
+      description: "The audit has been scheduled successfully."
     });
   };
 
