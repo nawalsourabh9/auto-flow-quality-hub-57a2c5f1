@@ -17,13 +17,16 @@ interface AuditFormProps {
   initialData: Partial<Audit>;
 }
 
+type AuditStatus = "scheduled" | "in-progress" | "completed" | "postponed" | "cancelled";
+type AuditType = "internal" | "external" | "supplier" | "customer" | "regulatory";
+
 const AuditForm: React.FC<AuditFormProps> = ({ onSubmit, initialData }) => {
   const [title, setTitle] = useState(initialData.title || "");
   const [description, setDescription] = useState(initialData.description || "");
-  const [auditType, setAuditType] = useState(initialData.auditType || "");
+  const [auditType, setAuditType] = useState<AuditType>(initialData.auditType as AuditType || "internal");
   const [department, setDepartment] = useState(initialData.department || "");
   const [auditor, setAuditor] = useState(initialData.auditor || "");
-  const [status, setStatus] = useState(initialData.status || "scheduled");
+  const [status, setStatus] = useState<AuditStatus>(initialData.status as AuditStatus || "scheduled");
   const [date, setDate] = useState<Date | undefined>(
     initialData.scheduledDate ? new Date(initialData.scheduledDate) : undefined
   );
@@ -37,11 +40,11 @@ const AuditForm: React.FC<AuditFormProps> = ({ onSubmit, initialData }) => {
       id: initialData.id || String(Date.now()),
       title,
       description: description || "",
-      auditType: auditType as "internal" | "external" | "supplier" | "customer" | "regulatory",
+      auditType: auditType,
       department,
       auditor,
       scheduledDate,
-      status: status as "scheduled" | "in-progress" | "completed" | "postponed" | "cancelled",
+      status: status,
       createdAt: initialData.createdAt || new Date().toISOString(),
       ...(initialData.completedAt && { completedAt: initialData.completedAt })
     };
@@ -76,7 +79,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onSubmit, initialData }) => {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="auditType">Audit Type</Label>
-          <Select value={auditType} onValueChange={setAuditType}>
+          <Select value={auditType} onValueChange={(value: AuditType) => setAuditType(value)}>
             <SelectTrigger id="auditType">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
@@ -120,7 +123,7 @@ const AuditForm: React.FC<AuditFormProps> = ({ onSubmit, initialData }) => {
         
         <div className="space-y-2">
           <Label htmlFor="status">Status</Label>
-          <Select value={status} onValueChange={setStatus}>
+          <Select value={status} onValueChange={(value: AuditStatus) => setStatus(value)}>
             <SelectTrigger id="status">
               <SelectValue placeholder="Select status" />
             </SelectTrigger>

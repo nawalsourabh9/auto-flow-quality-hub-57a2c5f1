@@ -128,7 +128,7 @@ const Audits = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Select value={auditTypeFilter || ""} onValueChange={(value) => setAuditTypeFilter(value || null)}>
+        <Select value={auditTypeFilter || ""} onValueChange={(value) => setAuditTypeFilter(value === "all-types" ? null : value)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Audit Type" />
           </SelectTrigger>
@@ -141,7 +141,7 @@ const Audits = () => {
             <SelectItem value="regulatory">Regulatory</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value || null)}>
+        <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value === "all-statuses" ? null : value)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -164,7 +164,7 @@ const Audits = () => {
         setSelectedAudit={setSelectedAudit}
       />
 
-      <Dialog open={isCreateDialogOpen} onOpenChange={() => setIsCreateDialogOpen(false)}>
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Create New Audit</DialogTitle>
@@ -176,7 +176,7 @@ const Audits = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={selectedAudit !== null} onOpenChange={() => setSelectedAudit(null)}>
+      <Dialog open={selectedAudit !== null} onOpenChange={(open) => !open && setSelectedAudit(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Audit</DialogTitle>
