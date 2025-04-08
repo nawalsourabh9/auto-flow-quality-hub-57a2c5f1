@@ -1,5 +1,5 @@
 
-import { TaskDocument } from "@/components/dashboard/TaskList";
+import { TaskDocument } from "@/types/document";
 
 export interface Task {
   id: string;
@@ -87,13 +87,7 @@ export interface NonConformance {
   containmentActions?: string;
   correctiveActions?: string;
   closedDate?: string;
-  assignedTo?: string;
-  attachments?: {
-    id: string;
-    name: string;
-    fileType: string;
-    uploadedBy: string;
-    uploadDate: string;
-    fileSize: string;
-  }[];
+  assignedTo: string;
+  dueDate: string;
+  isCustomerRelated: boolean;
 }

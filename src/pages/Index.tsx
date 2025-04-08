@@ -1,7 +1,7 @@
 
 import { CheckCircle2, AlertTriangle, ClipboardList, FileCheck, Gauge, BarChart2, CalendarCheck, UserCheck } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { TaskList } from "@/components/dashboard/TaskList";
+import TaskList from "@/components/dashboard/TaskList";
 import { QualityMetricsChart } from "@/components/dashboard/QualityMetricsChart";
 import { DocumentsStatus } from "@/components/dashboard/DocumentsStatus";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
