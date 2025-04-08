@@ -1,7 +1,5 @@
-// Note: This is a partial update to fix the build error
-// ... keep existing code
+
 import React, { useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
@@ -10,6 +8,7 @@ import { Audit } from "@/types/task";
 import AuditsTable from "@/components/audits/AuditsTable";
 import AuditForm from "@/components/audits/AuditForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Sample audit data
 const sampleAudits: Audit[] = [
@@ -129,32 +128,32 @@ const Audits = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        {/* <Select value={auditTypeFilter || ""} onValueChange={(value) => setAuditTypeFilter(value || null)}>
+        <Select value={auditTypeFilter || ""} onValueChange={(value) => setAuditTypeFilter(value || null)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Audit Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Types</SelectItem>
+            <SelectItem value="all-types">All Types</SelectItem>
             <SelectItem value="internal">Internal</SelectItem>
             <SelectItem value="external">External</SelectItem>
             <SelectItem value="supplier">Supplier</SelectItem>
             <SelectItem value="customer">Customer</SelectItem>
             <SelectItem value="regulatory">Regulatory</SelectItem>
           </SelectContent>
-        </Select> */}
-        {/* <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value || null)}>
+        </Select>
+        <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value || null)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="all-statuses">All Statuses</SelectItem>
             <SelectItem value="scheduled">Scheduled</SelectItem>
             <SelectItem value="in-progress">In Progress</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
             <SelectItem value="postponed">Postponed</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
-        </Select> */}
+        </Select>
       </div>
 
       <AuditsTable 
@@ -172,7 +171,7 @@ const Audits = () => {
           </DialogHeader>
           <AuditForm 
             onSubmit={handleCreateAudit} 
-            initialData={{}} // Add the missing initialData prop
+            initialData={{}} 
           />
         </DialogContent>
       </Dialog>
@@ -195,4 +194,3 @@ const Audits = () => {
 };
 
 export default Audits;
-// ... keep existing code
