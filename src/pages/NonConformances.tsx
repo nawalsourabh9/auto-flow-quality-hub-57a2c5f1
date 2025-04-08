@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -52,7 +51,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { NonConformance } from "@/types/task";
+import { NonConformance } from "@/types/nonconformance";
 import { toast } from "@/hooks/use-toast";
 
 const nonConformanceFormSchema = z.object({

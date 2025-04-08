@@ -1,4 +1,3 @@
-
 export interface DocumentRevision {
   id: string;
   fileName: string;
@@ -6,7 +5,8 @@ export interface DocumentRevision {
   uploadDate: string;
   uploadedBy: string;
   fileSize: string;
-  notes?: string; // Adding optional notes property
+  fileUrl?: string;
+  notes?: string; // Added notes property as it was missing
 }
 
 export interface ApprovalHierarchy {
@@ -47,5 +47,5 @@ export interface TaskDocument {
   documentType: 'sop' | 'dataFormat' | 'reportFormat';
   revisions: DocumentRevision[];
   currentRevisionId: string;
-  approvalHierarchy?: ApprovalHierarchy;
+  approvalHierarchy?: ApprovalHierarchy; // Added approvalHierarchy property
 }

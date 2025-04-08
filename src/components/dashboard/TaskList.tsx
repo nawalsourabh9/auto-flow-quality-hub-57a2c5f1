@@ -3,6 +3,7 @@ import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChar
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ApprovalHierarchy } from "@/types/document";
 
 export interface DocumentRevision {
   id: string;
@@ -12,12 +13,14 @@ export interface DocumentRevision {
   uploadedBy: string;
   fileSize: string;
   fileUrl?: string;
+  notes?: string;
 }
 
 export interface TaskDocument {
   documentType: 'sop' | 'dataFormat' | 'reportFormat';
   revisions: DocumentRevision[];
   currentRevisionId?: string;
+  approvalHierarchy?: ApprovalHierarchy;
 }
 
 interface Task {

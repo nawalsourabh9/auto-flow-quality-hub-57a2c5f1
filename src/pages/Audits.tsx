@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ import * as z from "zod";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Audit } from "@/types/task";
+import { Audit } from "@/types/audit";
 
 const auditFormSchema = z.object({
   title: z.string().min(3, { message: "Audit title must be at least 3 characters." }),

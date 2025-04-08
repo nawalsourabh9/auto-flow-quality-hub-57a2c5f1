@@ -24,5 +24,17 @@ import PriorityBadge from "@/components/tasks/PriorityBadge";
 import { Task } from "@/types/task";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import DocumentUploadDialog from "@/components/documents/DocumentUploadDialog";
+import { useQuery } from "@tanstack/react-query";
 
-// ... keep existing code
+// Add a default export for Tasks component
+const Tasks = () => {
+  // Your Tasks component code here
+  return (
+    <div>
+      <h1>Tasks Page</h1>
+      {/* Your Tasks component content */}
+    </div>
+  );
+};
+
+export default Tasks;
