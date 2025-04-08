@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,8 @@ import { Task } from "@/types/task";
 import TasksTable from "@/components/tasks/TaskTable";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import TaskForm from "@/components/tasks/TaskForm";
 
 // Sample task data
 const sampleTasks: Task[] = [
@@ -201,6 +202,37 @@ const Tasks = () => {
     });
   };
 
+  const handleCreateTask = (newTask: Task) => {
+    // Add a unique ID to the new task
+    const taskWithId = {
+      ...newTask,
+      id: String(Date.now()),
+      createdAt: new Date().toISOString().split('T')[0],
+      status: 'not-started'
+    };
+    
+    // Determine if the task needs approval
+    const needsApproval = isDepartmentHead() ? false : true;
+    
+    if (needsApproval) {
+      // If needs approval, add to pending tasks
+      setPendingTasks([...pendingTasks, taskWithId]);
+      toast({
+        title: "Task Submitted for Approval",
+        description: "Your task has been submitted and is awaiting approval."
+      });
+    } else {
+      // If created by department head, add directly to tasks
+      setTasks([...tasks, taskWithId]);
+      toast({
+        title: "Task Created",
+        description: `Task "${taskWithId.title}" has been created successfully.`
+      });
+    }
+    
+    setIsCreateDialogOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -361,6 +393,15 @@ const Tasks = () => {
       {!isDepartmentHead() && (
         <TasksTable tasks={filteredTasks} onViewTask={handleViewTask} />
       )}
+
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create New Task</DialogTitle>
+          </DialogHeader>
+          <TaskForm onSubmit={handleCreateTask} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
