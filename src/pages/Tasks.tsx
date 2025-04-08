@@ -208,7 +208,7 @@ const Tasks = () => {
       ...newTask,
       id: String(Date.now()),
       createdAt: new Date().toISOString().split('T')[0],
-      status: 'not-started'
+      status: 'not-started' as 'not-started' | 'in-progress' | 'overdue' | 'completed'
     };
     
     // Determine if the task needs approval

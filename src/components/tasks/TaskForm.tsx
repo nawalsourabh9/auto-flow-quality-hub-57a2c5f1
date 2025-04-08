@@ -5,6 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Task } from "@/types/task";
+import { Separator } from "@/components/ui/separator";
+import { FileText, Database, PieChart, BookOpen } from "lucide-react";
+import { TaskDocument } from "@/types/document";
 
 interface TaskFormProps {
   onSubmit: (task: Task) => void;
@@ -23,6 +26,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
   const [attachmentsRequired, setAttachmentsRequired] = useState<"none" | "optional" | "required">(
     initialData.attachmentsRequired || "optional"
   );
+  
+  // Document selection states
+  const [attachSOP, setAttachSOP] = useState(false);
+  const [attachDataFormat, setAttachDataFormat] = useState(false);
+  const [attachReportFormat, setAttachReportFormat] = useState(false);
+  const [attachRulesAndProcedures, setAttachRulesAndProcedures] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState<TaskDocument[]>(initialData.documents || []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +68,59 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
       };
     }
 
+    // Create placeholder documents based on selections
+    const documents: TaskDocument[] = [];
+    
+    // These would typically be populated from a documents library or selector
+    // For now we're just creating placeholder entries to demonstrate the UI
+    if (attachSOP) {
+      documents.push({
+        id: `doc-sop-${Math.random().toString(36).substring(2, 9)}`,
+        fileName: "Standard Operating Procedure",
+        fileType: "pdf",
+        documentType: "sop",
+        version: "1.0",
+        uploadDate: new Date().toISOString(),
+        uploadedBy: assigneeDetails.name,
+      });
+    }
+    
+    if (attachDataFormat) {
+      documents.push({
+        id: `doc-df-${Math.random().toString(36).substring(2, 9)}`,
+        fileName: "Data Recording Format",
+        fileType: "xlsx",
+        documentType: "dataFormat",
+        version: "1.0",
+        uploadDate: new Date().toISOString(),
+        uploadedBy: assigneeDetails.name,
+      });
+    }
+    
+    if (attachReportFormat) {
+      documents.push({
+        id: `doc-rf-${Math.random().toString(36).substring(2, 9)}`,
+        fileName: "Report Format",
+        fileType: "docx",
+        documentType: "reportFormat",
+        version: "1.0",
+        uploadDate: new Date().toISOString(),
+        uploadedBy: assigneeDetails.name,
+      });
+    }
+    
+    if (attachRulesAndProcedures) {
+      documents.push({
+        id: `doc-rp-${Math.random().toString(36).substring(2, 9)}`,
+        fileName: "Rules and Procedures",
+        fileType: "pdf",
+        documentType: "rulesAndProcedures",
+        version: "1.0",
+        uploadDate: new Date().toISOString(),
+        uploadedBy: assigneeDetails.name,
+      });
+    }
+
     const newTask: Task = {
       id: initialData.id || "",
       title,
@@ -72,7 +135,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
       isCustomerRelated,
       customerName: isCustomerRelated ? customerName : undefined,
       attachmentsRequired,
-      assigneeDetails
+      assigneeDetails,
+      documents: documents.length > 0 ? documents : undefined
     };
 
     onSubmit(newTask);
@@ -192,6 +256,69 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
               <SelectItem value="required">Required</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        
+        <Separator className="my-2" />
+        
+        <div>
+          <h3 className="text-sm font-medium mb-3">Required Documents</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="attachSOP"
+                checked={attachSOP}
+                onChange={(e) => setAttachSOP(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="attachSOP" className="text-sm flex items-center">
+                <FileText className="h-4 w-4 text-green-500 mr-2" />
+                Standard Operating Procedure
+              </label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="attachDataFormat"
+                checked={attachDataFormat}
+                onChange={(e) => setAttachDataFormat(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="attachDataFormat" className="text-sm flex items-center">
+                <Database className="h-4 w-4 text-blue-500 mr-2" />
+                Data Recording Format
+              </label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="attachReportFormat"
+                checked={attachReportFormat}
+                onChange={(e) => setAttachReportFormat(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="attachReportFormat" className="text-sm flex items-center">
+                <PieChart className="h-4 w-4 text-amber-500 mr-2" />
+                Report Format
+              </label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="attachRulesAndProcedures"
+                checked={attachRulesAndProcedures}
+                onChange={(e) => setAttachRulesAndProcedures(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="attachRulesAndProcedures" className="text-sm flex items-center">
+                <BookOpen className="h-4 w-4 text-purple-500 mr-2" />
+                Rules and Procedures
+              </label>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center space-x-2">
