@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -192,12 +193,12 @@ const NonConformances = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value || null)}>
+        <Select value={statusFilter || "all-statuses"} onValueChange={(value) => setStatusFilter(value === "all-statuses" ? null : value)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="all-statuses">All Statuses</SelectItem>
             <SelectItem value="open">Open</SelectItem>
             <SelectItem value="under-review">Under Review</SelectItem>
             <SelectItem value="corrective-action">Corrective Action</SelectItem>
@@ -205,12 +206,12 @@ const NonConformances = () => {
             <SelectItem value="rejected">Rejected</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={severityFilter || ""} onValueChange={(value) => setSeverityFilter(value || null)}>
+        <Select value={severityFilter || "all-severities"} onValueChange={(value) => setSeverityFilter(value === "all-severities" ? null : value)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Severity" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Severities</SelectItem>
+            <SelectItem value="all-severities">All Severities</SelectItem>
             <SelectItem value="critical">Critical</SelectItem>
             <SelectItem value="major">Major</SelectItem>
             <SelectItem value="minor">Minor</SelectItem>
