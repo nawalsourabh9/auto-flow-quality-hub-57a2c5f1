@@ -21,16 +21,24 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
+        setLoadingDepartments(true);
+        
+        // Use the direct query instead of the function to ensure it works
         const { data, error } = await supabase
           .from('departments')
-          .select('*');
+          .select('*')
+          .order('name');
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching departments:", error);
+          throw error;
+        }
+        
         console.log("Fetched departments:", data);
         setDepartments(data || []);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching departments:", error);
-        toast.error("Failed to load departments");
+        toast.error(`Failed to load departments: ${error.message}`);
       } finally {
         setLoadingDepartments(false);
       }
@@ -99,7 +107,7 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
           <SelectTrigger id="role">
             <SelectValue placeholder="Select a role" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper">
             <SelectItem value="user">User</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
             <SelectItem value="super_admin">Super Admin</SelectItem>
@@ -116,23 +124,26 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
           <SelectTrigger id="department" disabled={loadingDepartments}>
             <SelectValue placeholder="Select a department" />
           </SelectTrigger>
-          <SelectContent className="max-h-[200px]">
-            {departments.map((dept) => (
-              <SelectItem key={dept.id} value={dept.id}>
-                {dept.name}
-              </SelectItem>
-            ))}
+          <SelectContent position="popper" className="max-h-[200px]">
+            {departments.length > 0 ? (
+              departments.map((dept) => (
+                <SelectItem key={dept.id} value={dept.id}>
+                  {dept.name}
+                </SelectItem>
+              ))
+            ) : (
+              !loadingDepartments && (
+                <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                  No departments found
+                </div>
+              )
+            )}
           </SelectContent>
         </Select>
         {loadingDepartments && (
           <div className="flex items-center text-sm text-muted-foreground">
             <Loader2 className="mr-2 h-3 w-3 animate-spin" />
             Loading departments...
-          </div>
-        )}
-        {!loadingDepartments && departments.length === 0 && (
-          <div className="text-sm text-muted-foreground">
-            No departments found
           </div>
         )}
       </div>
