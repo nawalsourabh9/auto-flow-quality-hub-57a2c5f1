@@ -25,11 +25,11 @@ import EmailTest from "./pages/EmailTest";
 import Admin from "./pages/Admin";
 import InviteUser from "./pages/InviteUser";
 import AcceptInvite from "./pages/AcceptInvite";
+import CreateAdmin from "./pages/CreateAdmin";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-// Protected route component using useAuth hook
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -49,7 +49,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Admin route component
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -69,7 +68,6 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Super Admin route component
 const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -96,6 +94,7 @@ const AppRoutes = () => {
       <Route path="/signup" element={<Signup />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
+      <Route path="/create-admin" element={<CreateAdmin />} />
       
       <Route path="/" element={
         <ProtectedRoute>
