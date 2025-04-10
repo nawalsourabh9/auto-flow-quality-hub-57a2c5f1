@@ -45,125 +45,127 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return isAuthenticated() && isAdmin() ? <>{children}</> : <Navigate to="/" />;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <NotificationsProvider>
-        <Toaster />
-        <Sonner />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          
-          <Route path="/" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Index />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/email-test" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <EmailTest />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/tasks" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Tasks />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/documents" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Documents />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/non-conformances" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <NonConformances />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/audits" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Audits />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/analytics" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Analytics />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/users" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Users />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/organization" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Organization />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Settings />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Profile />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/help" element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Help />
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/admin" element={
-            <AdminRoute>
-              <MainLayout>
-                <Admin />
-              </AdminLayout>
-            </AdminRoute>
-          } />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </NotificationsProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <NotificationsProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            
+            <Route path="/" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Index />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/email-test" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <EmailTest />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/tasks" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Tasks />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/documents" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Documents />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/non-conformances" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <NonConformances />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/audits" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Audits />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Analytics />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/users" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Users />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/organization" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Organization />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Settings />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Profile />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/help" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Help />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/admin" element={
+              <AdminRoute>
+                <MainLayout>
+                  <Admin />
+                </MainLayout>
+              </AdminRoute>
+            } />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </NotificationsProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
