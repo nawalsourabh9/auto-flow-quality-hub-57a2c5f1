@@ -13,8 +13,13 @@ interface InviteUserFormFieldsProps {
   onChange: (field: keyof InviteFormData, value: string) => void;
 }
 
+interface Department {
+  id: string;
+  name: string;
+}
+
 export function InviteUserFormFields({ formData, onChange }: InviteUserFormFieldsProps) {
-  const [departments, setDepartments] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
 
   // Fetch departments from the database
@@ -23,10 +28,9 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
       try {
         setLoadingDepartments(true);
         
-        // Use the direct query instead of the function to ensure it works
         const { data, error } = await supabase
           .from('departments')
-          .select('*')
+          .select('id, name')
           .order('name');
         
         if (error) {
@@ -125,18 +129,21 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
             <SelectValue placeholder="Select a department" />
           </SelectTrigger>
           <SelectContent position="popper" className="max-h-[200px]">
-            {departments.length > 0 ? (
+            {loadingDepartments ? (
+              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                <Loader2 className="mx-auto h-4 w-4 animate-spin mb-2" />
+                Loading departments...
+              </div>
+            ) : departments.length > 0 ? (
               departments.map((dept) => (
                 <SelectItem key={dept.id} value={dept.id}>
                   {dept.name}
                 </SelectItem>
               ))
             ) : (
-              !loadingDepartments && (
-                <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                  No departments found
-                </div>
-              )
+              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                No departments found
+              </div>
             )}
           </SelectContent>
         </Select>
