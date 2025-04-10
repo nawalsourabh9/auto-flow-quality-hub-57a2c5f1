@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
       
-      toast.success('Sign up successful! Please check your email for verification.');
+      toast.success('Sign up successful! Please check your email for verification and then login.');
     } catch (error: any) {
       setError(error.message);
       toast.error(`Sign up failed: ${error.message}`);
@@ -178,14 +178,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Update profile in database
       const { error: profileError } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({
           first_name: data.first_name,
           last_name: data.last_name,
           email: data.email || user.email,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', user.id);
+        .eq("id", user.id);
 
       if (profileError) throw profileError;
       

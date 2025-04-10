@@ -83,15 +83,21 @@ const AcceptInvite = () => {
 
       if (updateError) throw updateError;
 
-      // Update the profile data
+      // Get current user
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user?.id) {
+        throw new Error("Unable to retrieve user information");
+      }
+
+      // Update the profile in our profiles table
       const { error: profileError } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({
           first_name: firstName,
           last_name: lastName,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', (await supabase.auth.getUser()).data.user?.id);
+        .eq("id", userData.user.id);
 
       if (profileError) throw profileError;
 

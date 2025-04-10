@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,10 +22,13 @@ const InviteUser = () => {
   const { user } = useAuth();
 
   // Fetch departments on component mount
-  useState(() => {
+  useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const { data, error } = await supabase.from("departments").select("*");
+        const { data, error } = await supabase
+          .from("departments")
+          .select("*");
+          
         if (error) throw error;
         setDepartments(data || []);
       } catch (error) {
