@@ -176,16 +176,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.info('Email verification sent to your new email address');
       }
 
-      // Update profile in database
+      // Update profile in database using generic query to avoid type issues
       const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          first_name: data.first_name,
-          last_name: data.last_name,
-          email: data.email || user.email,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
+        .rpc('update_profile', {
+          user_id: user.id,
+          first_name_val: data.first_name,
+          last_name_val: data.last_name,
+          email_val: data.email || user.email,
+        });
 
       if (profileError) throw profileError;
       

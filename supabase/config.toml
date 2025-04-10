@@ -1,5 +1,22 @@
 
 project_id = "sibaigcaglcmhfhvrwol"
 
-[functions.send-email]
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+# Internal functions
+[functions.database-utils]
+verify_jwt = true
+
+# External function for sending invitations
+[functions.send-invitation]
 verify_jwt = true
