@@ -13,6 +13,9 @@ import { Loader2, ArrowLeft } from "lucide-react";
 
 const InviteUser = () => {
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [position, setPosition] = useState("");
   const [role, setRole] = useState("user");
   const [departmentId, setDepartmentId] = useState("");
   const [departments, setDepartments] = useState<any[]>([]);
@@ -21,20 +24,16 @@ const InviteUser = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Fetch departments on component mount
+  // Fetch departments from the database
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        // Use the database-utils function to get departments
-        const { data: response, error } = await supabase.functions.invoke('database-utils', {
-          body: {
-            operation: 'getDepartments',
-            userId: user?.id || 'anonymous',
-          },
-        });
+        const { data, error } = await supabase
+          .from('departments')
+          .select('*');
         
         if (error) throw error;
-        setDepartments(response?.data || []);
+        setDepartments(data || []);
       } catch (error) {
         console.error("Error fetching departments:", error);
         toast.error("Failed to load departments");
@@ -54,6 +53,9 @@ const InviteUser = () => {
       const response = await supabase.functions.invoke("send-invitation", {
         body: {
           email,
+          firstName,
+          lastName,
+          position,
           role,
           departmentId: departmentId || undefined,
         },
@@ -65,6 +67,9 @@ const InviteUser = () => {
 
       toast.success(`Invitation sent to ${email}`);
       setEmail("");
+      setFirstName("");
+      setLastName("");
+      setPosition("");
       setRole("user");
       setDepartmentId("");
     } catch (error: any) {
@@ -98,7 +103,7 @@ const InviteUser = () => {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
@@ -108,9 +113,46 @@ const InviteUser = () => {
                 required
               />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={role} onValueChange={setRole}>
+              <Label htmlFor="firstName">First Name *</Label>
+              <Input
+                id="firstName"
+                type="text"
+                placeholder="John"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name *</Label>
+              <Input
+                id="lastName"
+                type="text"
+                placeholder="Doe"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="position">Position *</Label>
+              <Input
+                id="position"
+                type="text"
+                placeholder="Quality Manager"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="role">Role *</Label>
+              <Select value={role} onValueChange={setRole} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
@@ -121,6 +163,7 @@ const InviteUser = () => {
                 </SelectContent>
               </Select>
             </div>
+            
             <div className="space-y-2">
               <Label htmlFor="department">Department</Label>
               <Select value={departmentId} onValueChange={setDepartmentId}>

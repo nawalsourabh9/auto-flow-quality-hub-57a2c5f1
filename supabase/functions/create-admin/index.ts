@@ -38,19 +38,32 @@ serve(async (req) => {
     }
 
     // Update user profile
-    const { error: profileError } = await supabase.functions.invoke('database-utils', {
-      body: {
-        operation: 'updateProfile',
-        userId: userData.user.id,
-        data: {
-          firstName: 'Rishabh',
-          lastName: 'Jain',
-          email: 'rishabhjn732@gmail.com',
-        },
-      },
-    });
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: userData.user.id,
+        first_name: 'Rishabh',
+        last_name: 'Jain',
+        email: 'rishabhjn732@gmail.com',
+      });
 
     if (profileError) throw profileError;
+
+    // Create team member entry
+    const { error: teamMemberError } = await supabase
+      .from('team_members')
+      .insert({
+        name: 'Rishabh Jain',
+        email: 'rishabhjn732@gmail.com',
+        position: 'Quality Manager',
+        initials: 'RJ',
+        user_id: userData.user.id
+      });
+
+    if (teamMemberError) {
+      console.error('Error creating team member:', teamMemberError);
+      // Continue even if team member creation fails
+    }
 
     // Return success response
     return new Response(

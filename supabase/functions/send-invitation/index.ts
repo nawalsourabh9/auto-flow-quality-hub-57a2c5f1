@@ -12,6 +12,9 @@ interface InvitationRequest {
   email: string;
   role?: string;
   departmentId?: string;
+  firstName?: string;
+  lastName?: string;
+  position?: string;
 }
 
 serve(async (req) => {
@@ -27,7 +30,7 @@ serve(async (req) => {
     // Initialize the Supabase client with the service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { email, role, departmentId }: InvitationRequest = await req.json();
+    const { email, role, departmentId, firstName, lastName, position }: InvitationRequest = await req.json();
 
     if (!email) {
       return new Response(
@@ -61,12 +64,37 @@ serve(async (req) => {
       );
     }
 
+    // Create a team member record
+    if (firstName && lastName && position) {
+      const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+
+      const { error: teamMemberError } = await supabase
+        .from("team_members")
+        .insert([
+          {
+            name: `${firstName} ${lastName}`,
+            email: email,
+            position: position,
+            department_id: departmentId || null,
+            initials: initials
+          }
+        ]);
+
+      if (teamMemberError) {
+        console.error("Error creating team member:", teamMemberError);
+        // We continue with the invitation even if team member creation fails
+      }
+    }
+
     // Generate a sign-up link with a custom token and send invitation email
     const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${req.headers.get("origin")}/accept-invite`,
       data: {
         role: role || "user",
         departmentId: departmentId,
+        firstName: firstName,
+        lastName: lastName,
+        position: position,
         invited_at: new Date().toISOString(),
       },
     });
