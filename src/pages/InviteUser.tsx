@@ -25,11 +25,9 @@ const InviteUser = () => {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        // Use a more generic query approach that works with the current types
-        const { data, error } = await supabase
-          .from('departments')
-          .select('*');
-          
+        // Use a generic query approach
+        const { data, error } = await supabase.rpc('get_departments');
+        
         if (error) throw error;
         setDepartments(data || []);
       } catch (error) {

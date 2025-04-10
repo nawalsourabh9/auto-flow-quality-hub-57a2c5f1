@@ -89,15 +89,13 @@ const AcceptInvite = () => {
         throw new Error("Unable to retrieve user information");
       }
 
-      // Instead of using .from('profiles'), use a more generic approach
-      // Create a custom RPC function for profile updates
-      const { error: profileError } = await supabase
-        .rpc('update_profile', {
-          user_id: userData.user.id,
-          first_name_val: firstName,
-          last_name_val: lastName,
-          email_val: userData.user.email
-        });
+      // Use the database function to update the profile
+      const { error: profileError } = await supabase.rpc('update_profile', {
+        user_id: userData.user.id,
+        first_name_val: firstName,
+        last_name_val: lastName,
+        email_val: userData.user.email || ''
+      });
 
       if (profileError) throw profileError;
 

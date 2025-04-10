@@ -58,6 +58,25 @@ serve(async (req) => {
       );
     }
 
+    if (operation === "getDepartments") {
+      // Get all departments
+      const { data, error } = await supabase
+        .from("departments")
+        .select("*");
+
+      if (error) {
+        throw error;
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, data }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: "Invalid operation" }),
       {

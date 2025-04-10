@@ -20,3 +20,4 @@ verify_jwt = true
 # External function for sending invitations
 [functions.send-invitation]
 verify_jwt = true
+
