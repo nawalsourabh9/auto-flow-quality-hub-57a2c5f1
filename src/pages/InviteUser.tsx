@@ -33,6 +33,7 @@ const InviteUser = () => {
           .select('*');
         
         if (error) throw error;
+        console.log("Fetched departments:", data);
         setDepartments(data || []);
       } catch (error) {
         console.error("Error fetching departments:", error);
@@ -153,7 +154,7 @@ const InviteUser = () => {
             <div className="space-y-2">
               <Label htmlFor="role">Role *</Label>
               <Select value={role} onValueChange={setRole} required>
-                <SelectTrigger>
+                <SelectTrigger id="role">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -167,10 +168,10 @@ const InviteUser = () => {
             <div className="space-y-2">
               <Label htmlFor="department">Department</Label>
               <Select value={departmentId} onValueChange={setDepartmentId}>
-                <SelectTrigger disabled={loadingDepartments}>
+                <SelectTrigger id="department" disabled={loadingDepartments}>
                   <SelectValue placeholder="Select a department" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[200px]">
                   {departments.map((dept) => (
                     <SelectItem key={dept.id} value={dept.id}>
                       {dept.name}
@@ -178,6 +179,17 @@ const InviteUser = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {loadingDepartments && (
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  Loading departments...
+                </div>
+              )}
+              {!loadingDepartments && departments.length === 0 && (
+                <div className="text-sm text-muted-foreground">
+                  No departments found
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter>

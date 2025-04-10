@@ -9,6 +9,151 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      approval_hierarchy: {
+        Row: {
+          approved_at: string | null
+          approver: string | null
+          approver_approved: boolean | null
+          checked_at: string | null
+          checker: string | null
+          checker_approved: boolean | null
+          document_id: string | null
+          id: string
+          initiated_at: string | null
+          initiator: string
+          initiator_approved: boolean | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approver?: string | null
+          approver_approved?: boolean | null
+          checked_at?: string | null
+          checker?: string | null
+          checker_approved?: boolean | null
+          document_id?: string | null
+          id?: string
+          initiated_at?: string | null
+          initiator: string
+          initiator_approved?: boolean | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status: string
+        }
+        Update: {
+          approved_at?: string | null
+          approver?: string | null
+          approver_approved?: boolean | null
+          checked_at?: string | null
+          checker?: string | null
+          checker_approved?: boolean | null
+          document_id?: string | null
+          id?: string
+          initiated_at?: string | null
+          initiator?: string
+          initiator_approved?: boolean | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_hierarchy_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_findings: {
+        Row: {
+          assigned_to: string | null
+          audit_id: string | null
+          closed_at: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          severity: string
+          status: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          audit_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          description: string
+          due_date?: string | null
+          id?: string
+          severity: string
+          status: string
+        }
+        Update: {
+          assigned_to?: string | null
+          audit_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          severity?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_findings_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audits: {
+        Row: {
+          audit_type: string
+          auditor: string
+          completed_at: string | null
+          created_at: string
+          department: string
+          description: string | null
+          id: string
+          scheduled_date: string
+          status: string
+          title: string
+        }
+        Insert: {
+          audit_type: string
+          auditor: string
+          completed_at?: string | null
+          created_at?: string
+          department: string
+          description?: string | null
+          id?: string
+          scheduled_date: string
+          status: string
+          title: string
+        }
+        Update: {
+          audit_type?: string
+          auditor?: string
+          completed_at?: string | null
+          created_at?: string
+          department?: string
+          description?: string | null
+          id?: string
+          scheduled_date?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           created_at: string | null
@@ -24,6 +169,252 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      document_permissions: {
+        Row: {
+          allowed_departments: string[] | null
+          allowed_document_types: string[] | null
+          can_approve: boolean | null
+          can_check: boolean | null
+          can_initiate: boolean | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          allowed_departments?: string[] | null
+          allowed_document_types?: string[] | null
+          can_approve?: boolean | null
+          can_check?: boolean | null
+          can_initiate?: boolean | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          allowed_departments?: string[] | null
+          allowed_document_types?: string[] | null
+          can_approve?: boolean | null
+          can_check?: boolean | null
+          can_initiate?: boolean | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      document_revisions: {
+        Row: {
+          document_id: string | null
+          file_name: string
+          file_path: string
+          id: string
+          notes: string | null
+          upload_date: string
+          uploaded_by: string
+          version: string
+        }
+        Insert: {
+          document_id?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          notes?: string | null
+          upload_date?: string
+          uploaded_by: string
+          version: string
+        }
+        Update: {
+          document_id?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          notes?: string | null
+          upload_date?: string
+          uploaded_by?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_revisions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_types: {
+        Row: {
+          allowed_departments: string[] | null
+          description: string | null
+          id: string
+          name: string
+          required_approval_levels: string[] | null
+        }
+        Insert: {
+          allowed_departments?: string[] | null
+          description?: string | null
+          id: string
+          name: string
+          required_approval_levels?: string[] | null
+        }
+        Update: {
+          allowed_departments?: string[] | null
+          description?: string | null
+          id?: string
+          name?: string
+          required_approval_levels?: string[] | null
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          current_revision_id: string | null
+          document_type: string
+          file_name: string
+          file_type: string
+          id: string
+          notes: string | null
+          task_id: string | null
+          upload_date: string
+          uploaded_by: string
+          version: string
+        }
+        Insert: {
+          current_revision_id?: string | null
+          document_type: string
+          file_name: string
+          file_type: string
+          id?: string
+          notes?: string | null
+          task_id?: string | null
+          upload_date?: string
+          uploaded_by: string
+          version: string
+        }
+        Update: {
+          current_revision_id?: string | null
+          document_type?: string
+          file_name?: string
+          file_type?: string
+          id?: string
+          notes?: string | null
+          task_id?: string | null
+          upload_date?: string
+          uploaded_by?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      non_conformance_attachments: {
+        Row: {
+          file_path: string
+          file_size: string
+          file_type: string
+          id: string
+          name: string
+          non_conformance_id: string | null
+          upload_date: string
+          uploaded_by: string
+        }
+        Insert: {
+          file_path: string
+          file_size: string
+          file_type: string
+          id?: string
+          name: string
+          non_conformance_id?: string | null
+          upload_date?: string
+          uploaded_by: string
+        }
+        Update: {
+          file_path?: string
+          file_size?: string
+          file_type?: string
+          id?: string
+          name?: string
+          non_conformance_id?: string | null
+          upload_date?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "non_conformance_attachments_non_conformance_id_fkey"
+            columns: ["non_conformance_id"]
+            isOneToOne: false
+            referencedRelation: "non_conformances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      non_conformances: {
+        Row: {
+          affected_product: string | null
+          assigned_to: string
+          closed_date: string | null
+          containment_actions: string | null
+          corrective_actions: string | null
+          customer_impact: boolean | null
+          customer_name: string | null
+          department: string
+          description: string
+          due_date: string
+          id: string
+          is_customer_related: boolean | null
+          reported_by: string
+          reported_date: string
+          root_cause: string | null
+          severity: string
+          status: string
+          title: string
+        }
+        Insert: {
+          affected_product?: string | null
+          assigned_to: string
+          closed_date?: string | null
+          containment_actions?: string | null
+          corrective_actions?: string | null
+          customer_impact?: boolean | null
+          customer_name?: string | null
+          department: string
+          description: string
+          due_date: string
+          id?: string
+          is_customer_related?: boolean | null
+          reported_by: string
+          reported_date?: string
+          root_cause?: string | null
+          severity: string
+          status: string
+          title: string
+        }
+        Update: {
+          affected_product?: string | null
+          assigned_to?: string
+          closed_date?: string | null
+          containment_actions?: string | null
+          corrective_actions?: string | null
+          customer_impact?: boolean | null
+          customer_name?: string | null
+          department?: string
+          description?: string
+          due_date?: string
+          id?: string
+          is_customer_related?: boolean | null
+          reported_by?: string
+          reported_date?: string
+          root_cause?: string | null
+          severity?: string
+          status?: string
+          title?: string
         }
         Relationships: []
       }
@@ -83,6 +474,160 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      task_attachments: {
+        Row: {
+          file_path: string
+          file_size: string
+          file_type: string
+          id: string
+          name: string
+          task_id: string | null
+          upload_date: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          file_path: string
+          file_size: string
+          file_type: string
+          id?: string
+          name: string
+          task_id?: string | null
+          upload_date?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          file_path?: string
+          file_size?: string
+          file_type?: string
+          id?: string
+          name?: string
+          task_id?: string | null
+          upload_date?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          assignee: string | null
+          attachments_required: string
+          created_at: string
+          customer_name: string | null
+          department: string
+          department_head_id: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          is_customer_related: boolean | null
+          is_recurring: boolean | null
+          priority: string
+          recurring_frequency: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          assignee?: string | null
+          attachments_required: string
+          created_at?: string
+          customer_name?: string | null
+          department: string
+          department_head_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_customer_related?: boolean | null
+          is_recurring?: boolean | null
+          priority: string
+          recurring_frequency?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status: string
+          title: string
+        }
+        Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          assignee?: string | null
+          attachments_required?: string
+          created_at?: string
+          customer_name?: string | null
+          department?: string
+          department_head_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_customer_related?: boolean | null
+          is_recurring?: boolean | null
+          priority?: string
+          recurring_frequency?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          avatar: string | null
+          department_id: string | null
+          email: string
+          id: string
+          initials: string
+          name: string
+          position: string
+          user_id: string | null
+        }
+        Insert: {
+          avatar?: string | null
+          department_id?: string | null
+          email: string
+          id?: string
+          initials: string
+          name: string
+          position: string
+          user_id?: string | null
+        }
+        Update: {
+          avatar?: string | null
+          department_id?: string | null
+          email?: string
+          id?: string
+          initials?: string
+          name?: string
+          position?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
