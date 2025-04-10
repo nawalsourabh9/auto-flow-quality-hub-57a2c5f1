@@ -25,11 +25,16 @@ const InviteUser = () => {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        // Use a generic query approach
-        const { data, error } = await supabase.rpc('get_departments');
+        // Use the database-utils function to get departments
+        const { data: response, error } = await supabase.functions.invoke('database-utils', {
+          body: {
+            operation: 'getDepartments',
+            userId: user?.id || 'anonymous',
+          },
+        });
         
         if (error) throw error;
-        setDepartments(data || []);
+        setDepartments(response?.data || []);
       } catch (error) {
         console.error("Error fetching departments:", error);
         toast.error("Failed to load departments");

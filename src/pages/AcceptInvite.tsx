@@ -89,12 +89,17 @@ const AcceptInvite = () => {
         throw new Error("Unable to retrieve user information");
       }
 
-      // Use the database function to update the profile
-      const { error: profileError } = await supabase.rpc('update_profile', {
-        user_id: userData.user.id,
-        first_name_val: firstName,
-        last_name_val: lastName,
-        email_val: userData.user.email || ''
+      // Use the database function to update the profile using the edge function
+      const { error: profileError } = await supabase.functions.invoke('database-utils', {
+        body: {
+          operation: 'updateProfile',
+          userId: userData.user.id,
+          data: {
+            firstName: firstName,
+            lastName: lastName,
+            email: userData.user.email || '',
+          },
+        },
       });
 
       if (profileError) throw profileError;

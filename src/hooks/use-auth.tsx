@@ -176,12 +176,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.info('Email verification sent to your new email address');
       }
 
-      // Use the database function to update the profile
-      const { error: functionError } = await supabase.rpc('update_profile', {
-        user_id: user.id,
-        first_name_val: data.first_name || '',
-        last_name_val: data.last_name || '',
-        email_val: data.email || user.email || '',
+      // Use the database function to update the profile with type assertion
+      const { error: functionError } = await supabase.functions.invoke('database-utils', {
+        body: {
+          operation: 'updateProfile',
+          userId: user.id,
+          data: {
+            firstName: data.first_name || '',
+            lastName: data.last_name || '',
+            email: data.email || user.email || '',
+          },
+        },
       });
 
       if (functionError) throw functionError;
