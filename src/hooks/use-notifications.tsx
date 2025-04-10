@@ -1,5 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export interface Notification {
   id: string;
@@ -24,63 +27,233 @@ interface NotificationsContextType {
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
-    const savedNotifications = localStorage.getItem('notifications');
-    if (savedNotifications) {
-      try {
-        // Convert string timestamps back to Date objects
-        const parsed = JSON.parse(savedNotifications);
-        return parsed.map((notification: any) => ({
-          ...notification,
-          timestamp: new Date(notification.timestamp)
-        }));
-      } catch (e) {
-        console.error("Failed to parse notifications from localStorage", e);
-        return [];
-      }
-    }
-    return [];
-  });
-
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const unreadCount = notifications.filter(n => !n.read).length;
-
+  
+  // Check for user authentication status
   useEffect(() => {
-    // Save notifications to localStorage whenever they change
-    localStorage.setItem('notifications', JSON.stringify(notifications));
-  }, [notifications]);
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+      if (event === 'SIGNED_IN') {
+        loadNotifications();
+      } else if (event === 'SIGNED_OUT') {
+        setNotifications([]);
+      }
+    });
 
-  const addNotification = (notification: Omit<Notification, "id" | "timestamp" | "read">) => {
-    const newNotification = {
-      ...notification,
-      id: Date.now().toString(),
-      timestamp: new Date(),
-      read: false,
+    // Get current user
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      if (data.user) {
+        loadNotifications();
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Set up realtime subscription for notifications
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('notifications-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          // Reload notifications when there's a change
+          loadNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const loadNotifications = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        return;
+      }
+
+      // Transform the data to match our Notification interface
+      const formattedNotifications = data.map(notification => ({
+        id: notification.id,
+        title: notification.title,
+        message: notification.message,
+        timestamp: new Date(notification.created_at),
+        read: notification.read,
+        type: notification.type as "info" | "warning" | "success" | "error",
+        actionUrl: notification.action_url
+      }));
+
+      setNotifications(formattedNotifications);
+    } catch (error) {
+      console.error('Error in loadNotifications:', error);
+    }
+  };
+
+  const addNotification = async (notification: Omit<Notification, "id" | "timestamp" | "read">) => {
+    if (!user) {
+      console.warn('Cannot add notification - user not authenticated');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert([
+          {
+            user_id: user.id,
+            title: notification.title,
+            message: notification.message,
+            type: notification.type,
+            action_url: notification.actionUrl,
+            read: false
+          }
+        ])
+        .select();
+
+      if (error) {
+        console.error('Error adding notification:', error);
+        return;
+      }
+
+      // Notification will be added via realtime subscription
+    } catch (error) {
+      console.error('Error in addNotification:', error);
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        return;
+      }
+
+      // Update will be reflected via realtime subscription
+    } catch (error) {
+      console.error('Error in markAsRead:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        return;
+      }
+
+      // Updates will be reflected via realtime subscription
+    } catch (error) {
+      console.error('Error in markAllAsRead:', error);
+    }
+  };
+
+  const removeNotification = async (id: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error removing notification:', error);
+        return;
+      }
+
+      // Deletion will be reflected via realtime subscription
+    } catch (error) {
+      console.error('Error in removeNotification:', error);
+    }
+  };
+
+  const clearNotifications = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error clearing notifications:', error);
+        return;
+      }
+
+      // Deletions will be reflected via realtime subscription
+    } catch (error) {
+      console.error('Error in clearNotifications:', error);
+    }
+  };
+
+  // If user is not authenticated, provide a limited context that redirects to login
+  if (!user && !loading) {
+    const navigate = useNavigate();
+    
+    const redirectToLogin = () => {
+      toast.error("Please log in to manage notifications");
+      navigate("/login");
     };
     
-    setNotifications(prev => [newNotification, ...prev]);
-  };
-
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === id ? { ...notification, read: true } : notification
-      )
+    return (
+      <NotificationsContext.Provider
+        value={{
+          notifications: [],
+          unreadCount: 0,
+          addNotification: redirectToLogin,
+          markAsRead: redirectToLogin,
+          markAllAsRead: redirectToLogin,
+          removeNotification: redirectToLogin,
+          clearNotifications: redirectToLogin
+        }}
+      >
+        {children}
+      </NotificationsContext.Provider>
     );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-  };
-
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
-  };
-
-  const clearNotifications = () => {
-    setNotifications([]);
-  };
+  }
 
   return (
     <NotificationsContext.Provider

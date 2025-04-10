@@ -3,6 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useNotifications } from '@/hooks/use-notifications';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 export const NotificationDemo = () => {
   const { addNotification } = useNotifications();
@@ -13,6 +14,7 @@ export const NotificationDemo = () => {
       message: 'This is an informational notification.',
       type: 'info',
     });
+    toast.info('Information notification created');
   };
 
   const createSuccessNotification = () => {
@@ -21,6 +23,7 @@ export const NotificationDemo = () => {
       message: 'Operation completed successfully!',
       type: 'success',
     });
+    toast.success('Success notification created');
   };
 
   const createWarningNotification = () => {
@@ -29,6 +32,7 @@ export const NotificationDemo = () => {
       message: 'Please check your input and try again.',
       type: 'warning',
     });
+    toast.warning('Warning notification created');
   };
 
   const createErrorNotification = () => {
@@ -37,6 +41,7 @@ export const NotificationDemo = () => {
       message: 'An error occurred while processing your request.',
       type: 'error',
     });
+    toast.error('Error notification created');
   };
 
   const createActionableNotification = () => {
@@ -46,6 +51,7 @@ export const NotificationDemo = () => {
       type: 'info',
       actionUrl: '/documents',
     });
+    toast.info('Actionable notification created');
   };
 
   return (
