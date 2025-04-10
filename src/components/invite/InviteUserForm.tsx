@@ -27,6 +27,7 @@ export function InviteUserForm() {
     departmentId: "",
   });
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (field: keyof InviteFormData, value: string) => {
@@ -36,8 +37,18 @@ export function InviteUserForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setSuccess(false);
 
     try {
+      console.log("Sending invitation with data:", {
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        position: formData.position,
+        role: formData.role,
+        departmentId: formData.departmentId || undefined,
+      });
+      
       const response = await supabase.functions.invoke("send-invitation", {
         body: {
           email: formData.email,
@@ -49,11 +60,16 @@ export function InviteUserForm() {
         },
       });
 
+      console.log("Invitation response:", response);
+
       if (response.error) {
         throw new Error(response.error.message || "Failed to send invitation");
       }
 
+      setSuccess(true);
       toast.success(`Invitation sent to ${formData.email}`);
+      
+      // Reset form after successful invitation
       setFormData({
         email: "",
         firstName: "",
@@ -63,10 +79,15 @@ export function InviteUserForm() {
         departmentId: "",
       });
     } catch (error: any) {
+      console.error("Error sending invitation:", error);
       toast.error(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNewInvite = () => {
+    setSuccess(false);
   };
 
   return (
@@ -89,26 +110,44 @@ export function InviteUserForm() {
           </div>
         </div>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      
+      {success ? (
         <CardContent className="space-y-4">
-          <InviteUserFormFields 
-            formData={formData}
-            onChange={handleChange}
-          />
-        </CardContent>
-        <CardFooter>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending Invitation...
-              </>
-            ) : (
-              "Send Invitation"
-            )}
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-md text-center">
+            <h3 className="font-medium text-green-800 dark:text-green-300">Invitation Sent!</h3>
+            <p className="text-green-700 dark:text-green-400 mt-1">
+              An invitation has been sent to {formData.email}.
+            </p>
+          </div>
+          <Button
+            className="w-full mt-4"
+            onClick={handleNewInvite}
+          >
+            Send Another Invitation
           </Button>
-        </CardFooter>
-      </form>
+        </CardContent>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            <InviteUserFormFields 
+              formData={formData}
+              onChange={handleChange}
+            />
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending Invitation...
+                </>
+              ) : (
+                "Send Invitation"
+              )}
+            </Button>
+          </CardFooter>
+        </form>
+      )}
     </Card>
   );
 }
