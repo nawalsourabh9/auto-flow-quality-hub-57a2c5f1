@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -41,10 +42,22 @@ const Signup = () => {
     e.preventDefault();
     if (!validatePassword()) return;
 
-    await signUp(email, password, {
-      first_name: firstName,
-      last_name: lastName
-    });
+    try {
+      await signUp(email, password, {
+        first_name: firstName,
+        last_name: lastName
+      });
+      
+      // Show success message
+      toast.success("Signup successful! Please check your email for verification and then login.");
+      
+      // Redirect to login page after successful signup
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+    } catch (error) {
+      console.error("Signup error:", error);
+    }
   };
 
   return (

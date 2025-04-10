@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +23,8 @@ import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
 import EmailTest from "./pages/EmailTest";
 import Admin from "./pages/Admin";
+import InviteUser from "./pages/InviteUser";
+import AcceptInvite from "./pages/AcceptInvite";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -50,8 +51,26 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Admin route component
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  // In a real application, you would check if the user has admin role
-  // For now, we'll assume all authenticated users can access admin routes
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Super Admin route component
+const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -76,6 +95,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/accept-invite" element={<AcceptInvite />} />
       
       <Route path="/" element={
         <ProtectedRoute>
@@ -83,6 +103,12 @@ const AppRoutes = () => {
             <Index />
           </MainLayout>
         </ProtectedRoute>
+      } />
+      
+      <Route path="/invite-user" element={
+        <SuperAdminRoute>
+          <InviteUser />
+        </SuperAdminRoute>
       } />
       
       <Route path="/email-test" element={

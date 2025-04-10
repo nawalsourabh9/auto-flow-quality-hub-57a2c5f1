@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Bell, Search, LogOut, Settings, HelpCircle, UserRound } from "lucide-react";
+import { Bell, Search, LogOut, Settings, HelpCircle, UserRound, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationsList } from "@/components/notifications/NotificationsList";
+import { useAuth } from "@/hooks/use-auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,16 +23,22 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
+  const { signOut, user } = useAuth();
   
-  const handleLogout = () => {
-    // In a real app, this would call an auth service logout method
-    console.log("Logging out");
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login");
+  };
+
+  // Extract first letter of first and last name for avatar
+  const getInitials = () => {
+    if (!user) return "U";
     
-    // For demo purposes, simulate logout
-    setTimeout(() => {
-      toast.success("Logged out successfully");
-      navigate("/login");
-    }, 500);
+    const userData = user.user_metadata || {};
+    const firstName = userData.first_name || "";
+    const lastName = userData.last_name || "";
+    
+    return (firstName[0] || "") + (lastName[0] || "");
   };
   
   return (
@@ -53,7 +60,18 @@ export function Header() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* Invite User Button - Only visible to admins */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden md:flex items-center gap-1"
+            onClick={() => navigate("/invite-user")}
+          >
+            <UserPlus className="h-4 w-4" />
+            <span>Invite User</span>
+          </Button>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="relative border-border hover:bg-accent">
@@ -75,7 +93,7 @@ export function Header() {
               <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-accent">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="" alt="User" />
-                  <AvatarFallback className="bg-primary text-white">JD</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-white">{getInitials()}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
