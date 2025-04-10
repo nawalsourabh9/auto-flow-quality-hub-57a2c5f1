@@ -3,9 +3,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
 import { NotificationsProvider } from "./hooks/use-notifications";
+import { AuthProvider, useAuth } from "./hooks/use-auth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Tasks from "./pages/Tasks";
@@ -19,151 +20,184 @@ import Profile from "./pages/Profile";
 import Help from "./pages/Help";
 import Organization from "./pages/Organization";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
 import EmailTest from "./pages/EmailTest";
 import Admin from "./pages/Admin";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-// Mock authentication - in a real app, this would be handled by an auth provider
-const isAuthenticated = () => {
-  // For demo purposes, always return true - in a real app, check if user is logged in
-  return true;
-};
-
-// Mock admin check - in a real app, this would check if the user has admin role
-const isAdmin = () => {
-  // For demo purposes, always return true - in a real app, check if user has admin role
-  return true;
-};
-
+// Protected route component using useAuth hook
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  return isAuthenticated() ? <>{children}</> : <Navigate to="/login" />;
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
 };
 
+// Admin route component
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  return isAuthenticated() && isAdmin() ? <>{children}</> : <Navigate to="/" />;
+  // In a real application, you would check if the user has admin role
+  // For now, we'll assume all authenticated users can access admin routes
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const AppRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      
+      <Route path="/" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Index />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/email-test" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <EmailTest />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/tasks" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Tasks />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/documents" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Documents />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/non-conformances" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <NonConformances />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/audits" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Audits />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/analytics" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Analytics />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/users" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Users />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/organization" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Organization />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/settings" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Settings />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Profile />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/help" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Help />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin" element={
+        <AdminRoute>
+          <MainLayout>
+            <Admin />
+          </MainLayout>
+        </AdminRoute>
+      } />
+      
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
 };
 
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <NotificationsProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            
-            <Route path="/" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Index />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/email-test" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <EmailTest />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/tasks" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Tasks />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/documents" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Documents />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/non-conformances" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <NonConformances />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/audits" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Audits />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/analytics" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Analytics />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/users" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Users />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/organization" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Organization />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Settings />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Profile />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/help" element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Help />
-                </MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/admin" element={
-              <AdminRoute>
-                <MainLayout>
-                  <Admin />
-                </MainLayout>
-              </AdminRoute>
-            } />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </NotificationsProvider>
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <NotificationsProvider>
+            <Toaster />
+            <Sonner />
+            <AppRoutes />
+          </NotificationsProvider>
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };

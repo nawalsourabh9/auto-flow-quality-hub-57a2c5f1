@@ -1,104 +1,103 @@
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { Mail } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
-export default function ResetPassword() {
-  const [email, setEmail] = useState('');
-  const [isSubmitted, setIsSubmitted] = useState(false);
+const ResetPassword = () => {
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
-      // This is a mock password reset - in a real app, this would connect to an auth service
-      console.log('Requesting password reset for:', email);
-      
-      // For demo purposes, simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setIsSubmitted(true);
-      toast.success('Password reset instructions sent');
-    } catch (error) {
-      console.error('Password reset error:', error);
-      toast.error('Error sending password reset email');
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/update-password',
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setSubmitted(true);
+      toast.success("Password reset link sent to your email");
+    } catch (error: any) {
+      toast.error(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-secondary">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-lg">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-eqms-blue">BDS Manufacturing</h2>
-          <p className="text-sm text-muted-foreground">IATF Compliant Quality Management System</p>
-        </div>
-        
-        {!isSubmitted ? (
-          <>
-            <div className="text-center mb-6">
-              <h1 className="text-xl font-semibold">Reset your password</h1>
-              <p className="text-sm text-muted-foreground mt-2">
-                Enter your email address and we'll send you instructions to reset your password
-              </p>
-            </div>
-            
-            <form className="space-y-6" onSubmit={handleSubmit}>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-gray-900">
+      <Card className="mx-auto w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold">Reset password</CardTitle>
+          <CardDescription>
+            Enter your email address and we'll send you a link to reset your password
+          </CardDescription>
+        </CardHeader>
+        {!submitted ? (
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@company.com" 
-                    className="pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
-              
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-4">
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Sending..." : "Send reset instructions"}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Please wait
+                  </>
+                ) : (
+                  "Send reset link"
+                )}
               </Button>
-              
-              <div className="text-center">
-                <Link to="/login" className="text-sm text-primary hover:underline">
+              <p className="text-center text-sm text-gray-500">
+                Remember your password?{" "}
+                <Link
+                  to="/login"
+                  className="font-medium text-primary hover:underline"
+                >
                   Back to login
                 </Link>
-              </div>
-            </form>
-          </>
+              </p>
+            </CardFooter>
+          </form>
         ) : (
-          <div className="text-center space-y-4">
-            <h1 className="text-xl font-semibold">Check your email</h1>
-            <p className="text-sm text-muted-foreground">
-              We've sent password reset instructions to <span className="font-medium">{email}</span>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Didn't receive an email? Check your spam folder or 
-              <button 
-                className="text-primary hover:underline mx-1"
-                onClick={() => setIsSubmitted(false)}
-              >
-                try again
-              </button>
-            </p>
-            <Button asChild className="mt-4" variant="outline">
+          <CardContent className="space-y-4">
+            <div className="rounded-lg bg-green-50 p-4 text-green-800 dark:bg-green-900/50 dark:text-green-300">
+              <p>
+                We've sent a password reset link to your email address. Please check
+                your inbox and follow the instructions.
+              </p>
+            </div>
+            <Button asChild className="w-full mt-4">
               <Link to="/login">Back to login</Link>
             </Button>
-          </div>
+          </CardContent>
         )}
-      </div>
+      </Card>
     </div>
   );
-}
+};
+
+export default ResetPassword;

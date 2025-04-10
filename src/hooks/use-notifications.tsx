@@ -116,6 +116,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const addNotification = async (notification: Omit<Notification, "id" | "timestamp" | "read">) => {
     if (!user) {
       console.warn('Cannot add notification - user not authenticated');
+      toast.error("Please log in to manage notifications");
       return;
     }
 
@@ -146,7 +147,10 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const markAsRead = async (id: string) => {
-    if (!user) return;
+    if (!user) {
+      toast.error("Please log in to manage notifications");
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -167,7 +171,10 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const markAllAsRead = async () => {
-    if (!user) return;
+    if (!user) {
+      toast.error("Please log in to manage notifications");
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -188,7 +195,10 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const removeNotification = async (id: string) => {
-    if (!user) return;
+    if (!user) {
+      toast.error("Please log in to manage notifications");
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -209,7 +219,10 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const clearNotifications = async () => {
-    if (!user) return;
+    if (!user) {
+      toast.error("Please log in to manage notifications");
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -228,7 +241,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // If user is not authenticated, provide a limited context with placeholder functions
+  // If user is not authenticated but we're done loading, provide a limited context with placeholder functions
   if (!user && !loading) {
     return (
       <NotificationsContext.Provider
