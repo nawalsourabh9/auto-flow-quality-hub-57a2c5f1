@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
 export interface Notification {
   id: string;
@@ -229,25 +228,28 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // If user is not authenticated, provide a limited context that redirects to login
+  // If user is not authenticated, provide a limited context with placeholder functions
   if (!user && !loading) {
-    const navigate = useNavigate();
-    
-    const redirectToLogin = () => {
-      toast.error("Please log in to manage notifications");
-      navigate("/login");
-    };
-    
     return (
       <NotificationsContext.Provider
         value={{
           notifications: [],
           unreadCount: 0,
-          addNotification: redirectToLogin,
-          markAsRead: redirectToLogin,
-          markAllAsRead: redirectToLogin,
-          removeNotification: redirectToLogin,
-          clearNotifications: redirectToLogin
+          addNotification: () => {
+            toast.error("Please log in to manage notifications");
+          },
+          markAsRead: () => {
+            toast.error("Please log in to manage notifications");
+          },
+          markAllAsRead: () => {
+            toast.error("Please log in to manage notifications");
+          },
+          removeNotification: () => {
+            toast.error("Please log in to manage notifications");
+          },
+          clearNotifications: () => {
+            toast.error("Please log in to manage notifications");
+          }
         }}
       >
         {children}
