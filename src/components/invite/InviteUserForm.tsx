@@ -46,7 +46,7 @@ export function InviteUserForm() {
         lastName: formData.lastName,
         position: formData.position,
         role: formData.role,
-        departmentId: formData.departmentId || undefined,
+        departmentId: formData.departmentId || null,
       });
       
       const response = await supabase.functions.invoke("send-invitation", {
@@ -56,7 +56,7 @@ export function InviteUserForm() {
           lastName: formData.lastName,
           position: formData.position,
           role: formData.role,
-          departmentId: formData.departmentId || undefined,
+          departmentId: formData.departmentId || null,
         },
       });
 

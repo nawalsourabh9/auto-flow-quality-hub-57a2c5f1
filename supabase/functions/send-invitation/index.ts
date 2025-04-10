@@ -28,13 +28,18 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+    console.log("Starting invitation process");
+    
     // Initialize the Supabase client with the service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { email, role, departmentId, firstName, lastName, position }: InvitationRequest = await req.json();
-    console.log("Received invitation request for:", email);
-
+    const requestData = await req.json();
+    console.log("Received request data:", JSON.stringify(requestData, null, 2));
+    
+    const { email, role, departmentId, firstName, lastName, position }: InvitationRequest = requestData;
+    
     if (!email) {
+      console.error("Email is required but was not provided");
       return new Response(
         JSON.stringify({ error: "Email is required" }),
         {
@@ -43,6 +48,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log(`Processing invitation for: ${email}, role: ${role}, departmentId: ${departmentId}`);
 
     // Check if a user with this email already exists
     const { data: existingUser, error: userCheckError } = await supabase
@@ -57,6 +64,7 @@ serve(async (req) => {
     }
 
     if (existingUser) {
+      console.log("User already exists:", existingUser);
       return new Response(
         JSON.stringify({ error: "User with this email already exists" }),
         {
@@ -69,6 +77,7 @@ serve(async (req) => {
     // Create a team member record
     if (firstName && lastName && position) {
       const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+      console.log(`Creating team member with initials: ${initials}`);
 
       const { error: teamMemberError } = await supabase
         .from("team_members")
@@ -85,9 +94,13 @@ serve(async (req) => {
       if (teamMemberError) {
         console.error("Error creating team member:", teamMemberError);
         // We continue with the invitation even if team member creation fails
+      } else {
+        console.log("Team member created successfully");
       }
     }
 
+    console.log("Sending Supabase invitation email");
+    
     // Generate a sign-up link with a custom token and send invitation email
     const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${req.headers.get("origin")}/accept-invite`,
@@ -106,8 +119,12 @@ serve(async (req) => {
       throw error;
     }
 
+    console.log("Supabase invitation sent successfully");
+
     // Also send a custom email notification for better user experience
     try {
+      console.log("Attempting to send custom invitation email");
+      
       await sendCustomInvitationEmail({
         to: email, 
         firstName: firstName || "",
@@ -156,6 +173,8 @@ async function sendCustomInvitationEmail({ to, firstName, lastName, position, or
     throw new Error("Email configuration is incomplete");
   }
 
+  console.log(`Using email credentials: ${username} (password hidden)`);
+  
   // Configure SMTP client
   const client = new SMTPClient({
     connection: {
@@ -172,6 +191,8 @@ async function sendCustomInvitationEmail({ to, firstName, lastName, position, or
   const fullName = firstName && lastName ? `${firstName} ${lastName}` : to;
   const positionText = position ? ` as ${position}` : "";
 
+  console.log(`Sending email to: ${to}, fullName: ${fullName}`);
+  
   // Send email
   await client.send({
     from: username,
@@ -194,4 +215,5 @@ async function sendCustomInvitationEmail({ to, firstName, lastName, position, or
   });
 
   await client.close();
+  console.log("Email client connection closed");
 }
