@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -25,6 +25,10 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await signIn(email, password);
+  };
+
+  const handlePreviewDashboard = () => {
+    navigate('/?preview=true');
   };
 
   return (
@@ -78,6 +82,15 @@ const Login = () => {
               ) : (
                 "Sign in"
               )}
+            </Button>
+            <Button 
+              type="button"
+              variant="outline" 
+              className="w-full flex items-center justify-center" 
+              onClick={handlePreviewDashboard}
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Preview Dashboard
             </Button>
           </CardFooter>
         </form>

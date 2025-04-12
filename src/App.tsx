@@ -33,6 +33,8 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  
+  const isPreviewMode = new URLSearchParams(location.search).get('preview') === 'true';
 
   if (loading) {
     return (
@@ -42,7 +44,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!user) {
+  if (!user && !isPreviewMode) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
