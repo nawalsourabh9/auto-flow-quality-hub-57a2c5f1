@@ -1,6 +1,5 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EmployeeForm } from "./EmployeeForm";
@@ -48,12 +47,6 @@ export function AddEmployeeDialog({ isOpen, setIsOpen, onSubmit }: AddEmployeeDi
           submitButtonText="Add Employee"
           onCancel={handleCancel}
         />
-        <DialogFooter className="pt-4">
-          <DialogClose asChild>
-            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-          </DialogClose>
-          <Button type="submit" onClick={form.handleSubmit(handleSubmit)}>Add Employee</Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
