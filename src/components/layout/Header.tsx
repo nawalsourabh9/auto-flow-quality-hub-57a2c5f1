@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Bell, Search, LogOut, Settings, HelpCircle, UserRound, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,6 @@ export function Header() {
     navigate("/login");
   };
 
-  // Extract first letter of first and last name for avatar
   const getInitials = () => {
     if (!user) return "U";
     
@@ -61,17 +59,6 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Invite User Button - Only visible to admins */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="hidden md:flex items-center gap-1"
-            onClick={() => navigate("/invite-user")}
-          >
-            <UserPlus className="h-4 w-4" />
-            <span>Invite User</span>
-          </Button>
-          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="relative border-border hover:bg-accent">

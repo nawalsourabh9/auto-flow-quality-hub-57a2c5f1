@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter } from "lucide-react";
+import { Search, Plus, Filter, UserPlus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { EmployeeList } from "./components/EmployeeList";
 import { AddEmployeeDialog } from "./components/AddEmployeeDialog";
@@ -11,7 +10,6 @@ import { EditEmployeeDialog } from "./components/EditEmployeeDialog";
 import { DeleteEmployeeDialog } from "./components/DeleteEmployeeDialog";
 import { Employee } from "./types";
 
-// Dummy initial data
 const initialEmployees: Employee[] = [
   { id: 1, name: "John Doe", email: "john.doe@example.com", role: "Admin", department: "Quality", status: "Active", employeeId: "EMP001", position: "Quality Manager" },
   { id: 2, name: "Jane Smith", email: "jane.smith@example.com", role: "Manager", department: "Production", status: "Active", employeeId: "EMP002", position: "Production Lead" },
@@ -27,7 +25,6 @@ const Users = () => {
   const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   
-  // Handle employee creation
   const handleAddEmployee = (data: Omit<Employee, "id">) => {
     const newEmployee: Employee = {
       id: employees.length + 1,
@@ -41,7 +38,6 @@ const Users = () => {
     });
   };
 
-  // Handle employee edit
   const handleEditEmployee = (data: Omit<Employee, "id">) => {
     if (!editingEmployee) return;
     
@@ -56,13 +52,11 @@ const Users = () => {
     });
   };
 
-  // Open edit dialog with employee data
   const openEditDialog = (employee: Employee) => {
     setEditingEmployee(employee);
     setIsEditDialogOpen(true);
   };
 
-  // Handle employee deletion
   const handleDeleteEmployee = () => {
     if (employeeToDelete !== null) {
       setEmployees(employees.filter(emp => emp.id !== employeeToDelete));
@@ -76,7 +70,6 @@ const Users = () => {
     }
   };
 
-  // Filter employees by search term
   const filteredEmployees = employees.filter(emp => 
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -112,7 +105,7 @@ const Users = () => {
               className="bg-primary hover:bg-primary/90"
               onClick={() => setIsAddDialogOpen(true)}
             >
-              <Plus className="h-4 w-4 mr-1" />
+              <UserPlus className="h-4 w-4 mr-1" />
               Add Employee
             </Button>
           </div>
@@ -127,7 +120,6 @@ const Users = () => {
         </CardContent>
       </Card>
 
-      {/* Employee Dialogs */}
       <AddEmployeeDialog 
         isOpen={isAddDialogOpen} 
         setIsOpen={setIsAddDialogOpen}
