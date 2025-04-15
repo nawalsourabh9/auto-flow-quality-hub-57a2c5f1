@@ -7,11 +7,28 @@ import { HROneIntegration } from "@/components/admin/HROneIntegration";
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("task-approval");
   
-  // Add mock data for TaskApprovalSettings
-  const mockDepartments = ["Quality", "Production", "HR"];
+  // Add mock data for TaskApprovalSettings with correct types
+  const mockDepartments = [
+    { id: "1", name: "Quality" },
+    { id: "2", name: "Production" },
+    { id: "3", name: "HR" }
+  ];
+  
   const mockUsers = [
-    { id: 1, name: "John Doe" },
-    { id: 2, name: "Jane Smith" }
+    { 
+      id: "1", 
+      name: "John Doe",
+      initials: "JD",
+      position: "Quality Manager",
+      department: "Quality"
+    },
+    { 
+      id: "2", 
+      name: "Jane Smith",
+      initials: "JS",
+      position: "Production Lead",
+      department: "Production"
+    }
   ];
   
   const handleUpdateSettings = (settings: any) => {
