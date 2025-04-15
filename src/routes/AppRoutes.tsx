@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/hooks/use-auth";
@@ -112,14 +113,14 @@ export const AppRoutes = () => {
         { path: "/settings", element: <Settings /> },
         { path: "/profile", element: <Profile /> },
         { path: "/help", element: <Help /> },
-        { path: "/email-test", element: <EmailTest /> },
+        { path: "/email-test", element: <EmailTest /> }
       ].map(({ path, element }) => (
         <Route key={path} path={path} element={
           <ProtectedRoute>
             <MainLayout>{element}</MainLayout>
           </ProtectedRoute>
         } />
-      )}
+      ))}
       
       {/* Admin Routes */}
       <Route path="/admin" element={
