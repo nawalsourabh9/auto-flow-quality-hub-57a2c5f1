@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, UserPlus } from "lucide-react";
+import { Search, UserPlus, Filter } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { EmployeeList } from "./components/EmployeeList";
 import { AddEmployeeDialog } from "./components/AddEmployeeDialog";
@@ -96,10 +96,6 @@ const Users = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button size="sm" variant="outline" className="excel-button">
-              <Filter className="h-4 w-4 mr-1" />
-              Filter
-            </Button>
             <Button 
               size="sm" 
               className="bg-primary hover:bg-primary/90"
