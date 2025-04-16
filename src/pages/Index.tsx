@@ -5,6 +5,7 @@ import TaskList from "@/components/dashboard/TaskList";
 import { QualityMetricsChart } from "@/components/dashboard/QualityMetricsChart";
 import { DocumentsStatus } from "@/components/dashboard/DocumentsStatus";
 import { NotificationDemo } from "@/components/notifications/NotificationDemo";
+import { DashboardReportActions } from "@/components/dashboard/DashboardReportActions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -171,7 +172,10 @@ const Index = () => {
           <QualityMetricsChart />
         </div>
         <div className="md:col-span-2">
-          <DocumentsStatus />
+          <div className="space-y-6">
+            <DocumentsStatus />
+            <DashboardReportActions />
+          </div>
         </div>
       </div>
 
