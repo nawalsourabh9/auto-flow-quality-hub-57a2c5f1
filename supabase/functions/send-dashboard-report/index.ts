@@ -1,5 +1,7 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { SMTPClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import { Canvas, FontStyle } from "https://deno.land/x/pdfkit@v1.0.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,120 +32,6 @@ interface TeamMember {
   department_id: string | null;
 }
 
-// Function to generate an HTML report based on dashboard data
-function generateDashboardReport(recipient: string): string {
-  const reportDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-
-  return `
-    <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 650px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #0056b3; color: white; padding: 10px 20px; border-radius: 4px; }
-          .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
-          .metric { display: flex; justify-content: space-between; margin-bottom: 10px; }
-          .metric-name { font-weight: bold; }
-          .chart-placeholder { height: 200px; background-color: #f5f5f5; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
-          .footer { font-size: 12px; color: #666; margin-top: 30px; text-align: center; }
-          .priority-high { color: #dc3545; }
-          .priority-medium { color: #fd7e14; }
-          .priority-low { color: #28a745; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>E-QMS Daily Dashboard Report</h1>
-            <p>Generated on ${reportDate}</p>
-          </div>
-          
-          <div class="section">
-            <h2>Quality Metrics Summary</h2>
-            <div class="metric">
-              <span class="metric-name">Non-Conformances:</span>
-              <span>5 this month (20% improvement)</span>
-            </div>
-            <div class="metric">
-              <span class="metric-name">Corrective Actions:</span>
-              <span>8 in progress</span>
-            </div>
-            <div class="metric">
-              <span class="metric-name">Audits Completed:</span>
-              <span>3 (2 pending)</span>
-            </div>
-            <div class="metric">
-              <span class="metric-name">KPI Achievement:</span>
-              <span>92% (Target: 95%)</span>
-            </div>
-            <div class="chart-placeholder">
-              Quality Metrics Chart Visualization
-            </div>
-          </div>
-          
-          <div class="section">
-            <h2>Document Status</h2>
-            <div class="metric">
-              <span class="metric-name">Procedures:</span>
-              <span>20 of 24 approved (83%)</span>
-            </div>
-            <div class="metric">
-              <span class="metric-name">Work Instructions:</span>
-              <span>36 of 42 approved (86%)</span>
-            </div>
-            <div class="metric">
-              <span class="metric-name">Quality Records:</span>
-              <span>65 of 78 approved (83%)</span>
-            </div>
-          </div>
-          
-          <div class="section">
-            <h2>Task Summary</h2>
-            <div class="metric">
-              <span class="metric-name">Tasks Due Soon:</span>
-              <span>8 (3 overdue)</span>
-            </div>
-            <div class="metric">
-              <span class="metric-name">High Priority Tasks:</span>
-              <span class="priority-high">2</span>
-            </div>
-            <div class="metric">
-              <span class="metric-name">Customer-Related Tasks:</span>
-              <span>5 (1 urgent)</span>
-            </div>
-          </div>
-          
-          <div class="section">
-            <h2>Upcoming Audits</h2>
-            <div class="metric">
-              <span class="metric-name">ISO 9001:2015 Internal Audit:</span>
-              <span>April 20, 2025</span>
-            </div>
-            <div class="metric">
-              <span class="metric-name">Supplier Quality Assessment:</span>
-              <span>April 15, 2025</span>
-            </div>
-            <div class="metric">
-              <span class="metric-name">IATF 16949 Surveillance Audit:</span>
-              <span>May 10, 2025</span>
-            </div>
-          </div>
-          
-          <div class="footer">
-            <p>This is an automated report from your E-QMS platform. Please do not reply to this email.</p>
-            <p>To access detailed reports and analytics, log in to the <a href="#">E-QMS Dashboard</a>.</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
-}
-
 // Function to fetch managers, supervisors and bosses from the database
 async function getManagementTeam() {
   try {
@@ -158,6 +46,137 @@ async function getManagementTeam() {
     console.error("Error fetching management team:", error);
     throw error;
   }
+}
+
+// Function to generate a PDF report based on dashboard data
+async function generateDashboardReportPDF(recipient: string): Promise<Uint8Array> {
+  const reportDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  // Create a new PDF document
+  const pdfDoc = new Canvas({
+    margins: { top: 50, bottom: 50, left: 50, right: 50 },
+    size: [612, 792] // US Letter size
+  });
+
+  // Add metadata
+  pdfDoc.info.title = "E-QMS Daily Dashboard Report";
+  pdfDoc.info.author = "E-QMS System";
+  pdfDoc.info.subject = `Report generated on ${reportDate}`;
+
+  // Add header
+  pdfDoc.font('Helvetica-Bold');
+  pdfDoc.fontSize(18);
+  pdfDoc.text("E-QMS Daily Dashboard Report", { align: 'center' });
+  pdfDoc.moveDown();
+  
+  pdfDoc.fontSize(12);
+  pdfDoc.text(`Generated on ${reportDate}`, { align: 'center' });
+  pdfDoc.moveDown(2);
+
+  // Add Quality Metrics section
+  pdfDoc.fontSize(14);
+  pdfDoc.font('Helvetica-Bold');
+  pdfDoc.text("Quality Metrics Summary");
+  pdfDoc.moveDown();
+  
+  pdfDoc.fontSize(12);
+  pdfDoc.font('Helvetica');
+  
+  // Create a table-like structure for metrics
+  const metrics = [
+    { name: "Non-Conformances", value: "5 this month (20% improvement)" },
+    { name: "Corrective Actions", value: "8 in progress" },
+    { name: "Audits Completed", value: "3 (2 pending)" },
+    { name: "KPI Achievement", value: "92% (Target: 95%)" }
+  ];
+  
+  metrics.forEach(metric => {
+    pdfDoc.text(`${metric.name}: ${metric.value}`);
+    pdfDoc.moveDown(0.5);
+  });
+  
+  pdfDoc.moveDown();
+  
+  // Add Document Status section
+  pdfDoc.fontSize(14);
+  pdfDoc.font('Helvetica-Bold');
+  pdfDoc.text("Document Status");
+  pdfDoc.moveDown();
+  
+  pdfDoc.fontSize(12);
+  pdfDoc.font('Helvetica');
+  
+  const documents = [
+    { type: "Procedures", status: "20 of 24 approved (83%)" },
+    { type: "Work Instructions", status: "36 of 42 approved (86%)" },
+    { type: "Quality Records", status: "65 of 78 approved (83%)" }
+  ];
+  
+  documents.forEach(doc => {
+    pdfDoc.text(`${doc.type}: ${doc.status}`);
+    pdfDoc.moveDown(0.5);
+  });
+  
+  pdfDoc.moveDown();
+  
+  // Add Task Summary section
+  pdfDoc.fontSize(14);
+  pdfDoc.font('Helvetica-Bold');
+  pdfDoc.text("Task Summary");
+  pdfDoc.moveDown();
+  
+  pdfDoc.fontSize(12);
+  pdfDoc.font('Helvetica');
+  
+  const tasks = [
+    { name: "Tasks Due Soon", value: "8 (3 overdue)" },
+    { name: "High Priority Tasks", value: "2" },
+    { name: "Customer-Related Tasks", value: "5 (1 urgent)" }
+  ];
+  
+  tasks.forEach(task => {
+    pdfDoc.text(`${task.name}: ${task.value}`);
+    pdfDoc.moveDown(0.5);
+  });
+  
+  pdfDoc.moveDown();
+  
+  // Add Upcoming Audits section
+  pdfDoc.fontSize(14);
+  pdfDoc.font('Helvetica-Bold');
+  pdfDoc.text("Upcoming Audits");
+  pdfDoc.moveDown();
+  
+  pdfDoc.fontSize(12);
+  pdfDoc.font('Helvetica');
+  
+  const audits = [
+    { name: "ISO 9001:2015 Internal Audit", date: "April 20, 2025" },
+    { name: "Supplier Quality Assessment", date: "April 15, 2025" },
+    { name: "IATF 16949 Surveillance Audit", date: "May 10, 2025" }
+  ];
+  
+  audits.forEach(audit => {
+    pdfDoc.text(`${audit.name}: ${audit.date}`);
+    pdfDoc.moveDown(0.5);
+  });
+  
+  pdfDoc.moveDown(2);
+  
+  // Add footer
+  pdfDoc.fontSize(10);
+  pdfDoc.font('Helvetica-Italic');
+  pdfDoc.text("This is an automated report from your E-QMS platform. Please do not reply to this email.", { align: 'center' });
+  pdfDoc.moveDown(0.5);
+  pdfDoc.text("To access detailed reports and analytics, log in to the E-QMS Dashboard.", { align: 'center' });
+  
+  // Finalize PDF
+  return pdfDoc.end();
 }
 
 // Main function handler
@@ -236,22 +255,43 @@ serve(async (req) => {
       },
     });
 
-    // Send emails to all recipients
+    // Send emails with PDF attachments to all recipients
     const results = [];
     for (const recipient of recipients) {
       try {
-        const reportHtml = generateDashboardReport(recipient);
+        // Generate PDF report
+        const pdfBuffer = await generateDashboardReportPDF(recipient);
+        const reportDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
         
         await client.send({
           from: username,
           to: recipient,
-          subject: "E-QMS Daily Dashboard Report",
-          content: "Please view this email with an HTML-compatible email client.",
-          html: reportHtml,
+          subject: `E-QMS Daily Dashboard Report - ${reportDate}`,
+          content: "Please find attached the daily E-QMS dashboard report. This report provides an overview of current quality metrics, document status, tasks, and upcoming audits.",
+          html: `
+            <p>Dear Team Member,</p>
+            <p>Attached is the daily E-QMS dashboard report for ${reportDate}.</p>
+            <p>This report includes:</p>
+            <ul>
+              <li>Key quality metrics</li>
+              <li>Document approval status</li>
+              <li>Task summary</li>
+              <li>Upcoming audit schedule</li>
+            </ul>
+            <p>Please review the information and take appropriate actions where needed.</p>
+            <p>Regards,<br>E-QMS System</p>
+          `,
+          attachments: [
+            {
+              filename: `E-QMS_Dashboard_Report_${reportDate.replace(/\s/g, '_')}.pdf`,
+              content: pdfBuffer,
+              contentType: "application/pdf"
+            }
+          ]
         });
         
         results.push({ recipient, status: "success" });
-        console.log(`Email sent successfully to ${recipient}`);
+        console.log(`Email with PDF report sent successfully to ${recipient}`);
       } catch (error) {
         console.error(`Error sending email to ${recipient}:`, error);
         results.push({ recipient, status: "failed", error: error.message });

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Send, Clock } from "lucide-react";
+import { Send, Clock, FileText } from "lucide-react";
 
 export function DashboardReportActions() {
   const [loading, setLoading] = useState(false);
@@ -25,7 +25,7 @@ export function DashboardReportActions() {
 
       toast.success(
         "Dashboard reports sent successfully", 
-        { description: `Reports sent to ${data.results?.length || 0} recipients` }
+        { description: `PDF reports sent to ${data.results?.length || 0} recipients` }
       );
     } catch (error) {
       console.error("Error sending dashboard report:", error);
@@ -43,7 +43,7 @@ export function DashboardReportActions() {
       <CardHeader>
         <CardTitle className="text-lg">Dashboard Reports</CardTitle>
         <CardDescription>
-          Send dashboard reports to management team members
+          Send PDF dashboard reports to management team members
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -61,8 +61,8 @@ export function DashboardReportActions() {
               disabled={loading}
               size="sm"
             >
-              <Send className="h-4 w-4 mr-2" />
-              {loading ? "Sending..." : "Send Now"}
+              <FileText className="h-4 w-4 mr-2" />
+              {loading ? "Sending..." : "Send PDF Now"}
             </Button>
           </div>
         </div>
