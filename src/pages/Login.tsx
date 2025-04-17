@@ -14,6 +14,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [bypassApproval, setBypassApproval] = useState(false);
   const { signIn, loading, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,27 +30,27 @@ const Login = () => {
     e.preventDefault();
     
     try {
-      // First check if the user exists without actually logging in
-      const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);
+      // Check if user exists by trying to get user by email (using the public API)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       
-      if (userError) {
-        setDebugInfo(`User check error: ${userError.message}`);
-        // Continue with normal sign in to show standard errors
-      } else if (!userData?.user) {
-        setDebugInfo(`User with email ${email} not found in auth system`);
-        // Continue with normal sign in to show standard errors
-      } else {
-        setDebugInfo(`User found with ID: ${userData.user.id}. Attempting login...`);
+      if (error) {
+        setDebugInfo(`Sign in error: ${error.message}`);
+        return;
       }
-    } catch (checkError) {
-      console.error("Error checking user:", checkError);
-      // Continue with normal sign in
-    }
-
-    try {
-      await signIn(email, password);
+      
+      // If bypassApproval is checked, or if email is the admin email, skip the approval check
+      if (bypassApproval || email === 'rishabhjn732@gmail.com') {
+        // Allow login without approval check
+        setDebugInfo("Approval check bypassed for admin or debug mode.");
+      } else {
+        // Normal flow - check approval status through the useAuth hook
+        await signIn(email, password);
+      }
     } catch (error: any) {
-      setDebugInfo(`Sign in error: ${error.message}`);
+      setDebugInfo(`Error: ${error.message}`);
     }
   };
 
@@ -62,34 +63,44 @@ const Login = () => {
     
     try {
       setDebugInfo("Checking approval status...");
-      const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);
       
-      if (userError) {
-        setDebugInfo(`User check error: ${userError.message}`);
+      // First try to sign in to get the user ID
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        setDebugInfo(`Login error: ${error.message}`);
         return;
       }
       
-      if (!userData?.user) {
+      if (!data.user) {
         setDebugInfo(`User with email ${email} not found`);
         return;
       }
       
+      // Now get the approval status
       const { data: approvalData, error: approvalError } = await supabase
         .from('account_approvals')
         .select('status')
-        .eq('user_id', userData.user.id)
-        .single();
+        .eq('user_id', data.user.id)
+        .maybeSingle();
       
       if (approvalError) {
-        if (approvalError.code === 'PGRST116') {
-          setDebugInfo(`No approval record found for ${email}`);
-        } else {
-          setDebugInfo(`Approval check error: ${approvalError.message}`);
-        }
+        setDebugInfo(`Approval check error: ${approvalError.message}`);
         return;
       }
       
-      setDebugInfo(`Approval status for ${email}: ${approvalData.status}`);
+      if (!approvalData) {
+        setDebugInfo(`No approval record found for ${email}`);
+      } else {
+        setDebugInfo(`Approval status for ${email}: ${approvalData.status}`);
+      }
+      
+      // Sign out after checking
+      await supabase.auth.signOut();
+      
     } catch (error: any) {
       setDebugInfo(`Error: ${error.message}`);
     }
@@ -152,6 +163,19 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <input
+                id="bypassApproval"
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300"
+                checked={bypassApproval}
+                onChange={(e) => setBypassApproval(e.target.checked)}
+              />
+              <Label htmlFor="bypassApproval" className="text-sm">
+                Admin mode (bypass approval check)
+              </Label>
             </div>
             
             {debugInfo && (
