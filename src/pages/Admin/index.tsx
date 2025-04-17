@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskApprovalSettings } from "@/components/admin/TaskApprovalSettings";
 import { HROneIntegration } from "@/components/admin/HROneIntegration";
+import UserApprovals from "./UserApprovals";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("task-approval");
@@ -48,6 +49,7 @@ const Admin = () => {
         <TabsList>
           <TabsTrigger value="task-approval">Task Approval</TabsTrigger>
           <TabsTrigger value="hrone-integration">HROne Integration</TabsTrigger>
+          <TabsTrigger value="user-approvals">User Approvals</TabsTrigger>
         </TabsList>
         
         <TabsContent value="task-approval" className="space-y-4">
@@ -60,6 +62,10 @@ const Admin = () => {
         
         <TabsContent value="hrone-integration" className="space-y-4">
           <HROneIntegration />
+        </TabsContent>
+        
+        <TabsContent value="user-approvals" className="space-y-4">
+          <UserApprovals />
         </TabsContent>
       </Tabs>
     </div>

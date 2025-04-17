@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -15,6 +16,9 @@ interface AuthContextType {
   updatePassword: (password: string) => Promise<void>;
   updateProfile: (data: { first_name?: string; last_name?: string; email?: string }) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  approveUser: (userId: string) => Promise<void>;
+  rejectUser: (userId: string) => Promise<void>;
+  checkUserApprovalStatus: () => Promise<{ approved: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,6 +58,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) throw error;
+      
+      // After successful sign in, check if user is approved
+      const { approved, message } = await checkUserApprovalStatus();
+      if (!approved) {
+        // Sign out the user if not approved
+        await supabase.auth.signOut();
+        toast.error(message);
+        throw new Error(message);
+      }
     } catch (error: any) {
       setError(error.message);
       toast.error(`Login failed: ${error.message}`);
@@ -67,17 +80,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       
-      const { error } = await supabase.auth.signUp({
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: userData
+          data: {
+            ...userData,
+            approved: false, // Mark new user as not approved
+          }
         }
       });
 
       if (error) throw error;
       
-      toast.success('Sign up successful! Please check your email for verification and then login.');
+      // Create an account approval request
+      if (data.user) {
+        const { error: dbError } = await supabase.from('account_approvals').insert({
+          user_id: data.user.id,
+          email: email,
+          first_name: userData?.first_name || '',
+          last_name: userData?.last_name || '',
+          status: 'pending',
+          created_at: new Date().toISOString()
+        });
+        
+        if (dbError) throw dbError;
+      }
+      
+      toast.success('Sign up successful! Your account is pending approval. You will receive an email when approved.');
     } catch (error: any) {
       setError(error.message);
       toast.error(`Sign up failed: ${error.message}`);
@@ -199,8 +229,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
 
-      const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
-        email: user?.email || '',
+      const currentUser = user;
+      if (!currentUser || !currentUser.email) {
+        throw new Error('No user logged in');
+      }
+
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: currentUser.email,
         password: currentPassword
       });
 
@@ -221,6 +256,123 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const checkUserApprovalStatus = async (): Promise<{ approved: boolean; message: string }> => {
+    try {
+      if (!user) {
+        return { approved: false, message: 'No user logged in' };
+      }
+      
+      // First check user metadata for approval status
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) throw userError;
+      
+      // If the user has the approved flag set to true in their metadata, they're approved
+      if (userData.user.user_metadata?.approved === true) {
+        return { approved: true, message: 'Account approved' };
+      }
+      
+      // If not explicitly approved in metadata, check the account_approvals table
+      const { data: approvalData, error: approvalError } = await supabase
+        .from('account_approvals')
+        .select('status')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (approvalError && approvalError.code !== 'PGRST116') { // PGRST116 is "No rows returned" error
+        throw approvalError;
+      }
+      
+      // If no approval record or status is not 'approved', the user is not approved
+      if (!approvalData || approvalData.status !== 'approved') {
+        return { 
+          approved: false, 
+          message: 'Your account is pending approval. Please check back later or contact an administrator.' 
+        };
+      }
+      
+      return { approved: true, message: 'Account approved' };
+    } catch (error: any) {
+      console.error('Error checking approval status:', error);
+      return { approved: false, message: 'Error checking account status' };
+    }
+  };
+
+  const approveUser = async (userId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Update the approval status in the database
+      const { error: updateError } = await supabase
+        .from('account_approvals')
+        .update({ status: 'approved', updated_at: new Date().toISOString() })
+        .eq('user_id', userId);
+      
+      if (updateError) throw updateError;
+      
+      // Update the user metadata to include approved status
+      const { error: adminUpdateError } = await supabase.functions.invoke('database-utils', {
+        body: {
+          operation: 'updateUserApproval',
+          userId: userId,
+          approved: true
+        },
+      });
+      
+      if (adminUpdateError) throw adminUpdateError;
+
+      // Send an approval notification email
+      await supabase.functions.invoke('send-email', {
+        body: {
+          to: (await supabase.from('account_approvals').select('email').eq('user_id', userId).single()).data?.email,
+          subject: 'Your Account Has Been Approved',
+          body: 'Your account has been approved. You can now log in to the system.',
+          isHtml: false
+        }
+      });
+      
+      toast.success('User approved successfully');
+    } catch (error: any) {
+      setError(error.message);
+      toast.error(`User approval failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const rejectUser = async (userId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Update the approval status in the database
+      const { error: updateError } = await supabase
+        .from('account_approvals')
+        .update({ status: 'rejected', updated_at: new Date().toISOString() })
+        .eq('user_id', userId);
+      
+      if (updateError) throw updateError;
+
+      // Send a rejection notification email
+      await supabase.functions.invoke('send-email', {
+        body: {
+          to: (await supabase.from('account_approvals').select('email').eq('user_id', userId).single()).data?.email,
+          subject: 'Your Account Registration Status',
+          body: 'We regret to inform you that your account registration request has been declined. Please contact the administrator for more information.',
+          isHtml: false
+        }
+      });
+      
+      toast.success('User rejected successfully');
+    } catch (error: any) {
+      setError(error.message);
+      toast.error(`User rejection failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -234,7 +386,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resetPassword,
         updatePassword,
         updateProfile,
-        changePassword
+        changePassword,
+        approveUser,
+        rejectUser,
+        checkUserApprovalStatus
       }}
     >
       {children}

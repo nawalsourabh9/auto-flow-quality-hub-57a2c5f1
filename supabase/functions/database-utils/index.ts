@@ -1,97 +1,115 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from '@supabase/supabase-js';
+import { corsHeaders } from '../_shared/cors.ts';
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false,
+  },
+})
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // Initialize the Supabase client with the service role key
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { operation, userId, data } = await req.json();
-
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: "User ID is required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const { operation, ...params } = await req.json()
+    switch (operation) {
+      case 'deleteUser':
+        const { userId } = params
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'Missing required field: userId' }),
+            { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          )
         }
-      );
-    }
 
-    if (operation === "updateProfile") {
-      // Update the profile data
-      const { error } = await supabase
-        .from("profiles")
-        .upsert({
-          id: userId,
-          first_name: data.firstName,
-          last_name: data.lastName,
-          email: data.email,
-          updated_at: new Date().toISOString(),
-        });
+        const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
-      if (error) {
-        throw error;
-      }
-
-      return new Response(
-        JSON.stringify({ success: true }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        if (error) {
+          return new Response(
+            JSON.stringify({ error: error.message }),
+            { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          )
         }
-      );
-    }
 
-    if (operation === "getDepartments") {
-      // Get all departments
-      const { data, error } = await supabase
-        .from("departments")
-        .select("*");
-
-      if (error) {
-        throw error;
-      }
-
-      return new Response(
-        JSON.stringify({ success: true, data }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(
+          JSON.stringify({ data: { message: 'User deleted successfully' } }),
+          { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        )
+      case 'updateProfile':
+        const { userId, data } = params;
+        if (!userId || !data) {
+          return new Response(
+            JSON.stringify({ error: 'Missing required fields: userId and data' }),
+            { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          );
         }
-      );
-    }
 
-    return new Response(
-      JSON.stringify({ error: "Invalid operation" }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+        // Ensure data keys match your database columns
+        const { firstName, lastName, email } = data;
+
+        const { error: updateError } = await supabaseAdmin
+          .from('profiles') // Replace 'profiles' with your actual table name
+          .update({
+            first_name: firstName,
+            last_name: lastName,
+            email: email,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        if (updateError) {
+          return new Response(
+            JSON.stringify({ error: updateError.message }),
+            { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ data: { message: 'Profile updated successfully' } }),
+          { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      case 'updateUserApproval':
+        const { userId, approved } = params;
+        
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ error: 'Missing required field: userId' }),
+            { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          );
+        }
+
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+          userId,
+          { user_metadata: { approved } }
+        );
+
+        if (updateError) {
+          return new Response(
+            JSON.stringify({ error: updateError.message }),
+            { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, message: 'User approval status updated' }),
+          { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      default:
+        return new Response(
+          JSON.stringify({ error: 'Unsupported operation' }),
+          { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        )
+    }
   } catch (error) {
-    console.error("Error in database-utils function:", error);
+    console.error(error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+      { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    )
   }
-});
+})
