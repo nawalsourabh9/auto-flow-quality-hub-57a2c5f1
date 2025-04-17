@@ -177,7 +177,7 @@ export function EmployeeForm({
             <FormItem>
               <FormLabel>Reports To</FormLabel>
               <Select 
-                onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                onValueChange={(value) => field.onChange(value === "none" ? undefined : parseInt(value))}
                 value={field.value?.toString() || undefined}
               >
                 <FormControl>

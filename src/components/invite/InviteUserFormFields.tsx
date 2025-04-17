@@ -182,7 +182,7 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
       <div className="space-y-2">
         <Label htmlFor="supervisor">Reports To</Label>
         <Select 
-          value={formData.supervisorId || ""} 
+          value={formData.supervisorId || undefined} 
           onValueChange={(value) => onChange("supervisorId", value)}
         >
           <SelectTrigger id="supervisor" disabled={loadingSupervisors}>
@@ -218,7 +218,7 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
       <div className="space-y-2">
         <Label htmlFor="department">Department</Label>
         <Select 
-          value={formData.departmentId} 
+          value={formData.departmentId || undefined} 
           onValueChange={(value) => onChange("departmentId", value)}
         >
           <SelectTrigger id="department" disabled={loadingDepartments}>

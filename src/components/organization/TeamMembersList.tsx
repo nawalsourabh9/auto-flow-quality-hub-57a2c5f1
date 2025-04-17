@@ -321,7 +321,7 @@ export function TeamMembersList({
               <div className="grid gap-2">
                 <label htmlFor="supervisor">Reports To</label>
                 <Select
-                  value={newMember.supervisorId?.toString() || ""}
+                  value={newMember.supervisorId?.toString() || undefined}
                   onValueChange={(value) => setNewMember({
                     ...newMember, 
                     supervisorId: value ? parseInt(value) : null
@@ -331,7 +331,7 @@ export function TeamMembersList({
                     <SelectValue placeholder="Select supervisor" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {supervisors.map(supervisor => (
                       <SelectItem key={supervisor.id} value={supervisor.id.toString()}>
                         {supervisor.name} - {supervisor.position}
@@ -413,7 +413,7 @@ export function TeamMembersList({
               <div className="grid gap-2">
                 <label htmlFor="editSupervisor">Reports To</label>
                 <Select
-                  value={memberToEdit?.supervisorId?.toString() || ""}
+                  value={memberToEdit?.supervisorId?.toString() || undefined}
                   onValueChange={(value) => memberToEdit && setMemberToEdit({
                     ...memberToEdit, 
                     supervisorId: value ? parseInt(value) : null
@@ -423,7 +423,7 @@ export function TeamMembersList({
                     <SelectValue placeholder="Select supervisor" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {supervisors
                       .filter(supervisor => supervisor.id !== memberToEdit?.id) // Can't report to yourself
                       .map(supervisor => (
