@@ -22,7 +22,7 @@ import {
   CalendarCheck,
   ShieldCheck
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const menuItems = [
   {
@@ -78,6 +78,8 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
+  const location = useLocation();
+  
   return (
     <ShadcnSidebar>
       <SidebarContent>
@@ -94,7 +96,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <Link 
                       to={item.path} 
-                      className="flex items-center"
+                      className={`flex items-center ${location.pathname === item.path ? 'font-medium text-primary' : ''}`}
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       <span>{item.title}</span>

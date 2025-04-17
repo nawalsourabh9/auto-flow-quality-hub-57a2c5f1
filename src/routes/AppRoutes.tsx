@@ -23,7 +23,7 @@ import Profile from "@/pages/Profile";
 import Help from "@/pages/Help";
 import Organization from "@/pages/Organization";
 import EmailTest from "@/pages/EmailTest";
-import Admin from "@/pages/Admin"; // This should import the Admin/index.tsx file
+import Admin from "@/pages/Admin/index"; // Making sure we're using the correct Admin component
 import InviteUser from "@/pages/InviteUser";
 import NotFound from "@/pages/NotFound";
 import ChangePassword from "@/pages/ChangePassword";
