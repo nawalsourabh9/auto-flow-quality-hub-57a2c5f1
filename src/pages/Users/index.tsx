@@ -11,7 +11,18 @@ import { DeleteEmployeeDialog } from "./components/DeleteEmployeeDialog";
 import { Employee } from "./types";
 
 const initialEmployees: Employee[] = [
-  { id: 1, name: "John Doe", email: "john.doe@example.com", role: "Admin", department: "Quality", status: "Active", employeeId: "EMP001", position: "Quality Manager" },
+  { 
+    id: 1, 
+    name: "John Doe", 
+    email: "john.doe@example.com", 
+    role: "Admin", 
+    department: "Quality", 
+    status: "Active", 
+    employeeId: "EMP001", 
+    position: "Quality Manager",
+    phone: "+1 (555) 123-4567",
+    supervisorId: undefined
+  },
   { id: 2, name: "Jane Smith", email: "jane.smith@example.com", role: "Manager", department: "Production", status: "Active", employeeId: "EMP002", position: "Production Lead" },
   { id: 3, name: "Robert Johnson", email: "robert.johnson@example.com", role: "User", department: "Engineering", status: "Inactive", employeeId: "EMP003", position: "Design Engineer" },
 ];

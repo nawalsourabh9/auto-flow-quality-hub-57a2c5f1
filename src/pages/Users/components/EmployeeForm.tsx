@@ -1,4 +1,3 @@
-
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,9 +10,16 @@ interface EmployeeFormProps {
   onSubmit: (values: Omit<Employee, "id">) => void;
   submitButtonText: string;
   onCancel: () => void;
+  employees: Omit<Employee, "id">[];
 }
 
-export function EmployeeForm({ form, onSubmit, submitButtonText, onCancel }: EmployeeFormProps) {
+export function EmployeeForm({ 
+  form, 
+  onSubmit, 
+  submitButtonText, 
+  onCancel,
+  employees 
+}: EmployeeFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -146,6 +152,51 @@ export function EmployeeForm({ form, onSubmit, submitButtonText, onCancel }: Emp
             )}
           />
         </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="+1 (123) 456-7890" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="supervisorId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Reports To</FormLabel>
+              <Select 
+                onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                value={field.value?.toString() || ""}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select supervisor" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {employees.map((emp, index) => (
+                    <SelectItem key={index} value={index.toString()}>
+                      {emp.name} - {emp.position}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
