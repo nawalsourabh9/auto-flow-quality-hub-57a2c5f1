@@ -1,9 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, Filter } from "lucide-react";
+import { Search, UserPlus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { EmployeeList } from "./components/EmployeeList";
 import { AddEmployeeDialog } from "./components/AddEmployeeDialog";
@@ -29,7 +29,7 @@ const initialEmployees: Employee[] = [
 ];
 
 const Users = () => {
-  const [employees, setEmployees] = useState(initialEmployees);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -37,13 +37,37 @@ const Users = () => {
   const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   
+  // Load employees from localStorage on component mount
+  useEffect(() => {
+    const storedEmployees = localStorage.getItem('employees');
+    if (storedEmployees) {
+      setEmployees(JSON.parse(storedEmployees));
+    } else {
+      // If no stored employees, use the initial data and save it
+      setEmployees(initialEmployees);
+      localStorage.setItem('employees', JSON.stringify(initialEmployees));
+    }
+  }, []);
+
+  // Save employees to localStorage whenever they change
+  useEffect(() => {
+    if (employees.length > 0) {
+      localStorage.setItem('employees', JSON.stringify(employees));
+    }
+  }, [employees]);
+  
   const handleAddEmployee = (data: Omit<Employee, "id">) => {
+    // Find the highest ID and increment by 1 for new employee
+    const highestId = employees.reduce((max, emp) => (emp.id > max ? emp.id : max), 0);
     const newEmployee: Employee = {
-      id: employees.length + 1,
+      id: highestId + 1,
       ...data
     };
-    setEmployees([...employees, newEmployee]);
+    
+    const updatedEmployees = [...employees, newEmployee];
+    setEmployees(updatedEmployees);
     setIsAddDialogOpen(false);
+    
     toast({
       title: "Employee Added",
       description: "The employee has been successfully added to the system."
@@ -53,11 +77,14 @@ const Users = () => {
   const handleEditEmployee = (data: Omit<Employee, "id">) => {
     if (!editingEmployee) return;
     
-    setEmployees(employees.map(emp => 
+    const updatedEmployees = employees.map(emp => 
       emp.id === editingEmployee.id ? { ...data, id: emp.id } : emp
-    ));
+    );
+    
+    setEmployees(updatedEmployees);
     setIsEditDialogOpen(false);
     setEditingEmployee(null);
+    
     toast({
       title: "Employee Updated",
       description: "The employee details have been successfully updated."
@@ -71,9 +98,11 @@ const Users = () => {
 
   const handleDeleteEmployee = () => {
     if (employeeToDelete !== null) {
-      setEmployees(employees.filter(emp => emp.id !== employeeToDelete));
+      const updatedEmployees = employees.filter(emp => emp.id !== employeeToDelete);
+      setEmployees(updatedEmployees);
       setIsDeleteDialogOpen(false);
       setEmployeeToDelete(null);
+      
       toast({
         title: "Employee Removed",
         description: "The employee has been successfully removed from the system.",
