@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ import {
 import { TeamMembersList } from "@/components/organization/TeamMembersList";
 import { TeamMember } from "@/types/task";
 import { departmentOptions } from "@/pages/Users/types";
+import { Employee } from "@/pages/Users/types";
 
 // Define department types
 interface Department {
@@ -55,41 +57,66 @@ const initialDepartments: Department[] = [
   { id: 8, name: "Quality Control", managerId: 8, parentDepartmentId: 2, description: "Quality Control Team" },
 ];
 
-// Mock data for managers (using IDs from the existing employee data)
-const managers = [
-  { id: 1, name: "John Doe" },
-  { id: 2, name: "Jane Smith" },
-  { id: 3, name: "Robert Johnson" },
-  { id: 4, name: "Emily Davis" },
-  { id: 5, name: "Michael Brown" },
-  { id: 6, name: "Sarah Wilson" },
-  { id: 7, name: "David Thompson" },
-  { id: 8, name: "Lisa Anderson" },
-];
-
-// Mock data for team members
-const initialTeamMembers: TeamMember[] = [
-  { id: 1, name: "John Doe", email: "john.doe@example.com", position: "CEO", department: 1, initials: "JD" },
-  { id: 2, name: "Jane Smith", email: "jane.smith@example.com", position: "Quality Director", department: 2, initials: "JS" },
-  { id: 3, name: "Robert Johnson", email: "robert.johnson@example.com", position: "Production Manager", department: 3, initials: "RJ" },
-  { id: 4, name: "Emily Davis", email: "emily.davis@example.com", position: "Engineering Lead", department: 4, initials: "ED" },
-  { id: 5, name: "Michael Brown", email: "michael.brown@example.com", position: "HR Director", department: 5, initials: "MB" },
-  { id: 6, name: "Sarah Wilson", email: "sarah.wilson@example.com", position: "Finance Manager", department: 6, initials: "SW" },
-  { id: 7, name: "David Thompson", email: "david.thompson@example.com", position: "QA Manager", department: 7, initials: "DT" },
-  { id: 8, name: "Lisa Anderson", email: "lisa.anderson@example.com", position: "QC Manager", department: 8, initials: "LA" },
-  { id: 9, name: "Kevin Chen", email: "kevin.chen@example.com", position: "QA Engineer", department: 7, initials: "KC" },
-  { id: 10, name: "Maria Garcia", email: "maria.garcia@example.com", position: "QC Specialist", department: 8, initials: "MG" },
-];
+// Convert employee to team member format
+const convertEmployeeToTeamMember = (employee: Employee): TeamMember => {
+  // Generate initials from name
+  const initials = employee.name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+  
+  // Map department name to department ID
+  const departmentMap: Record<string, number> = {
+    "Executive": 1,
+    "Quality": 2,
+    "Production": 3,
+    "Engineering": 4,
+    "HR": 5,
+    "Finance": 6,
+    "Quality Assurance": 7,
+    "Quality Control": 8,
+    "IT": 9,
+    "Sales": 10,
+    "Marketing": 11,
+    "Business Development": 12
+  };
+  
+  return {
+    id: employee.id,
+    name: employee.name,
+    email: employee.email,
+    position: employee.position,
+    department: departmentMap[employee.department] || 1, // Default to Executive if not found
+    initials: initials,
+    phone: employee.phone
+  };
+};
 
 const Organization = () => {
   const [departments, setDepartments] = useState<Department[]>(initialDepartments);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialTeamMembers);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newDepartment, setNewDepartment] = useState<Partial<Department>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedDepartments, setExpandedDepartments] = useState<number[]>([1]); // Default expand executive
   const [viewMode, setViewMode] = useState<"list" | "tree">("list"); // State for view toggle
   const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null); // For team members view
+
+  // Load employees from localStorage
+  useEffect(() => {
+    const storedEmployees = localStorage.getItem('employees');
+    if (storedEmployees) {
+      const loadedEmployees = JSON.parse(storedEmployees);
+      setEmployees(loadedEmployees);
+      
+      // Convert employees to team members format
+      const convertedTeamMembers = loadedEmployees.map(convertEmployeeToTeamMember);
+      setTeamMembers(convertedTeamMembers);
+    }
+  }, []);
 
   // Find children of a department
   const findChildDepartments = (departmentId: number) => {
@@ -99,8 +126,8 @@ const Organization = () => {
   // Find manager name
   const getManagerName = (managerId: number | null) => {
     if (!managerId) return "Unassigned";
-    const manager = managers.find(m => m.id === managerId);
-    return manager ? manager.name : "Unassigned";
+    const employee = employees.find(emp => emp.id === managerId);
+    return employee ? employee.name : "Unassigned";
   };
 
   // Toggle department expansion
@@ -432,9 +459,9 @@ const Organization = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Unassigned</SelectItem>
-                    {managers.map(manager => (
-                      <SelectItem key={manager.id} value={manager.id.toString()}>
-                        {manager.name}
+                    {employees.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id.toString()}>
+                        {emp.name} - {emp.position}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { TeamMember } from "@/types/task";
-import { supabase } from "@/integrations/supabase/client";
 
 interface TeamMembersListProps {
   departmentId: number;
@@ -45,7 +45,6 @@ export function TeamMembersList({
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [supervisors, setSupervisors] = useState<TeamMember[]>([]);
-  const [loadingSupervisors, setLoadingSupervisors] = useState(false);
   const [newMember, setNewMember] = useState<Omit<TeamMember, "id">>({
     name: "",
     email: "",
@@ -57,25 +56,15 @@ export function TeamMembersList({
   });
 
   useEffect(() => {
-    const fetchSupervisors = async () => {
-      try {
-        setLoadingSupervisors(true);
-        
-        setSupervisors(teamMembers);
-      } catch (error: any) {
-        console.error("Error fetching supervisors:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load supervisors",
-          variant: "destructive"
-        });
-      } finally {
-        setLoadingSupervisors(false);
-      }
-    };
-
-    fetchSupervisors();
-  }, [teamMembers]);
+    // Set supervisors to be the current team members
+    setSupervisors(teamMembers);
+    
+    // Reset new member's department when department changes
+    setNewMember(prev => ({
+      ...prev,
+      department: departmentId
+    }));
+  }, [teamMembers, departmentId]);
 
   const generateInitials = (name: string) => {
     return name
@@ -247,6 +236,7 @@ export function TeamMembersList({
         </table>
       </div>
 
+      {/* Add Member Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -308,7 +298,7 @@ export function TeamMembersList({
               <div className="grid gap-2">
                 <label htmlFor="supervisor">Reports To</label>
                 <Select
-                  value={newMember.supervisorId?.toString() || ""}
+                  value={newMember.supervisorId?.toString() || "none"}
                   onValueChange={(value) => setNewMember({
                     ...newMember, 
                     supervisorId: value && value !== "none" ? parseInt(value) : null
@@ -338,6 +328,7 @@ export function TeamMembersList({
         </DialogContent>
       </Dialog>
 
+      {/* Edit Member Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -399,7 +390,7 @@ export function TeamMembersList({
               <div className="grid gap-2">
                 <label htmlFor="editSupervisor">Reports To</label>
                 <Select
-                  value={memberToEdit?.supervisorId?.toString() || ""}
+                  value={memberToEdit?.supervisorId?.toString() || "none"}
                   onValueChange={(value) => memberToEdit && setMemberToEdit({
                     ...memberToEdit, 
                     supervisorId: value && value !== "none" ? parseInt(value) : null
@@ -432,6 +423,7 @@ export function TeamMembersList({
         </DialogContent>
       </Dialog>
 
+      {/* Delete Member Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
