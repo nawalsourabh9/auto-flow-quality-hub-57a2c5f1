@@ -51,6 +51,8 @@ const Signup = () => {
         last_name: lastName
       });
       
+      console.log("Signup successful, account approval pending");
+      
       // Show success message
       setSignupComplete(true);
       

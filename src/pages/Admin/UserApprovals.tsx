@@ -27,18 +27,42 @@ const UserApprovals = () => {
 
   useEffect(() => {
     fetchApprovals();
+    
+    // Set up a subscription to listen for real-time updates
+    const channel = supabase
+      .channel('account_approvals_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'account_approvals' },
+        () => {
+          // Refetch approvals when any changes happen to the account_approvals table
+          fetchApprovals();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchApprovals = async () => {
     try {
       setLoading(true);
+      console.log("Fetching user approvals...");
+      
       // Use a direct query without type checking since we know the table exists
       const { data, error } = await supabase
         .from('account_approvals')
         .select('*')
         .order('created_at', { ascending: false }) as { data: UserApproval[] | null, error: any };
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user approvals:', error);
+        throw error;
+      }
+      
+      console.log("Fetched approvals:", data);
       setApprovals(data || []);
     } catch (error: any) {
       console.error('Error fetching user approvals:', error);
@@ -53,8 +77,10 @@ const UserApprovals = () => {
       await approveUser(userId);
       // Refresh the list after approval
       fetchApprovals();
+      toast.success("User approved successfully");
     } catch (error) {
       console.error('Error approving user:', error);
+      toast.error("Failed to approve user");
     }
   };
 
@@ -63,8 +89,10 @@ const UserApprovals = () => {
       await rejectUser(userId);
       // Refresh the list after rejection
       fetchApprovals();
+      toast.success("User rejected successfully");
     } catch (error) {
       console.error('Error rejecting user:', error);
+      toast.error("Failed to reject user");
     }
   };
 
