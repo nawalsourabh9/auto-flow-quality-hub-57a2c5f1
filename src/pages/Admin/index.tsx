@@ -6,7 +6,7 @@ import { HROneIntegration } from "@/components/admin/HROneIntegration";
 import UserApprovals from "./UserApprovals";
 
 const Admin = () => {
-  const [activeTab, setActiveTab] = useState("task-approval");
+  const [activeTab, setActiveTab] = useState("user-approvals");
   
   // Add mock data for TaskApprovalSettings with correct types
   const mockDepartments = [
@@ -47,10 +47,14 @@ const Admin = () => {
 
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
+          <TabsTrigger value="user-approvals">User Approvals</TabsTrigger>
           <TabsTrigger value="task-approval">Task Approval</TabsTrigger>
           <TabsTrigger value="hrone-integration">HROne Integration</TabsTrigger>
-          <TabsTrigger value="user-approvals">User Approvals</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="user-approvals" className="space-y-4">
+          <UserApprovals />
+        </TabsContent>
         
         <TabsContent value="task-approval" className="space-y-4">
           <TaskApprovalSettings 
@@ -62,10 +66,6 @@ const Admin = () => {
         
         <TabsContent value="hrone-integration" className="space-y-4">
           <HROneIntegration />
-        </TabsContent>
-        
-        <TabsContent value="user-approvals" className="space-y-4">
-          <UserApprovals />
         </TabsContent>
       </Tabs>
     </div>
