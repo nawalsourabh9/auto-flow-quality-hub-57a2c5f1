@@ -94,6 +94,37 @@ const convertEmployeeToTeamMember = (employee: Employee): TeamMember => {
   };
 };
 
+// Convert team member to employee format
+const convertTeamMemberToEmployee = (teamMember: TeamMember): Employee => {
+  // Map department ID to department name
+  const departmentMap: Record<number, string> = {
+    1: "Executive",
+    2: "Quality", 
+    3: "Production",
+    4: "Engineering",
+    5: "HR",
+    6: "Finance",
+    7: "Quality Assurance",
+    8: "Quality Control",
+    9: "IT",
+    10: "Sales",
+    11: "Marketing",
+    12: "Business Development"
+  };
+
+  return {
+    id: teamMember.id,
+    name: teamMember.name,
+    email: teamMember.email,
+    position: teamMember.position,
+    department: departmentMap[teamMember.department] || "Executive",
+    status: "Active", // Default status
+    employeeId: `EMP${String(teamMember.id).padStart(3, '0')}`,
+    phone: teamMember.phone,
+    role: "User" // Default role
+  };
+};
+
 const Organization = () => {
   const [departments, setDepartments] = useState<Department[]>(initialDepartments);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -117,6 +148,50 @@ const Organization = () => {
       setTeamMembers(convertedTeamMembers);
     }
   }, []);
+
+  // Save team members to localStorage by converting back to employees format
+  useEffect(() => {
+    if (teamMembers.length > 0) {
+      // Only save when there are actual changes to avoid empty arrays
+      const convertedEmployees = teamMembers.map(convertTeamMemberToEmployee);
+      
+      // Merge with existing employees to preserve additional fields
+      const mergedEmployees = mergeEmployeesData(convertedEmployees, employees);
+      
+      localStorage.setItem('employees', JSON.stringify(mergedEmployees));
+      setEmployees(mergedEmployees);
+    }
+  }, [teamMembers]);
+
+  // Merge converted team members with existing employees data
+  const mergeEmployeesData = (convertedEmployees: Employee[], existingEmployees: Employee[]): Employee[] => {
+    const employeeMap = new Map<number, Employee>();
+    
+    // First add all existing employees to the map
+    existingEmployees.forEach(emp => {
+      employeeMap.set(emp.id, emp);
+    });
+    
+    // Then update or add the converted employees
+    convertedEmployees.forEach(emp => {
+      if (employeeMap.has(emp.id)) {
+        // Preserve fields that might not be in TeamMember
+        const existing = employeeMap.get(emp.id)!;
+        employeeMap.set(emp.id, {
+          ...existing,
+          name: emp.name,
+          email: emp.email,
+          position: emp.position,
+          department: emp.department,
+          phone: emp.phone
+        });
+      } else {
+        employeeMap.set(emp.id, emp);
+      }
+    });
+    
+    return Array.from(employeeMap.values());
+  };
 
   // Find children of a department
   const findChildDepartments = (departmentId: number) => {
@@ -182,11 +257,18 @@ const Organization = () => {
   };
 
   const handleAddTeamMember = (newMember: Omit<TeamMember, "id">) => {
+    // Find the highest ID and increment by 1 for new member
+    const highestId = teamMembers.reduce((max, member) => (member.id > max ? member.id : max), 0);
     const member: TeamMember = {
       ...newMember,
-      id: teamMembers.length + 1
+      id: highestId + 1
     };
     setTeamMembers([...teamMembers, member]);
+    
+    toast({
+      title: "Team Member Added",
+      description: `${member.name} has been added to the organization.`
+    });
   };
 
   const handleUpdateTeamMember = (updatedMember: TeamMember) => {

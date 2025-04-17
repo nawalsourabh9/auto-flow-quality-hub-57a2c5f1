@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,10 +55,7 @@ export function TeamMembersList({
   });
 
   useEffect(() => {
-    // Set supervisors to be the current team members
     setSupervisors(teamMembers);
-    
-    // Reset new member's department when department changes
     setNewMember(prev => ({
       ...prev,
       department: departmentId
@@ -236,7 +232,6 @@ export function TeamMembersList({
         </table>
       </div>
 
-      {/* Add Member Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -328,7 +323,6 @@ export function TeamMembersList({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Member Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -402,7 +396,7 @@ export function TeamMembersList({
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {supervisors
-                      .filter(supervisor => supervisor.id !== memberToEdit?.id) // Can't report to yourself
+                      .filter(supervisor => supervisor.id !== memberToEdit?.id)
                       .map(supervisor => (
                         <SelectItem key={supervisor.id} value={supervisor.id.toString()}>
                           {supervisor.name} - {supervisor.position}
@@ -423,7 +417,6 @@ export function TeamMembersList({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Member Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>

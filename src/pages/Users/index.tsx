@@ -36,23 +36,45 @@ const Users = () => {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [lastSyncTime, setLastSyncTime] = useState<number>(0);
   
-  // Load employees from localStorage on component mount
+  // Load employees from localStorage on component mount and on regular intervals
   useEffect(() => {
-    const storedEmployees = localStorage.getItem('employees');
-    if (storedEmployees) {
-      setEmployees(JSON.parse(storedEmployees));
-    } else {
-      // If no stored employees, use the initial data and save it
-      setEmployees(initialEmployees);
-      localStorage.setItem('employees', JSON.stringify(initialEmployees));
-    }
-  }, []);
+    const loadEmployees = () => {
+      const storedEmployees = localStorage.getItem('employees');
+      const currentTime = Date.now();
+      
+      if (storedEmployees) {
+        const parsedEmployees = JSON.parse(storedEmployees);
+        
+        // Only update if the stored data has changed since last sync
+        if (currentTime > lastSyncTime) {
+          setEmployees(parsedEmployees);
+          setLastSyncTime(currentTime);
+        }
+      } else {
+        // If no stored employees, use the initial data and save it
+        setEmployees(initialEmployees);
+        localStorage.setItem('employees', JSON.stringify(initialEmployees));
+        setLastSyncTime(currentTime);
+      }
+    };
+    
+    // Load immediately on mount
+    loadEmployees();
+    
+    // Set up polling to check for updates from other components
+    const intervalId = setInterval(loadEmployees, 2000);
+    
+    return () => clearInterval(intervalId);
+  }, [lastSyncTime]);
 
-  // Save employees to localStorage whenever they change
+  // Save employees to localStorage whenever they change from this component
   useEffect(() => {
     if (employees.length > 0) {
+      const currentTime = Date.now();
       localStorage.setItem('employees', JSON.stringify(employees));
+      setLastSyncTime(currentTime);
     }
   }, [employees]);
   
