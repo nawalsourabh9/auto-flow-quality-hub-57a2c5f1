@@ -9,9 +9,10 @@ interface AddEmployeeDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onSubmit: (data: Omit<Employee, "id">) => void;
+  employees: Employee[];
 }
 
-export function AddEmployeeDialog({ isOpen, setIsOpen, onSubmit }: AddEmployeeDialogProps) {
+export function AddEmployeeDialog({ isOpen, setIsOpen, onSubmit, employees }: AddEmployeeDialogProps) {
   const form = useForm<Omit<Employee, "id">>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: {
@@ -46,6 +47,7 @@ export function AddEmployeeDialog({ isOpen, setIsOpen, onSubmit }: AddEmployeeDi
           onSubmit={handleSubmit}
           submitButtonText="Add Employee"
           onCancel={handleCancel}
+          employees={employees}
         />
       </DialogContent>
     </Dialog>

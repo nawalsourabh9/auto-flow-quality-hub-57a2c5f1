@@ -12,9 +12,10 @@ interface EditEmployeeDialogProps {
   setIsOpen: (isOpen: boolean) => void;
   employee: Employee | null;
   onSubmit: (data: Omit<Employee, "id">) => void;
+  employees: Employee[];
 }
 
-export function EditEmployeeDialog({ isOpen, setIsOpen, employee, onSubmit }: EditEmployeeDialogProps) {
+export function EditEmployeeDialog({ isOpen, setIsOpen, employee, onSubmit, employees }: EditEmployeeDialogProps) {
   const form = useForm<Omit<Employee, "id">>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: {
@@ -38,7 +39,9 @@ export function EditEmployeeDialog({ isOpen, setIsOpen, employee, onSubmit }: Ed
         department: employee.department,
         employeeId: employee.employeeId,
         position: employee.position,
-        status: employee.status
+        status: employee.status,
+        phone: employee.phone,
+        supervisorId: employee.supervisorId
       });
     }
   }, [employee, form]);
@@ -62,13 +65,8 @@ export function EditEmployeeDialog({ isOpen, setIsOpen, employee, onSubmit }: Ed
           onSubmit={handleSubmit}
           submitButtonText="Update Employee"
           onCancel={handleCancel}
+          employees={employees}
         />
-        <DialogFooter className="pt-4">
-          <DialogClose asChild>
-            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-          </DialogClose>
-          <Button type="submit" onClick={form.handleSubmit(handleSubmit)}>Update Employee</Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

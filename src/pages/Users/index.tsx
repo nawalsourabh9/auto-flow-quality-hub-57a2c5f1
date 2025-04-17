@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -131,6 +132,7 @@ const Users = () => {
         isOpen={isAddDialogOpen} 
         setIsOpen={setIsAddDialogOpen}
         onSubmit={handleAddEmployee}
+        employees={employees}
       />
 
       <EditEmployeeDialog 
@@ -138,6 +140,7 @@ const Users = () => {
         setIsOpen={setIsEditDialogOpen}
         employee={editingEmployee}
         onSubmit={handleEditEmployee}
+        employees={employees}
       />
 
       <DeleteEmployeeDialog

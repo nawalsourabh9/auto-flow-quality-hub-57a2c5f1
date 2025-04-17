@@ -1,3 +1,4 @@
+
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,7 +11,7 @@ interface EmployeeFormProps {
   onSubmit: (values: Omit<Employee, "id">) => void;
   submitButtonText: string;
   onCancel: () => void;
-  employees: Omit<Employee, "id">[];
+  employees: Employee[];
 }
 
 export function EmployeeForm({ 
@@ -177,7 +178,7 @@ export function EmployeeForm({
               <FormLabel>Reports To</FormLabel>
               <Select 
                 onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
-                value={field.value?.toString() || ""}
+                value={field.value?.toString() || undefined}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -185,9 +186,9 @@ export function EmployeeForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {employees.map((emp, index) => (
-                    <SelectItem key={index} value={index.toString()}>
+                  <SelectItem value="none">None</SelectItem>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id.toString()}>
                       {emp.name} - {emp.position}
                     </SelectItem>
                   ))}
