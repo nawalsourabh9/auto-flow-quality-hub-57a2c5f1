@@ -92,6 +92,15 @@ const Login = () => {
               <Eye className="mr-2 h-4 w-4" />
               Preview Dashboard
             </Button>
+            <p className="text-center text-sm text-gray-500 mt-2">
+              Don't have an account?{" "}
+              <Link
+                to="/signup"
+                className="font-medium text-primary hover:underline"
+              >
+                Sign up
+              </Link>
+            </p>
           </CardFooter>
         </form>
       </Card>
