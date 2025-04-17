@@ -20,6 +20,7 @@ import {
   BarChart2,
   FolderTree,
   CalendarCheck,
+  ShieldCheck
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -63,6 +64,11 @@ const menuItems = [
     title: "Users",
     icon: Users,
     path: "/users"
+  },
+  {
+    title: "Admin",
+    icon: ShieldCheck,
+    path: "/admin"
   },
   {
     title: "Settings",

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -22,7 +23,7 @@ import Profile from "@/pages/Profile";
 import Help from "@/pages/Help";
 import Organization from "@/pages/Organization";
 import EmailTest from "@/pages/EmailTest";
-import Admin from "@/pages/Admin";
+import Admin from "@/pages/Admin"; // This should import the Admin/index.tsx file
 import InviteUser from "@/pages/InviteUser";
 import NotFound from "@/pages/NotFound";
 import ChangePassword from "@/pages/ChangePassword";
