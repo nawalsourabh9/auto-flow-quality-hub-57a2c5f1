@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -15,6 +14,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   updateProfile: (data: { first_name?: string; last_name?: string; email?: string }) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,7 +26,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         setSession(currentSession);
@@ -35,7 +34,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
@@ -94,7 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // Clear state
       setUser(null);
       setSession(null);
       
@@ -156,7 +153,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('No user logged in');
       }
 
-      // Update user metadata
       const { error: authError } = await supabase.auth.updateUser({
         data: {
           first_name: data.first_name,
@@ -166,7 +162,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (authError) throw authError;
 
-      // Update email if provided
       if (data.email && data.email !== user.email) {
         const { error: emailError } = await supabase.auth.updateUser({
           email: data.email,
@@ -176,7 +171,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.info('Email verification sent to your new email address');
       }
 
-      // Use the database function to update the profile with type assertion
       const { error: functionError } = await supabase.functions.invoke('database-utils', {
         body: {
           operation: 'updateProfile',
@@ -200,6 +194,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: currentPassword
+      });
+
+      if (authError) throw authError;
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (updateError) throw updateError;
+      
+      toast.success('Password updated successfully');
+    } catch (error: any) {
+      setError(error.message);
+      toast.error(`Password update failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -212,7 +233,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error,
         resetPassword,
         updatePassword,
-        updateProfile
+        updateProfile,
+        changePassword
       }}
     >
       {children}

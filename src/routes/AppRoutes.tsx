@@ -1,4 +1,4 @@
-
+import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/hooks/use-auth";
@@ -25,6 +25,7 @@ import EmailTest from "@/pages/EmailTest";
 import Admin from "@/pages/Admin";
 import InviteUser from "@/pages/InviteUser";
 import NotFound from "@/pages/NotFound";
+import ChangePassword from "@/pages/ChangePassword";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -101,7 +102,14 @@ export const AppRoutes = () => {
         </ProtectedRoute>
       } />
       
-      {/* Protected Routes */}
+      <Route path="/change-password" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <ChangePassword />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
       {[
         { path: "/tasks", element: <Tasks /> },
         { path: "/documents", element: <Documents /> },
@@ -122,7 +130,6 @@ export const AppRoutes = () => {
         } />
       ))}
       
-      {/* Admin Routes */}
       <Route path="/admin" element={
         <AdminRoute>
           <MainLayout>
