@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +32,7 @@ import {
 } from "@/components/ui/tabs";
 import { TeamMembersList } from "@/components/organization/TeamMembersList";
 import { TeamMember } from "@/types/task";
+import { departmentOptions } from "@/pages/Users/types";
 
 // Define department types
 interface Department {
