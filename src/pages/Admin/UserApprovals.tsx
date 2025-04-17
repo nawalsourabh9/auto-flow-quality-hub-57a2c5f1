@@ -13,8 +13,8 @@ interface UserApproval {
   id: string;
   user_id: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  first_name: string | null;
+  last_name: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   updated_at: string | null;
@@ -32,10 +32,11 @@ const UserApprovals = () => {
   const fetchApprovals = async () => {
     try {
       setLoading(true);
+      // Use a direct query without type checking since we know the table exists
       const { data, error } = await supabase
         .from('account_approvals')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as { data: UserApproval[] | null, error: any };
 
       if (error) throw error;
       setApprovals(data || []);
