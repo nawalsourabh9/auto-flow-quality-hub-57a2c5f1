@@ -15,5 +15,23 @@ export const employeeFormSchema = z.object({
 
 export type Employee = z.infer<typeof employeeFormSchema> & { id: number };
 
-export const departmentOptions = ["Quality", "Production", "Engineering", "HR", "Finance", "IT", "Sales", "Marketing", "Business Development"];
+// Ensures all departments are consistent across the application
+export const departmentOptions = [
+  "Executive",
+  "Quality", 
+  "Production", 
+  "Engineering", 
+  "HR", 
+  "Finance", 
+  "IT", 
+  "Sales", 
+  "Marketing", 
+  "Business Development",
+  "Quality Assurance",
+  "Quality Control",
+  "Research & Development",
+  "Customer Service",
+  "Legal"
+];
+
 export const roleOptions = ["Admin", "Manager", "User", "Viewer"];

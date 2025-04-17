@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,17 +44,57 @@ interface Department {
   description: string;
 }
 
-// Mock initial data for departments
-const initialDepartments: Department[] = [
-  { id: 1, name: "Executive", managerId: 1, parentDepartmentId: null, description: "Executive Leadership Team" },
-  { id: 2, name: "Quality", managerId: 2, parentDepartmentId: 1, description: "Quality Management Department" },
-  { id: 3, name: "Production", managerId: 3, parentDepartmentId: 1, description: "Production and Manufacturing" },
-  { id: 4, name: "Engineering", managerId: 4, parentDepartmentId: 1, description: "Product Engineering" },
-  { id: 5, name: "HR", managerId: 5, parentDepartmentId: 1, description: "Human Resources" },
-  { id: 6, name: "Finance", managerId: 6, parentDepartmentId: 1, description: "Finance and Accounting" },
-  { id: 7, name: "Quality Assurance", managerId: 7, parentDepartmentId: 2, description: "Quality Assurance Team" },
-  { id: 8, name: "Quality Control", managerId: 8, parentDepartmentId: 2, description: "Quality Control Team" },
-];
+// Create a more robust department map based on departmentOptions
+const createDepartmentMap = () => {
+  const departmentMap: Record<string, number> = {};
+  
+  departmentOptions.forEach((dept, index) => {
+    departmentMap[dept] = index + 1; // Start from 1
+  });
+  
+  return departmentMap;
+};
+
+// Get reverse mapping (id to name)
+const createReverseDepartmentMap = (departmentMap: Record<string, number>) => {
+  const reverseDepartmentMap: Record<number, string> = {};
+  
+  Object.entries(departmentMap).forEach(([name, id]) => {
+    reverseDepartmentMap[id] = name;
+  });
+  
+  return reverseDepartmentMap;
+};
+
+// Generate initial departments based on department options
+const generateInitialDepartments = (): Department[] => {
+  const departments: Department[] = [
+    { id: 1, name: "Executive", managerId: null, parentDepartmentId: null, description: "Executive Leadership Team" }
+  ];
+  
+  let id = 2;
+  departmentOptions.forEach(dept => {
+    // Skip if already added
+    if (dept === "Executive") return;
+    
+    departments.push({
+      id: id++,
+      name: dept,
+      managerId: null,
+      parentDepartmentId: 1, // All initially under Executive
+      description: `${dept} Department`
+    });
+  });
+  
+  return departments;
+};
+
+// Initialize department maps
+const departmentMap = createDepartmentMap();
+const reverseDepartmentMap = createReverseDepartmentMap(departmentMap);
+
+// Use the generated departments instead of hardcoded ones
+const initialDepartments = generateInitialDepartments();
 
 // Convert employee to team member format
 const convertEmployeeToTeamMember = (employee: Employee): TeamMember => {
@@ -67,28 +106,12 @@ const convertEmployeeToTeamMember = (employee: Employee): TeamMember => {
     .toUpperCase()
     .slice(0, 2);
   
-  // Map department name to department ID
-  const departmentMap: Record<string, number> = {
-    "Executive": 1,
-    "Quality": 2,
-    "Production": 3,
-    "Engineering": 4,
-    "HR": 5,
-    "Finance": 6,
-    "Quality Assurance": 7,
-    "Quality Control": 8,
-    "IT": 9,
-    "Sales": 10,
-    "Marketing": 11,
-    "Business Development": 12
-  };
-  
   return {
     id: employee.id,
     name: employee.name,
     email: employee.email,
     position: employee.position,
-    department: departmentMap[employee.department] || 1, // Default to Executive if not found
+    department: departmentMap[employee.department] || 1, // Map to department ID
     initials: initials,
     phone: employee.phone
   };
@@ -96,28 +119,12 @@ const convertEmployeeToTeamMember = (employee: Employee): TeamMember => {
 
 // Convert team member to employee format
 const convertTeamMemberToEmployee = (teamMember: TeamMember): Employee => {
-  // Map department ID to department name
-  const departmentMap: Record<number, string> = {
-    1: "Executive",
-    2: "Quality", 
-    3: "Production",
-    4: "Engineering",
-    5: "HR",
-    6: "Finance",
-    7: "Quality Assurance",
-    8: "Quality Control",
-    9: "IT",
-    10: "Sales",
-    11: "Marketing",
-    12: "Business Development"
-  };
-
   return {
     id: teamMember.id,
     name: teamMember.name,
     email: teamMember.email,
     position: teamMember.position,
-    department: departmentMap[teamMember.department] || "Executive",
+    department: reverseDepartmentMap[teamMember.department] || "Executive",
     status: "Active", // Default status
     employeeId: `EMP${String(teamMember.id).padStart(3, '0')}`,
     phone: teamMember.phone,
@@ -146,8 +153,45 @@ const Organization = () => {
       // Convert employees to team members format
       const convertedTeamMembers = loadedEmployees.map(convertEmployeeToTeamMember);
       setTeamMembers(convertedTeamMembers);
+      
+      // Update departments with manager information
+      updateDepartmentManagers(loadedEmployees);
     }
   }, []);
+
+  // Function to update department managers based on employee data
+  const updateDepartmentManagers = (loadedEmployees: Employee[]) => {
+    const updatedDepartments = [...departments];
+    
+    // Create a map of department names to employees in that department
+    const departmentEmployees: Record<string, Employee[]> = {};
+    
+    loadedEmployees.forEach(emp => {
+      if (!departmentEmployees[emp.department]) {
+        departmentEmployees[emp.department] = [];
+      }
+      departmentEmployees[emp.department].push(emp);
+    });
+    
+    // Update manager IDs for each department
+    updatedDepartments.forEach(dept => {
+      // Find the department name from the reverse map
+      const deptName = reverseDepartmentMap[dept.id];
+      
+      // If we have employees in this department
+      if (deptName && departmentEmployees[deptName] && departmentEmployees[deptName].length > 0) {
+        // Find a manager role if available, otherwise just pick the first employee
+        const manager = departmentEmployees[deptName].find(emp => emp.role === "Manager") || 
+                       departmentEmployees[deptName][0];
+        
+        if (manager) {
+          dept.managerId = manager.id;
+        }
+      }
+    });
+    
+    setDepartments(updatedDepartments);
+  };
 
   // Save team members to localStorage by converting back to employees format
   useEffect(() => {
@@ -410,6 +454,20 @@ const Organization = () => {
         </Collapsible>
       </div>
     );
+  };
+
+  // Add/modify the handleUpdateDepartment function
+  const handleUpdateDepartment = (departmentId: number, updatedData: Partial<Department>) => {
+    const updatedDepartments = departments.map(dept => 
+      dept.id === departmentId ? { ...dept, ...updatedData } : dept
+    );
+    
+    setDepartments(updatedDepartments);
+    
+    toast({
+      title: "Department Updated",
+      description: `The department has been successfully updated.`
+    });
   };
 
   return (

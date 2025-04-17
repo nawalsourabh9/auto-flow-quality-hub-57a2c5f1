@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,6 +104,18 @@ export function TeamMembersList({
       phone: "",
       supervisorId: null
     });
+    
+    // Make sure localStorage is updated for Users page to see changes
+    const existingEmployees = localStorage.getItem('employees');
+    if (existingEmployees) {
+      try {
+        const employees = JSON.parse(existingEmployees);
+        // This will be handled by the parent component's effect
+        // so we don't need to update localStorage here
+      } catch (error) {
+        console.error("Error parsing employees from localStorage", error);
+      }
+    }
     
     toast({
       title: "Team Member Added",
