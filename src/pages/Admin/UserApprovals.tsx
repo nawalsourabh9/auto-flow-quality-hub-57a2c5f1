@@ -31,9 +31,12 @@ const UserApprovals = () => {
       try {
         console.log("Enabling real-time for account_approvals table...");
         
-        // This SQL enables full replication for the account_approvals table
-        const { error } = await supabase.rpc('enable_realtime', {
-          table_name: 'account_approvals'
+        // Call the database-utils edge function to enable realtime
+        const { error } = await supabase.functions.invoke('database-utils', {
+          body: {
+            operation: 'enableRealtime',
+            tableName: 'account_approvals'
+          }
         });
         
         if (error) {

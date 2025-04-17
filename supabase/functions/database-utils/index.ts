@@ -1,5 +1,6 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { corsHeaders } from '../_shared/cors.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -74,30 +75,68 @@ serve(async (req) => {
           { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
         );
       case 'updateUserApproval':
-        const { userId, approved } = params;
+        const { userId: approvalUserId, approved } = params;
         
-        if (!userId) {
+        if (!approvalUserId) {
           return new Response(
             JSON.stringify({ error: 'Missing required field: userId' }),
             { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
           );
         }
 
-        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-          userId,
+        const { error: approvalError } = await supabaseAdmin.auth.admin.updateUserById(
+          approvalUserId,
           { user_metadata: { approved } }
         );
 
-        if (updateError) {
+        if (approvalError) {
           return new Response(
-            JSON.stringify({ error: updateError.message }),
+            JSON.stringify({ error: approvalError.message }),
             { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
           );
         }
 
         return new Response(
           JSON.stringify({ success: true, message: 'User approval status updated' }),
-          { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      case 'enableRealtime':
+        const { tableName } = params;
+        
+        if (!tableName) {
+          return new Response(
+            JSON.stringify({ error: 'Missing required field: tableName' }),
+            { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          );
+        }
+
+        // Enable replica identity FULL for the table
+        const setReplicaResult = await supabaseAdmin.rpc('exec_sql', {
+          query: `ALTER TABLE public.${tableName} REPLICA IDENTITY FULL;`
+        });
+
+        if (setReplicaResult.error) {
+          return new Response(
+            JSON.stringify({ error: `Failed to set replica identity: ${setReplicaResult.error.message}` }),
+            { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          );
+        }
+
+        // Add the table to the supabase_realtime publication
+        const addToPublicationResult = await supabaseAdmin.rpc('exec_sql', {
+          query: `ALTER PUBLICATION supabase_realtime ADD TABLE public.${tableName};`
+        });
+
+        if (addToPublicationResult.error) {
+          return new Response(
+            JSON.stringify({ error: `Failed to add to publication: ${addToPublicationResult.error.message}` }),
+            { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, message: `Table ${tableName} enabled for real-time updates` }),
+          { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
         );
       default:
         return new Response(
