@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -410,7 +411,7 @@ const Organization = () => {
                     <SelectValue placeholder="Select parent department" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None (Top Level)</SelectItem>
+                    <SelectItem value="none">None (Top Level)</SelectItem>
                     {departments.map(dept => (
                       <SelectItem key={dept.id} value={dept.id.toString()}>
                         {dept.name}
@@ -430,7 +431,7 @@ const Organization = () => {
                     <SelectValue placeholder="Select manager" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="none">Unassigned</SelectItem>
                     {managers.map(manager => (
                       <SelectItem key={manager.id} value={manager.id.toString()}>
                         {manager.name}

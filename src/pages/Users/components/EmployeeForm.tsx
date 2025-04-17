@@ -178,7 +178,7 @@ export function EmployeeForm({
               <FormLabel>Reports To</FormLabel>
               <Select 
                 onValueChange={(value) => field.onChange(value === "none" ? undefined : parseInt(value))}
-                value={field.value?.toString() || undefined}
+                value={field.value?.toString() || "none"}
               >
                 <FormControl>
                   <SelectTrigger>

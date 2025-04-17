@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +21,6 @@ import { toast } from "@/hooks/use-toast";
 import { TeamMember } from "@/types/task";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define props for TeamMembersList component
 interface TeamMembersListProps {
   departmentId: number;
   departmentName: string;
@@ -58,14 +56,11 @@ export function TeamMembersList({
     supervisorId: null
   });
 
-  // Fetch potential supervisors
   useEffect(() => {
     const fetchSupervisors = async () => {
       try {
         setLoadingSupervisors(true);
         
-        // In a real implementation, this would fetch from the database
-        // For now, using the existing team members as potential supervisors
         setSupervisors(teamMembers);
       } catch (error: any) {
         console.error("Error fetching supervisors:", error);
@@ -82,7 +77,6 @@ export function TeamMembersList({
     fetchSupervisors();
   }, [teamMembers]);
 
-  // Generate initials from name
   const generateInitials = (name: string) => {
     return name
       .split(' ')
@@ -92,14 +86,12 @@ export function TeamMembersList({
       .slice(0, 2);
   };
 
-  // Find supervisor name by ID
   const getSupervisorName = (supervisorId: number | null): string => {
     if (!supervisorId) return "None";
     const supervisor = teamMembers.find(member => member.id === supervisorId);
     return supervisor ? supervisor.name : "Unknown";
   };
 
-  // Handle adding a new team member
   const handleAddMember = () => {
     if (!newMember.name || !newMember.email || !newMember.position) {
       toast({
@@ -110,7 +102,6 @@ export function TeamMembersList({
       return;
     }
 
-    // Generate initials if not provided
     const memberWithInitials = {
       ...newMember,
       initials: newMember.initials || generateInitials(newMember.name)
@@ -134,7 +125,6 @@ export function TeamMembersList({
     });
   };
 
-  // Handle updating a team member
   const handleUpdateMember = () => {
     if (!memberToEdit) return;
 
@@ -149,7 +139,6 @@ export function TeamMembersList({
     });
   };
 
-  // Handle deleting a team member
   const handleDeleteMember = () => {
     if (!memberToDelete) return;
 
@@ -162,7 +151,6 @@ export function TeamMembersList({
     });
   };
 
-  // Filter team members based on search term
   const filteredMembers = teamMembers.filter(member => 
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -259,7 +247,6 @@ export function TeamMembersList({
         </table>
       </div>
 
-      {/* Add Member Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -321,10 +308,10 @@ export function TeamMembersList({
               <div className="grid gap-2">
                 <label htmlFor="supervisor">Reports To</label>
                 <Select
-                  value={newMember.supervisorId?.toString() || undefined}
+                  value={newMember.supervisorId?.toString() || ""}
                   onValueChange={(value) => setNewMember({
                     ...newMember, 
-                    supervisorId: value ? parseInt(value) : null
+                    supervisorId: value && value !== "none" ? parseInt(value) : null
                   })}
                 >
                   <SelectTrigger id="supervisor">
@@ -351,7 +338,6 @@ export function TeamMembersList({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Member Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -413,10 +399,10 @@ export function TeamMembersList({
               <div className="grid gap-2">
                 <label htmlFor="editSupervisor">Reports To</label>
                 <Select
-                  value={memberToEdit?.supervisorId?.toString() || undefined}
+                  value={memberToEdit?.supervisorId?.toString() || ""}
                   onValueChange={(value) => memberToEdit && setMemberToEdit({
                     ...memberToEdit, 
-                    supervisorId: value ? parseInt(value) : null
+                    supervisorId: value && value !== "none" ? parseInt(value) : null
                   })}
                 >
                   <SelectTrigger id="editSupervisor">
@@ -446,7 +432,6 @@ export function TeamMembersList({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Member Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
