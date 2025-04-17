@@ -2,14 +2,15 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, FolderTree, List, LayoutList, Users } from "lucide-react";
+import { Search, Plus, Filter, FolderTree, List, LayoutList, Users, Trash2 } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
   DialogHeader, 
   DialogTitle,
   DialogFooter,
-  DialogClose
+  DialogClose,
+  DialogDescription
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -35,7 +36,6 @@ import { TeamMember } from "@/types/task";
 import { departmentOptions } from "@/pages/Users/types";
 import { Employee } from "@/pages/Users/types";
 
-// Define department types
 interface Department {
   id: number;
   name: string;
@@ -44,18 +44,16 @@ interface Department {
   description: string;
 }
 
-// Create a more robust department map based on departmentOptions
 const createDepartmentMap = () => {
   const departmentMap: Record<string, number> = {};
   
   departmentOptions.forEach((dept, index) => {
-    departmentMap[dept] = index + 1; // Start from 1
+    departmentMap[dept] = index + 1;
   });
   
   return departmentMap;
 };
 
-// Get reverse mapping (id to name)
 const createReverseDepartmentMap = (departmentMap: Record<string, number>) => {
   const reverseDepartmentMap: Record<number, string> = {};
   
@@ -66,7 +64,6 @@ const createReverseDepartmentMap = (departmentMap: Record<string, number>) => {
   return reverseDepartmentMap;
 };
 
-// Generate initial departments based on department options
 const generateInitialDepartments = (): Department[] => {
   const departments: Department[] = [
     { id: 1, name: "Executive", managerId: null, parentDepartmentId: null, description: "Executive Leadership Team" }
@@ -74,14 +71,13 @@ const generateInitialDepartments = (): Department[] => {
   
   let id = 2;
   departmentOptions.forEach(dept => {
-    // Skip if already added
     if (dept === "Executive") return;
     
     departments.push({
       id: id++,
       name: dept,
       managerId: null,
-      parentDepartmentId: 1, // All initially under Executive
+      parentDepartmentId: 1,
       description: `${dept} Department`
     });
   });
@@ -89,16 +85,12 @@ const generateInitialDepartments = (): Department[] => {
   return departments;
 };
 
-// Initialize department maps
 const departmentMap = createDepartmentMap();
 const reverseDepartmentMap = createReverseDepartmentMap(departmentMap);
 
-// Use the generated departments instead of hardcoded ones
 const initialDepartments = generateInitialDepartments();
 
-// Convert employee to team member format
 const convertEmployeeToTeamMember = (employee: Employee): TeamMember => {
-  // Generate initials from name
   const initials = employee.name
     .split(' ')
     .map(part => part[0])
@@ -111,13 +103,12 @@ const convertEmployeeToTeamMember = (employee: Employee): TeamMember => {
     name: employee.name,
     email: employee.email,
     position: employee.position,
-    department: departmentMap[employee.department] || 1, // Map to department ID
+    department: departmentMap[employee.department] || 1,
     initials: initials,
     phone: employee.phone
   };
 };
 
-// Convert team member to employee format
 const convertTeamMemberToEmployee = (teamMember: TeamMember): Employee => {
   return {
     id: teamMember.id,
@@ -125,10 +116,10 @@ const convertTeamMemberToEmployee = (teamMember: TeamMember): Employee => {
     email: teamMember.email,
     position: teamMember.position,
     department: reverseDepartmentMap[teamMember.department] || "Executive",
-    status: "Active", // Default status
+    status: "Active",
     employeeId: `EMP${String(teamMember.id).padStart(3, '0')}`,
     phone: teamMember.phone,
-    role: "User" // Default role
+    role: "User"
   };
 };
 
@@ -139,31 +130,28 @@ const Organization = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newDepartment, setNewDepartment] = useState<Partial<Department>>({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [expandedDepartments, setExpandedDepartments] = useState<number[]>([1]); // Default expand executive
-  const [viewMode, setViewMode] = useState<"list" | "tree">("list"); // State for view toggle
-  const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null); // For team members view
+  const [expandedDepartments, setExpandedDepartments] = useState<number[]>([1]);
+  const [viewMode, setViewMode] = useState<"list" | "tree">("list");
+  const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null);
+  const [departmentToDelete, setDepartmentToDelete] = useState<Department | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Load employees from localStorage
   useEffect(() => {
     const storedEmployees = localStorage.getItem('employees');
     if (storedEmployees) {
       const loadedEmployees = JSON.parse(storedEmployees);
       setEmployees(loadedEmployees);
       
-      // Convert employees to team members format
       const convertedTeamMembers = loadedEmployees.map(convertEmployeeToTeamMember);
       setTeamMembers(convertedTeamMembers);
       
-      // Update departments with manager information
       updateDepartmentManagers(loadedEmployees);
     }
   }, []);
 
-  // Function to update department managers based on employee data
   const updateDepartmentManagers = (loadedEmployees: Employee[]) => {
     const updatedDepartments = [...departments];
     
-    // Create a map of department names to employees in that department
     const departmentEmployees: Record<string, Employee[]> = {};
     
     loadedEmployees.forEach(emp => {
@@ -173,14 +161,10 @@ const Organization = () => {
       departmentEmployees[emp.department].push(emp);
     });
     
-    // Update manager IDs for each department
     updatedDepartments.forEach(dept => {
-      // Find the department name from the reverse map
       const deptName = reverseDepartmentMap[dept.id];
       
-      // If we have employees in this department
       if (deptName && departmentEmployees[deptName] && departmentEmployees[deptName].length > 0) {
-        // Find a manager role if available, otherwise just pick the first employee
         const manager = departmentEmployees[deptName].find(emp => emp.role === "Manager") || 
                        departmentEmployees[deptName][0];
         
@@ -193,13 +177,10 @@ const Organization = () => {
     setDepartments(updatedDepartments);
   };
 
-  // Save team members to localStorage by converting back to employees format
   useEffect(() => {
     if (teamMembers.length > 0) {
-      // Only save when there are actual changes to avoid empty arrays
       const convertedEmployees = teamMembers.map(convertTeamMemberToEmployee);
       
-      // Merge with existing employees to preserve additional fields
       const mergedEmployees = mergeEmployeesData(convertedEmployees, employees);
       
       localStorage.setItem('employees', JSON.stringify(mergedEmployees));
@@ -207,19 +188,15 @@ const Organization = () => {
     }
   }, [teamMembers]);
 
-  // Merge converted team members with existing employees data
   const mergeEmployeesData = (convertedEmployees: Employee[], existingEmployees: Employee[]): Employee[] => {
     const employeeMap = new Map<number, Employee>();
     
-    // First add all existing employees to the map
     existingEmployees.forEach(emp => {
       employeeMap.set(emp.id, emp);
     });
     
-    // Then update or add the converted employees
     convertedEmployees.forEach(emp => {
       if (employeeMap.has(emp.id)) {
-        // Preserve fields that might not be in TeamMember
         const existing = employeeMap.get(emp.id)!;
         employeeMap.set(emp.id, {
           ...existing,
@@ -237,19 +214,16 @@ const Organization = () => {
     return Array.from(employeeMap.values());
   };
 
-  // Find children of a department
   const findChildDepartments = (departmentId: number) => {
     return departments.filter(dept => dept.parentDepartmentId === departmentId);
   };
 
-  // Find manager name
   const getManagerName = (managerId: number | null) => {
     if (!managerId) return "Unassigned";
     const employee = employees.find(emp => emp.id === managerId);
     return employee ? employee.name : "Unassigned";
   };
 
-  // Toggle department expansion
   const toggleDepartment = (departmentId: number) => {
     setExpandedDepartments(prev => 
       prev.includes(departmentId) 
@@ -258,7 +232,6 @@ const Organization = () => {
     );
   };
 
-  // Handle adding a new department
   const handleAddDepartment = () => {
     if (!newDepartment.name) {
       toast({
@@ -286,22 +259,53 @@ const Organization = () => {
     });
   };
 
-  // Filter departments by search term
+  const handleDeleteDepartment = () => {
+    if (!departmentToDelete) return;
+    
+    const childDepartments = findChildDepartments(departmentToDelete.id);
+    if (childDepartments.length > 0) {
+      toast({
+        title: "Cannot Delete Department",
+        description: "This department has sub-departments. Please delete or reassign them first.",
+        variant: "destructive"
+      });
+      setIsDeleteDialogOpen(false);
+      return;
+    }
+    
+    const departmentMembers = teamMembers.filter(member => member.department === departmentToDelete.id);
+    if (departmentMembers.length > 0) {
+      toast({
+        title: "Cannot Delete Department",
+        description: "This department has team members. Please remove or reassign them first.",
+        variant: "destructive"
+      });
+      setIsDeleteDialogOpen(false);
+      return;
+    }
+    
+    const updatedDepartments = departments.filter(dept => dept.id !== departmentToDelete.id);
+    setDepartments(updatedDepartments);
+    setIsDeleteDialogOpen(false);
+    
+    toast({
+      title: "Department Deleted",
+      description: `${departmentToDelete.name} has been removed from the organization.`
+    });
+  };
+
   const filteredDepartments = departments.filter(dept => 
     dept.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     dept.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Get root departments (those without parent)
   const rootDepartments = filteredDepartments.filter(dept => dept.parentDepartmentId === null);
 
-  // Team members functions
   const getDepartmentTeamMembers = (departmentId: number) => {
     return teamMembers.filter(member => member.department === departmentId);
   };
 
   const handleAddTeamMember = (newMember: Omit<TeamMember, "id">) => {
-    // Find the highest ID and increment by 1 for new member
     const highestId = teamMembers.reduce((max, member) => (member.id > max ? member.id : max), 0);
     const member: TeamMember = {
       ...newMember,
@@ -325,18 +329,17 @@ const Organization = () => {
     setTeamMembers(teamMembers.filter(member => member.id !== memberId));
   };
 
-  // Get department name by ID
   const getDepartmentName = (departmentId: number) => {
     const department = departments.find(dept => dept.id === departmentId);
     return department ? department.name : "Unknown Department";
   };
 
-  // Recursively render department tree
   const renderDepartmentTree = (department: Department, level: number = 0) => {
     const childDepartments = findChildDepartments(department.id);
     const isExpanded = expandedDepartments.includes(department.id);
     const departmentMembers = getDepartmentTeamMembers(department.id);
-    
+    const isExecutiveDepartment = department.id === 1;
+
     return (
       <div key={department.id} className="department-item">
         <div 
@@ -374,6 +377,19 @@ const Organization = () => {
               <Users className="h-3.5 w-3.5" />
               Manage Team
             </Button>
+            {!isExecutiveDepartment && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                onClick={() => {
+                  setDepartmentToDelete(department);
+                  setIsDeleteDialogOpen(true);
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
         </div>
         
@@ -382,11 +398,11 @@ const Organization = () => {
     );
   };
 
-  // Render tree view item for the visual tree representation
   const renderTreeViewItem = (department: Department) => {
     const childDepartments = findChildDepartments(department.id);
     const departmentMembers = getDepartmentTeamMembers(department.id);
-    
+    const isExecutiveDepartment = department.id === 1;
+
     return (
       <div key={department.id} className="mb-2">
         <Collapsible 
@@ -423,7 +439,22 @@ const Organization = () => {
             )}
             
             <div className="p-2 border border-border rounded-md flex-1 bg-background hover:bg-muted/20 transition-colors">
-              <div className="font-medium">{department.name}</div>
+              <div className="flex justify-between">
+                <div className="font-medium">{department.name}</div>
+                {!isExecutiveDepartment && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 -mt-1 -mr-1"
+                    onClick={() => {
+                      setDepartmentToDelete(department);
+                      setIsDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
               <div className="flex justify-between items-center">
                 <div className="text-xs text-muted-foreground">{department.description}</div>
                 <div className="flex items-center gap-2">
@@ -456,7 +487,6 @@ const Organization = () => {
     );
   };
 
-  // Add/modify the handleUpdateDepartment function
   const handleUpdateDepartment = (departmentId: number, updatedData: Partial<Department>) => {
     const updatedDepartments = departments.map(dept => 
       dept.id === departmentId ? { ...dept, ...updatedData } : dept
@@ -540,7 +570,6 @@ const Organization = () => {
         </CardContent>
       </Card>
 
-      {/* Add Department Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -618,7 +647,42 @@ const Organization = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Team Members Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Delete Department</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this department? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {departmentToDelete && (
+            <div className="py-2">
+              <p><strong>Department:</strong> {departmentToDelete.name}</p>
+              <p><strong>Description:</strong> {departmentToDelete.description}</p>
+              
+              <div className="mt-4 text-sm text-muted-foreground">
+                <p className="font-medium">Note:</p>
+                <ul className="list-disc list-inside mt-1">
+                  <li>You cannot delete a department that has sub-departments</li>
+                  <li>You cannot delete a department that has team members</li>
+                  <li>The Executive department cannot be deleted</li>
+                </ul>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={handleDeleteDepartment}>
+              Delete Department
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={selectedDepartment !== null} onOpenChange={(isOpen) => !isOpen && setSelectedDepartment(null)}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
