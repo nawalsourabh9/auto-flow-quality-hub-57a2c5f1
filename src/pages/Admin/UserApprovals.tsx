@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, CheckCircle, XCircle, UserCheck } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, UserCheck, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 interface UserApproval {
@@ -26,22 +26,48 @@ const UserApprovals = () => {
   const { approveUser, rejectUser } = useAuth();
 
   useEffect(() => {
+    // Enable real-time functionality for the account_approvals table
+    const enableRealtimeForApprovals = async () => {
+      try {
+        console.log("Enabling real-time for account_approvals table...");
+        
+        // This SQL enables full replication for the account_approvals table
+        const { error } = await supabase.rpc('enable_realtime', {
+          table_name: 'account_approvals'
+        });
+        
+        if (error) {
+          console.error("Error enabling real-time:", error);
+        } else {
+          console.log("Real-time enabled for account_approvals table");
+        }
+      } catch (err) {
+        console.error("Failed to enable real-time:", err);
+      }
+    };
+    
+    enableRealtimeForApprovals();
     fetchApprovals();
     
     // Set up a subscription to listen for real-time updates
+    console.log("Setting up real-time subscription for account_approvals table");
     const channel = supabase
       .channel('account_approvals_changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'account_approvals' },
-        () => {
+        (payload) => {
+          console.log("Real-time update received:", payload);
           // Refetch approvals when any changes happen to the account_approvals table
           fetchApprovals();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Channel subscription status:", status);
+      });
       
     return () => {
+      console.log("Cleaning up channel subscription");
       supabase.removeChannel(channel);
     };
   }, []);
@@ -119,7 +145,7 @@ const UserApprovals = () => {
           </p>
         </div>
         <Button variant="outline" onClick={fetchApprovals} disabled={loading}>
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
           Refresh
         </Button>
       </div>

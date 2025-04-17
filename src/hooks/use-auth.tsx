@@ -91,6 +91,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       
+      console.log("Starting sign up process for:", email);
+      
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
@@ -104,10 +106,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
       
+      console.log("Auth sign up successful, user data:", data.user);
+      
       // Create an account approval request
       if (data.user) {
+        console.log("Creating approval request for user:", data.user.id);
+        
         // Use a more type-safe approach for the insert operation
-        const { error: dbError } = await supabase
+        const { error: dbError, data: approvalData } = await supabase
           .from('account_approvals')
           .insert({
             user_id: data.user.id,
@@ -116,13 +122,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             last_name: userData?.last_name || '',
             status: 'pending',
             created_at: new Date().toISOString()
-          } as any); // Use 'as any' to bypass type checking
+          } as any)
+          .select(); // Add .select() to return the inserted data
         
-        if (dbError) throw dbError;
+        if (dbError) {
+          console.error("Error creating approval record:", dbError);
+          throw dbError;
+        }
+        
+        console.log("Approval record created successfully:", approvalData);
       }
       
       toast.success('Sign up successful! Your account is pending approval. You will receive an email when approved.');
     } catch (error: any) {
+      console.error("Sign up error:", error);
       setError(error.message);
       toast.error(`Sign up failed: ${error.message}`);
     } finally {
