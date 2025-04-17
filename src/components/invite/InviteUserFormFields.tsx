@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, Phone, User } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { InviteFormData } from "./InviteUserForm";
@@ -18,9 +18,17 @@ interface Department {
   name: string;
 }
 
+interface Supervisor {
+  id: string;
+  name: string;
+  position: string;
+}
+
 export function InviteUserFormFields({ formData, onChange }: InviteUserFormFieldsProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [loadingSupervisors, setLoadingSupervisors] = useState(true);
 
   // Fetch departments from the database
   useEffect(() => {
@@ -51,10 +59,42 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
     fetchDepartments();
   }, []);
 
+  // Fetch potential supervisors
+  useEffect(() => {
+    const fetchSupervisors = async () => {
+      try {
+        setLoadingSupervisors(true);
+        
+        const { data, error } = await supabase
+          .from('team_members')
+          .select('id, name, position')
+          .order('name');
+        
+        if (error) {
+          console.error("Error fetching supervisors:", error);
+          throw error;
+        }
+        
+        console.log("Fetched potential supervisors:", data);
+        setSupervisors(data || []);
+      } catch (error: any) {
+        console.error("Error fetching supervisors:", error);
+        toast.error(`Failed to load supervisors: ${error.message}`);
+      } finally {
+        setLoadingSupervisors(false);
+      }
+    };
+
+    fetchSupervisors();
+  }, []);
+
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="email">Email *</Label>
+        <Label htmlFor="email" className="flex items-center">
+          <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+          Email *
+        </Label>
         <Input
           id="email"
           type="email"
@@ -66,7 +106,10 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="firstName">First Name *</Label>
+        <Label htmlFor="firstName" className="flex items-center">
+          <User className="h-4 w-4 mr-2 text-muted-foreground" />
+          First Name *
+        </Label>
         <Input
           id="firstName"
           type="text"
@@ -78,7 +121,10 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="lastName">Last Name *</Label>
+        <Label htmlFor="lastName" className="flex items-center">
+          <User className="h-4 w-4 mr-2 text-muted-foreground" />
+          Last Name *
+        </Label>
         <Input
           id="lastName"
           type="text"
@@ -90,7 +136,21 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="position">Position *</Label>
+        <Label htmlFor="phone" className="flex items-center">
+          <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+          Phone Number
+        </Label>
+        <Input
+          id="phone"
+          type="tel"
+          placeholder="+1 (555) 123-4567"
+          value={formData.phone || ""}
+          onChange={(e) => onChange("phone", e.target.value)}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="position" className="flex items-center">Position *</Label>
         <Input
           id="position"
           type="text"
@@ -117,6 +177,42 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
             <SelectItem value="super_admin">Super Admin</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="supervisor">Reports To</Label>
+        <Select 
+          value={formData.supervisorId || ""} 
+          onValueChange={(value) => onChange("supervisorId", value)}
+        >
+          <SelectTrigger id="supervisor" disabled={loadingSupervisors}>
+            <SelectValue placeholder="Select supervisor" />
+          </SelectTrigger>
+          <SelectContent position="popper" className="max-h-[200px]">
+            {loadingSupervisors ? (
+              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                <Loader2 className="mx-auto h-4 w-4 animate-spin mb-2" />
+                Loading supervisors...
+              </div>
+            ) : supervisors.length > 0 ? (
+              supervisors.map((supervisor) => (
+                <SelectItem key={supervisor.id} value={supervisor.id}>
+                  {supervisor.name} - {supervisor.position}
+                </SelectItem>
+              ))
+            ) : (
+              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                No supervisors found
+              </div>
+            )}
+          </SelectContent>
+        </Select>
+        {loadingSupervisors && (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+            Loading supervisors...
+          </div>
+        )}
       </div>
       
       <div className="space-y-2">

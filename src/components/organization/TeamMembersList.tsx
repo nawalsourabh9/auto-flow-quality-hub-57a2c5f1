@@ -1,8 +1,8 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash, UserPlus, Search, X } from "lucide-react";
+import { Edit, Trash, UserPlus, Search, Phone, Mail, User } from "lucide-react";
 import { 
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { TeamMember } from "@/types/task";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define props for TeamMembersList component
 interface TeamMembersListProps {
@@ -45,13 +46,41 @@ export function TeamMembersList({
   const [memberToEdit, setMemberToEdit] = useState<TeamMember | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [supervisors, setSupervisors] = useState<TeamMember[]>([]);
+  const [loadingSupervisors, setLoadingSupervisors] = useState(false);
   const [newMember, setNewMember] = useState<Omit<TeamMember, "id">>({
     name: "",
     email: "",
     position: "",
     department: departmentId,
-    initials: ""
+    initials: "",
+    phone: "",
+    supervisorId: null
   });
+
+  // Fetch potential supervisors
+  useEffect(() => {
+    const fetchSupervisors = async () => {
+      try {
+        setLoadingSupervisors(true);
+        
+        // In a real implementation, this would fetch from the database
+        // For now, using the existing team members as potential supervisors
+        setSupervisors(teamMembers);
+      } catch (error: any) {
+        console.error("Error fetching supervisors:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load supervisors",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingSupervisors(false);
+      }
+    };
+
+    fetchSupervisors();
+  }, [teamMembers]);
 
   // Generate initials from name
   const generateInitials = (name: string) => {
@@ -61,6 +90,13 @@ export function TeamMembersList({
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Find supervisor name by ID
+  const getSupervisorName = (supervisorId: number | null): string => {
+    if (!supervisorId) return "None";
+    const supervisor = teamMembers.find(member => member.id === supervisorId);
+    return supervisor ? supervisor.name : "Unknown";
   };
 
   // Handle adding a new team member
@@ -87,7 +123,9 @@ export function TeamMembersList({
       email: "",
       position: "",
       department: departmentId,
-      initials: ""
+      initials: "",
+      phone: "",
+      supervisorId: null
     });
     
     toast({
@@ -128,7 +166,8 @@ export function TeamMembersList({
   const filteredMembers = teamMembers.filter(member => 
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.position.toLowerCase().includes(searchTerm.toLowerCase())
+    member.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (member.phone && member.phone.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -161,14 +200,16 @@ export function TeamMembersList({
             <tr className="excel-header border-b border-border text-left">
               <th className="px-4 py-2 font-medium">Name</th>
               <th className="px-4 py-2 font-medium">Email</th>
+              <th className="px-4 py-2 font-medium">Phone</th>
               <th className="px-4 py-2 font-medium">Position</th>
+              <th className="px-4 py-2 font-medium">Reports To</th>
               <th className="px-4 py-2 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredMembers.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-4 text-center text-muted-foreground">
+                <td colSpan={6} className="px-4 py-4 text-center text-muted-foreground">
                   No team members found. Add team members to this department.
                 </td>
               </tr>
@@ -182,7 +223,9 @@ export function TeamMembersList({
                     {member.name}
                   </td>
                   <td className="px-4 py-3">{member.email}</td>
+                  <td className="px-4 py-3">{member.phone || "-"}</td>
                   <td className="px-4 py-3">{member.position}</td>
+                  <td className="px-4 py-3">{getSupervisorName(member.supervisorId)}</td>
                   <td className="px-4 py-3">
                     <div className="flex space-x-1">
                       <Button 
@@ -225,7 +268,10 @@ export function TeamMembersList({
           <div className="space-y-4 py-2">
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <label htmlFor="name">Full Name</label>
+                <label htmlFor="name" className="flex items-center">
+                  <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Full Name
+                </label>
                 <Input
                   id="name"
                   placeholder="Enter full name"
@@ -235,13 +281,30 @@ export function TeamMembersList({
               </div>
               
               <div className="grid gap-2">
-                <label htmlFor="email">Email</label>
+                <label htmlFor="email" className="flex items-center">
+                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Email
+                </label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="Enter email address"
                   value={newMember.email}
                   onChange={(e) => setNewMember({...newMember, email: e.target.value})}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <label htmlFor="phone" className="flex items-center">
+                  <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Phone Number
+                </label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter phone number"
+                  value={newMember.phone || ""}
+                  onChange={(e) => setNewMember({...newMember, phone: e.target.value})}
                 />
               </div>
               
@@ -253,6 +316,29 @@ export function TeamMembersList({
                   value={newMember.position}
                   onChange={(e) => setNewMember({...newMember, position: e.target.value})}
                 />
+              </div>
+              
+              <div className="grid gap-2">
+                <label htmlFor="supervisor">Reports To</label>
+                <Select
+                  value={newMember.supervisorId?.toString() || ""}
+                  onValueChange={(value) => setNewMember({
+                    ...newMember, 
+                    supervisorId: value ? parseInt(value) : null
+                  })}
+                >
+                  <SelectTrigger id="supervisor">
+                    <SelectValue placeholder="Select supervisor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {supervisors.map(supervisor => (
+                      <SelectItem key={supervisor.id} value={supervisor.id.toString()}>
+                        {supervisor.name} - {supervisor.position}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -274,7 +360,10 @@ export function TeamMembersList({
           <div className="space-y-4 py-2">
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <label htmlFor="editName">Full Name</label>
+                <label htmlFor="editName" className="flex items-center">
+                  <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Full Name
+                </label>
                 <Input
                   id="editName"
                   placeholder="Enter full name"
@@ -284,13 +373,30 @@ export function TeamMembersList({
               </div>
               
               <div className="grid gap-2">
-                <label htmlFor="editEmail">Email</label>
+                <label htmlFor="editEmail" className="flex items-center">
+                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Email
+                </label>
                 <Input
                   id="editEmail"
                   type="email"
                   placeholder="Enter email address"
                   value={memberToEdit?.email || ""}
                   onChange={(e) => memberToEdit && setMemberToEdit({...memberToEdit, email: e.target.value})}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <label htmlFor="editPhone" className="flex items-center">
+                  <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Phone Number
+                </label>
+                <Input
+                  id="editPhone"
+                  type="tel"
+                  placeholder="Enter phone number"
+                  value={memberToEdit?.phone || ""}
+                  onChange={(e) => memberToEdit && setMemberToEdit({...memberToEdit, phone: e.target.value})}
                 />
               </div>
               
@@ -302,6 +408,32 @@ export function TeamMembersList({
                   value={memberToEdit?.position || ""}
                   onChange={(e) => memberToEdit && setMemberToEdit({...memberToEdit, position: e.target.value})}
                 />
+              </div>
+              
+              <div className="grid gap-2">
+                <label htmlFor="editSupervisor">Reports To</label>
+                <Select
+                  value={memberToEdit?.supervisorId?.toString() || ""}
+                  onValueChange={(value) => memberToEdit && setMemberToEdit({
+                    ...memberToEdit, 
+                    supervisorId: value ? parseInt(value) : null
+                  })}
+                >
+                  <SelectTrigger id="editSupervisor">
+                    <SelectValue placeholder="Select supervisor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {supervisors
+                      .filter(supervisor => supervisor.id !== memberToEdit?.id) // Can't report to yourself
+                      .map(supervisor => (
+                        <SelectItem key={supervisor.id} value={supervisor.id.toString()}>
+                          {supervisor.name} - {supervisor.position}
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

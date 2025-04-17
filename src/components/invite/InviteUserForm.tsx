@@ -15,6 +15,8 @@ export interface InviteFormData {
   position: string;
   role: string;
   departmentId: string;
+  phone?: string;
+  supervisorId?: string;
 }
 
 export function InviteUserForm() {
@@ -25,6 +27,8 @@ export function InviteUserForm() {
     position: "",
     role: "user",
     departmentId: "",
+    phone: "",
+    supervisorId: "",
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -47,6 +51,8 @@ export function InviteUserForm() {
         position: formData.position,
         role: formData.role,
         departmentId: formData.departmentId || null,
+        phone: formData.phone || null,
+        supervisorId: formData.supervisorId || null
       });
       
       const response = await supabase.functions.invoke("send-invitation", {
@@ -57,6 +63,8 @@ export function InviteUserForm() {
           position: formData.position,
           role: formData.role,
           departmentId: formData.departmentId || null,
+          phone: formData.phone || null,
+          supervisorId: formData.supervisorId || null
         },
       });
 
@@ -77,6 +85,8 @@ export function InviteUserForm() {
         position: "",
         role: "user",
         departmentId: "",
+        phone: "",
+        supervisorId: "",
       });
     } catch (error: any) {
       console.error("Error sending invitation:", error);

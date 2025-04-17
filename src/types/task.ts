@@ -1,4 +1,3 @@
-
 import { TaskDocument } from "@/types/document";
 
 export interface Task {
@@ -48,8 +47,9 @@ export interface TeamMember {
   email: string;
   position: string;
   department: number;
-  avatar?: string;
   initials: string;
+  phone?: string;
+  supervisorId?: number | null;
 }
 
 // Audit interface for audit management
