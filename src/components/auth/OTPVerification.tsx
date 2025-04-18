@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw, CircleCheck } from "lucide-react";
 
 interface OTPVerificationProps {
   email: string;
@@ -19,6 +19,8 @@ interface OTPVerificationProps {
 export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificationProps) => {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [verified, setVerified] = useState(false);
 
   const verifyOTP = async () => {
     if (otp.length !== 6) {
@@ -55,8 +57,14 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
         console.error("Error updating OTP verification status:", updateError);
       }
 
+      setVerified(true);
       toast.success("Email verified successfully");
-      onVerificationComplete();
+      
+      // Wait a moment to show the verified state before proceeding
+      setTimeout(() => {
+        onVerificationComplete();
+      }, 1500);
+      
     } catch (error) {
       console.error("Failed to verify OTP:", error);
       toast.error("Failed to verify code");
@@ -66,9 +74,10 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
   };
 
   const handleResendCode = async () => {
-    setLoading(true);
+    setResendLoading(true);
     try {
       const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      console.log("Resent OTP:", newOtp); // Debug log
       
       const { error: otpError } = await supabase.from('otp_codes').insert({
         email,
@@ -95,7 +104,7 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
       console.error("Error resending code:", error);
       toast.error("Failed to resend verification code");
     } finally {
-      setLoading(false);
+      setResendLoading(false);
     }
   };
 
@@ -107,6 +116,7 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
           value={otp} 
           onChange={(value) => setOtp(value)}
           maxLength={6}
+          disabled={verified}
           render={({ slots }) => (
             <InputOTPGroup className="gap-2">
               {slots.map((slot, i) => (
@@ -119,30 +129,54 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
           A 6-digit code has been sent to {email}
         </p>
       </div>
-      <Button
-        className="w-full"
-        onClick={verifyOTP}
-        disabled={otp.length !== 6 || loading}
-      >
-        {loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Verifying...
-          </>
-        ) : (
-          "Verify Code"
-        )}
-      </Button>
-      <div className="text-center">
-        <Button 
-          variant="link" 
-          onClick={handleResendCode}
-          disabled={loading}
-          className="text-sm"
+      
+      {verified ? (
+        <Button
+          className="w-full bg-green-600 hover:bg-green-700"
+          disabled
         >
-          Didn't receive a code? Resend
+          <CircleCheck className="mr-2 h-4 w-4" />
+          Email Verified
         </Button>
-      </div>
+      ) : (
+        <Button
+          className="w-full"
+          onClick={verifyOTP}
+          disabled={otp.length !== 6 || loading}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Verifying...
+            </>
+          ) : (
+            "Verify Code"
+          )}
+        </Button>
+      )}
+      
+      {!verified && (
+        <div className="text-center">
+          <Button 
+            variant="link" 
+            onClick={handleResendCode}
+            disabled={resendLoading || verified}
+            className="text-sm flex items-center justify-center mx-auto"
+          >
+            {resendLoading ? (
+              <>
+                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-3 w-3" />
+                Resend verification code
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

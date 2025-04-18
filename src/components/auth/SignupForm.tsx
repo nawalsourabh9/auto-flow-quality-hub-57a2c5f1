@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Loader2 } from "lucide-react";
+import { InfoIcon, Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { generateOTP } from "@/utils/auth-utils";
 
 interface SignupFormProps {
   onVerificationStart: () => void;
@@ -36,6 +35,8 @@ export const SignupForm = ({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
 
   const validatePassword = () => {
     if (password !== confirmPassword) {
@@ -50,13 +51,15 @@ export const SignupForm = ({
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validatePassword()) return;
+  const generateOTP = async () => {
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
 
     try {
-      setLoading(true);
-      const otp = generateOTP();
+      setOtpSending(true);
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
       console.log("Generated OTP:", otp); // Debug log
       
       const { error: otpError } = await supabase.from('otp_codes').insert({
@@ -85,14 +88,23 @@ export const SignupForm = ({
         throw emailError;
       }
 
+      setOtpRequested(true);
       onVerificationStart();
       toast.success("Verification code sent to your email");
     } catch (error) {
-      console.error("Error during signup:", error);
+      console.error("Error during OTP generation:", error);
       toast.error("Failed to send verification code");
     } finally {
-      setLoading(false);
+      setOtpSending(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validatePassword()) return;
+    
+    // We now have a separate button for OTP generation
+    generateOTP();
   };
 
   return (
@@ -165,14 +177,22 @@ export const SignupForm = ({
           </div>
         </div>
         <div className="mt-6 space-y-4">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? (
+          <Button 
+            type="button" 
+            className="w-full"
+            onClick={generateOTP}
+            disabled={otpSending || !email || firstName === "" || lastName === "" || password === "" || confirmPassword === ""}
+          >
+            {otpSending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Please wait
+                Sending code...
               </>
             ) : (
-              "Create account"
+              <>
+                <Mail className="mr-2 h-4 w-4" />
+                Generate Verification Code
+              </>
             )}
           </Button>
           <p className="text-center text-sm text-gray-500">
