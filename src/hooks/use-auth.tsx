@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -63,24 +62,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       
+      // First check account status
+      const { data: approvalData, error: approvalError } = await supabase
+        .from('account_approvals')
+        .select('status_code')
+        .eq('email', email)
+        .single();
+
+      if (approvalError && approvalError.code !== 'PGRST116') {
+        throw approvalError;
+      }
+
+      if (approvalData) {
+        if (approvalData.status_code === 'pending') {
+          throw new Error('Your account is still pending admin approval.');
+        } else if (approvalData.status_code === 'rejected') {
+          throw new Error('Your account request was rejected. Please contact support.');
+        } else if (approvalData.status_code === 'inactive') {
+          throw new Error('Your account has been deactivated. Please contact support.');
+        }
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
-      
-      // After successful sign in, check if user is approved
-      const { approved, message } = await checkUserApprovalStatus();
-      if (!approved) {
-        // Sign out the user if not approved
-        await supabase.auth.signOut();
-        toast.error(message);
-        throw new Error(message);
-      }
     } catch (error: any) {
       setError(error.message);
-      toast.error(`Login failed: ${error.message}`);
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }

@@ -18,6 +18,7 @@ export type Database = {
           last_name: string | null
           notes: string | null
           status: string
+          status_code: string
           updated_at: string | null
           user_id: string
         }
@@ -29,6 +30,7 @@ export type Database = {
           last_name?: string | null
           notes?: string | null
           status?: string
+          status_code?: string
           updated_at?: string | null
           user_id: string
         }
@@ -40,6 +42,7 @@ export type Database = {
           last_name?: string | null
           notes?: string | null
           status?: string
+          status_code?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -484,6 +487,33 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      otp_codes: {
+        Row: {
+          code: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          verified: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          verified?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          verified?: boolean
         }
         Relationships: []
       }

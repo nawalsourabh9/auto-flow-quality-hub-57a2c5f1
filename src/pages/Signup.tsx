@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,12 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import { OTPVerification } from "@/components/auth/OTPVerification";
+import { supabase } from "@/integrations/supabase/client";
+
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -18,15 +23,10 @@ const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
-  const { signUp, loading, user } = useAuth();
+  const { signUp, loading } = useAuth();
   const navigate = useNavigate();
-
-  // Redirect if already logged in
-  if (user) {
-    navigate("/", { replace: true });
-    return null;
-  }
 
   const validatePassword = () => {
     if (password !== confirmPassword) {
@@ -41,29 +41,50 @@ const Signup = () => {
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleInitialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validatePassword()) return;
 
+    try {
+      const otp = generateOTP();
+      const { error: otpError } = await supabase.from('otp_codes').insert({
+        email,
+        code: otp
+      });
+
+      if (otpError) throw otpError;
+
+      const { error: emailError } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: email,
+          subject: "Verify your email",
+          body: `Your verification code is: ${otp}`,
+          isHtml: false
+        }
+      });
+
+      if (emailError) throw emailError;
+
+      setShowOTPVerification(true);
+      toast.success("Verification code sent to your email");
+    } catch (error) {
+      console.error("Error during signup:", error);
+      toast.error("Failed to send verification code");
+    }
+  };
+
+  const handleVerificationComplete = async () => {
     try {
       await signUp(email, password, {
         first_name: firstName,
         last_name: lastName
       });
       
-      console.log("Signup successful, account approval pending");
-      
-      // Show success message
       setSignupComplete(true);
-      
-      // Clear the form
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
-      setFirstName("");
-      setLastName("");
+      toast.success("Account created successfully! Waiting for admin approval.");
     } catch (error) {
-      console.error("Signup error:", error);
+      console.error("Error completing signup:", error);
+      toast.error("Failed to complete signup");
     }
   };
 
@@ -71,11 +92,15 @@ const Signup = () => {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-gray-900">
       <Card className="mx-auto w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">{signupComplete ? "Registration Complete" : "Create an account"}</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            {signupComplete ? "Registration Complete" : "Create an account"}
+          </CardTitle>
           <CardDescription>
             {signupComplete 
               ? "Your account is pending approval" 
-              : "Enter your details to create your account"}
+              : showOTPVerification 
+                ? "Verify your email"
+                : "Enter your details to create your account"}
           </CardDescription>
         </CardHeader>
         
@@ -98,8 +123,15 @@ const Signup = () => {
               </Button>
             </div>
           </CardContent>
+        ) : showOTPVerification ? (
+          <CardContent>
+            <OTPVerification
+              email={email}
+              onVerificationComplete={handleVerificationComplete}
+            />
+          </CardContent>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleInitialSubmit}>
             <CardContent className="space-y-4">
               <Alert className="bg-blue-50 border-blue-200">
                 <InfoIcon className="h-4 w-4 text-blue-700" />
