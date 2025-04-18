@@ -255,7 +255,7 @@ export const SignupForm = ({
                   render={({ slots }) => (
                     <InputOTPGroup className="gap-2">
                       {slots.map((slot, i) => (
-                        <InputOTPSlot key={i} {...slot} index={i} />
+                        <InputOTPSlot key={i} {...slot} />
                       ))}
                     </InputOTPGroup>
                   )}
