@@ -8,6 +8,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 interface SignupFormProps {
   onVerificationStart: () => void;
@@ -35,7 +40,10 @@ export const SignupForm = ({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [otpSending, setOtpSending] = useState(false);
-  const [otpGenerated, setOtpGenerated] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [latestOtp, setLatestOtp] = useState<string | null>(null);
+  const [showOtpInput, setShowOtpInput] = useState(false);
 
   const validatePassword = () => {
     if (password !== confirmPassword) {
@@ -51,8 +59,12 @@ export const SignupForm = ({
   };
 
   const generateOTPCode = async () => {
-    if (!email) {
-      toast.error("Please enter your email address");
+    if (!email || !firstName || !lastName || !password || !confirmPassword) {
+      toast.error("Please fill in all fields before generating OTP");
+      return;
+    }
+
+    if (!validatePassword()) {
       return;
     }
 
@@ -82,19 +94,64 @@ export const SignupForm = ({
 
         if (emailError) throw emailError;
         toast.success("Verification code sent to your email");
-        setOtpGenerated(true);
+        setLatestOtp(otp);
+        setShowOtpInput(true);
       } catch (emailError) {
         console.error("Email sending failed:", emailError);
         toast.warning(
           "Could not send email, but you can use this test code: " + otp
         );
-        setOtpGenerated(true);
+        setLatestOtp(otp);
+        setShowOtpInput(true);
       }
     } catch (error) {
       console.error("Error during OTP generation:", error);
       toast.error("Failed to generate verification code");
     } finally {
       setOtpSending(false);
+    }
+  };
+
+  const verifyOTP = async () => {
+    if (otpValue.length !== 6) {
+      toast.error("Please enter a complete 6-digit code");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('otp_codes')
+        .select('*')
+        .eq('email', email)
+        .eq('code', otpValue)
+        .gt('expires_at', new Date().toISOString())
+        .eq('verified', false)
+        .single();
+
+      if (error || !data) {
+        toast.error("Invalid or expired verification code");
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('otp_codes')
+        .update({ verified: true })
+        .eq('id', data.id);
+
+      if (updateError) throw updateError;
+
+      setIsOtpVerified(true);
+      toast.success("Email verified successfully");
+    } catch (error) {
+      console.error("OTP verification failed:", error);
+      toast.error("Failed to verify code");
+    }
+  };
+
+  // Auto-fill OTP for testing
+  const autoFillOtp = () => {
+    if (latestOtp) {
+      setOtpValue(latestOtp);
     }
   };
 
@@ -121,95 +178,119 @@ export const SignupForm = ({
               required
             />
           </div>
-          
-          {/* OTP Generation Button */}
-          <Button 
-            type="button" 
-            className="w-full"
-            onClick={generateOTPCode}
-            disabled={otpSending || !email || otpGenerated}
-          >
-            {otpSending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending code...
-              </>
-            ) : otpGenerated ? (
-              <>
-                <Mail className="mr-2 h-4 w-4" />
-                OTP Sent
-              </>
-            ) : (
-              <>
-                <Mail className="mr-2 h-4 w-4" />
-                Generate OTP Code
-              </>
-            )}
-          </Button>
 
-          {otpGenerated && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First name</Label>
-                  <Input
-                    id="firstName"
-                    placeholder="John"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last name</Label>
-                  <Input
-                    id="lastName"
-                    placeholder="Doe"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-                {passwordError && (
-                  <p className="text-sm text-red-500">{passwordError}</p>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-        
-        {otpGenerated && (
-          <div className="mt-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First name</Label>
+              <Input
+                id="firstName"
+                placeholder="John"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last name</Label>
+              <Input
+                id="lastName"
+                placeholder="Doe"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+            {passwordError && (
+              <p className="text-sm text-red-500">{passwordError}</p>
+            )}
+          </div>
+
+          {!showOtpInput ? (
             <Button 
               type="button" 
               className="w-full"
-              onClick={onVerificationStart}
-              disabled={!email || firstName === "" || lastName === "" || password === "" || confirmPassword === ""}
+              onClick={generateOTPCode}
+              disabled={otpSending || !email || !firstName || !lastName || !password || !confirmPassword}
             >
-              Verify OTP & Continue
+              {otpSending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending code...
+                </>
+              ) : (
+                <>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Generate OTP Code
+                </>
+              )}
             </Button>
-          </div>
-        )}
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Enter verification code</Label>
+                <InputOTP
+                  value={otpValue}
+                  onChange={setOtpValue}
+                  maxLength={6}
+                  render={({ slots }) => (
+                    <InputOTPGroup className="gap-2">
+                      {slots.map((slot, i) => (
+                        <InputOTPSlot key={i} {...slot} />
+                      ))}
+                    </InputOTPGroup>
+                  )}
+                />
+                {latestOtp && (
+                  <p className="text-xs text-blue-500 mt-1 cursor-pointer" onClick={autoFillOtp}>
+                    (Testing: Click to auto-fill latest OTP)
+                  </p>
+                )}
+              </div>
+
+              <Button 
+                type="button"
+                className="w-full"
+                onClick={verifyOTP}
+                disabled={otpValue.length !== 6}
+              >
+                Verify OTP
+              </Button>
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-6">
+          <Button 
+            type="button" 
+            className="w-full"
+            onClick={onVerificationStart}
+            disabled={!isOtpVerified}
+          >
+            Create Account
+          </Button>
+        </div>
 
         <p className="text-center text-sm text-gray-500 mt-4">
           Already have an account?{" "}
@@ -224,3 +305,4 @@ export const SignupForm = ({
     </>
   );
 };
+
