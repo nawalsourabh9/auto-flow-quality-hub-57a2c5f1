@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -164,18 +165,6 @@ export const SignupForm = ({
       
       <form onSubmit={(e) => e.preventDefault()}>
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">First name</Label>
@@ -197,6 +186,18 @@ export const SignupForm = ({
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
 
           <div className="space-y-2">
@@ -227,19 +228,19 @@ export const SignupForm = ({
           {!showOtpInput ? (
             <Button 
               type="button" 
-              className="w-full"
+              className="w-auto px-4"
               onClick={generateOTPCode}
               disabled={otpSending || !email || !firstName || !lastName || !password || !confirmPassword}
             >
               {otpSending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending code...
+                  Sending
                 </>
               ) : (
                 <>
                   <Mail className="mr-2 h-4 w-4" />
-                  Generate OTP Code
+                  Generate OTP
                 </>
               )}
             </Button>
@@ -291,3 +292,4 @@ export const SignupForm = ({
     </>
   );
 };
+
