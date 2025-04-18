@@ -3,10 +3,9 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus } from "lucide-react";
+import { Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { EmployeeList } from "./components/EmployeeList";
-import { AddEmployeeDialog } from "./components/AddEmployeeDialog";
 import { EditEmployeeDialog } from "./components/EditEmployeeDialog";
 import { DeleteEmployeeDialog } from "./components/DeleteEmployeeDialog";
 import { Employee } from "./types";
@@ -30,7 +29,6 @@ const initialEmployees: Employee[] = [
 
 const Users = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -78,24 +76,6 @@ const Users = () => {
     }
   }, [employees]);
   
-  const handleAddEmployee = (data: Omit<Employee, "id">) => {
-    // Find the highest ID and increment by 1 for new employee
-    const highestId = employees.reduce((max, emp) => (emp.id > max ? emp.id : max), 0);
-    const newEmployee: Employee = {
-      id: highestId + 1,
-      ...data
-    };
-    
-    const updatedEmployees = [...employees, newEmployee];
-    setEmployees(updatedEmployees);
-    setIsAddDialogOpen(false);
-    
-    toast({
-      title: "Employee Added",
-      description: "The employee has been successfully added to the system."
-    });
-  };
-
   const handleEditEmployee = (data: Omit<Employee, "id">) => {
     if (!editingEmployee) return;
     
@@ -159,14 +139,6 @@ const Users = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button 
-              size="sm" 
-              className="bg-primary hover:bg-primary/90"
-              onClick={() => setIsAddDialogOpen(true)}
-            >
-              <UserPlus className="h-4 w-4 mr-1" />
-              Add Employee
-            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -178,13 +150,6 @@ const Users = () => {
           />
         </CardContent>
       </Card>
-
-      <AddEmployeeDialog 
-        isOpen={isAddDialogOpen} 
-        setIsOpen={setIsAddDialogOpen}
-        onSubmit={handleAddEmployee}
-        employees={employees}
-      />
 
       <EditEmployeeDialog 
         isOpen={isEditDialogOpen} 
