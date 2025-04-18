@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { CircleCheck, Loader2, RefreshCw } from "lucide-react";
+import { CircleCheck, Loader2 } from "lucide-react";
 
 interface VerificationActionsProps {
   verified: boolean;
@@ -14,9 +14,7 @@ interface VerificationActionsProps {
 export const VerificationActions = ({
   verified,
   loading,
-  resendLoading,
   onVerify,
-  onResend,
   otpLength
 }: VerificationActionsProps) => {
   return (
@@ -24,6 +22,7 @@ export const VerificationActions = ({
       {verified ? (
         <Button
           className="w-full bg-green-600 hover:bg-green-700"
+          size="sm"
           disabled
         >
           <CircleCheck className="mr-2 h-4 w-4" />
@@ -32,6 +31,7 @@ export const VerificationActions = ({
       ) : (
         <Button
           className="w-full"
+          size="sm"
           onClick={onVerify}
           disabled={otpLength !== 6 || loading}
         >
@@ -44,29 +44,6 @@ export const VerificationActions = ({
             "Verify Code"
           )}
         </Button>
-      )}
-      
-      {!verified && (
-        <div className="text-center">
-          <Button 
-            variant="link" 
-            onClick={onResend}
-            disabled={resendLoading || verified}
-            className="text-sm flex items-center justify-center mx-auto"
-          >
-            {resendLoading ? (
-              <>
-                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-3 w-3" />
-                Resend verification code
-              </>
-            )}
-          </Button>
-        </div>
       )}
     </>
   );

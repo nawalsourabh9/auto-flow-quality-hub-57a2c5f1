@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -123,6 +124,7 @@ export const SignupForm = ({
       return;
     }
 
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('otp_codes')
@@ -145,11 +147,14 @@ export const SignupForm = ({
 
       if (updateError) throw updateError;
 
+      setVerified(true);
       toast.success("Email verified successfully");
       onVerificationStart();
     } catch (error) {
       console.error("OTP verification failed:", error);
       toast.error("Failed to verify code");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -209,13 +214,15 @@ export const SignupForm = ({
             onResend={generateOTPCode}
           />
 
-          <PasswordSection
-            password={password}
-            confirmPassword={confirmPassword}
-            passwordError={passwordError}
-            onPasswordChange={(e) => setPassword(e.target.value)}
-            onConfirmPasswordChange={(e) => setConfirmPassword(e.target.value)}
-          />
+          {!showOtpInput && (
+            <PasswordSection
+              password={password}
+              confirmPassword={confirmPassword}
+              passwordError={passwordError}
+              onPasswordChange={(e) => setPassword(e.target.value)}
+              onConfirmPasswordChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          )}
 
           {!showOtpInput && (
             <Button type="submit" className="w-full">

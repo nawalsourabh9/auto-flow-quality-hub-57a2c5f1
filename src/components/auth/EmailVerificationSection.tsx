@@ -51,11 +51,10 @@ export const EmailVerificationSection = ({
         />
         {!showOtpInput ? (
           <Button 
-            type="button"
+            type="submit"
             variant="outline"
             className="whitespace-nowrap px-4"
             disabled={otpSending || !email}
-            onClick={onGenerateOTP}
           >
             {otpSending ? (
               <>
@@ -74,7 +73,7 @@ export const EmailVerificationSection = ({
             type="button"
             variant="outline"
             className="whitespace-nowrap px-4"
-            onClick={onGenerateOTP}
+            onClick={onResend}
             disabled={countdown > 0 || otpSending}
           >
             {otpSending ? (
