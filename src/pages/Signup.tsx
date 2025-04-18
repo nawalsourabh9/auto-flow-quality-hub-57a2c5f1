@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -16,11 +16,24 @@ const Signup = () => {
   const [signupComplete, setSignupComplete] = useState(false);
   const { signUp } = useAuth();
 
+  // For debugging - will log state changes
+  useEffect(() => {
+    console.log("Signup state:", {
+      showOTPVerification,
+      signupComplete,
+      email,
+      firstName,
+      lastName
+    });
+  }, [showOTPVerification, signupComplete, email, firstName, lastName]);
+
   const handleVerificationStart = () => {
+    console.log("Starting OTP verification for email:", email);
     setShowOTPVerification(true);
   };
 
   const handleVerificationComplete = async () => {
+    console.log("OTP verification completed. Creating account for:", email);
     try {
       await signUp(email, password, {
         first_name: firstName,

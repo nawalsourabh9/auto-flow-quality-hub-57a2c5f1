@@ -21,6 +21,8 @@ export const sendEmail = async ({
   replyTo
 }: SendEmailParams) => {
   try {
+    console.log("Sending email to:", to);
+    
     const { data, error } = await supabase.functions.invoke("send-email", {
       body: {
         to,
@@ -38,9 +40,11 @@ export const sendEmail = async ({
       throw new Error(`Failed to send email: ${error.message}`);
     }
 
+    console.log("Email sent successfully:", data);
     return data;
   } catch (error) {
     console.error("Email service error:", error);
+    // Re-throw the error for the caller to handle
     throw error;
   }
 };

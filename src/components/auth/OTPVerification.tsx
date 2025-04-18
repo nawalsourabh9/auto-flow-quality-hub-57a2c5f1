@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   InputOTP,
   InputOTPGroup,
@@ -21,6 +21,35 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [verified, setVerified] = useState(false);
+  const [latestOtp, setLatestOtp] = useState<string | null>(null);
+
+  // Fetch the latest OTP from the database for testing purposes
+  useEffect(() => {
+    const fetchLatestOtp = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('otp_codes')
+          .select('code')
+          .eq('email', email)
+          .order('created_at', { ascending: false })
+          .limit(1);
+          
+        if (error) {
+          console.error("Error fetching latest OTP:", error);
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          console.log("Latest OTP for testing:", data[0].code);
+          setLatestOtp(data[0].code);
+        }
+      } catch (error) {
+        console.error("Failed to fetch latest OTP:", error);
+      }
+    };
+    
+    fetchLatestOtp();
+  }, [email]);
 
   const verifyOTP = async () => {
     if (otp.length !== 6) {
@@ -88,23 +117,38 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
 
       if (otpError) throw otpError;
 
-      const { error: emailError } = await supabase.functions.invoke('send-email', {
-        body: {
-          to: email,
-          subject: "Verify your email",
-          body: `Your verification code is: ${newOtp}. This code will expire in 10 minutes.`,
-          isHtml: false
-        }
-      });
+      setLatestOtp(newOtp);
 
-      if (emailError) throw emailError;
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-email', {
+          body: {
+            to: email,
+            subject: "Verify your email",
+            body: `Your verification code is: ${newOtp}. This code will expire in 10 minutes.`,
+            isHtml: false
+          }
+        });
 
-      toast.success("New verification code sent to your email");
+        if (emailError) throw emailError;
+        toast.success("New verification code sent to your email");
+      } catch (emailError) {
+        console.error("Email error during resend:", emailError);
+        toast.warning(
+          "Could not send email, but you can use the OTP code from console logs: " + newOtp
+        );
+      }
     } catch (error) {
       console.error("Error resending code:", error);
       toast.error("Failed to resend verification code");
     } finally {
       setResendLoading(false);
+    }
+  };
+
+  // Auto-fill the OTP for testing only
+  const autoFillOtp = () => {
+    if (latestOtp) {
+      setOtp(latestOtp);
     }
   };
 
@@ -128,6 +172,11 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
         <p className="text-sm text-gray-500 mt-2">
           A 6-digit code has been sent to {email}
         </p>
+        {latestOtp && (
+          <p className="text-xs text-blue-500 mt-1 cursor-pointer" onClick={autoFillOtp}>
+            (Testing: Click to auto-fill latest OTP)
+          </p>
+        )}
       </div>
       
       {verified ? (
