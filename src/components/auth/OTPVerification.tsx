@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   InputOTP,
@@ -23,7 +22,6 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
   const [verified, setVerified] = useState(false);
   const [latestOtp, setLatestOtp] = useState<string | null>(null);
 
-  // Fetch the latest OTP from the database for testing purposes
   useEffect(() => {
     const fetchLatestOtp = async () => {
       try {
@@ -145,7 +143,6 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
     }
   };
 
-  // Auto-fill the OTP for testing only
   const autoFillOtp = () => {
     if (latestOtp) {
       setOtp(latestOtp);
@@ -164,7 +161,7 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
           render={({ slots }) => (
             <InputOTPGroup className="gap-2">
               {slots.map((slot, i) => (
-                <InputOTPSlot key={i} index={i} {...slot} />
+                <InputOTPSlot key={i} {...slot} index={i} />
               ))}
             </InputOTPGroup>
           )}
