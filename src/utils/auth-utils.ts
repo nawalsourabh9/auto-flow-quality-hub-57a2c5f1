@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ApprovalRecord } from '@/types/auth';
 import { toast } from "sonner";
@@ -92,3 +91,7 @@ export async function handleUserApproval(userId: string, approved: boolean) {
 
   toast.success(`User ${action} successfully`);
 }
+
+export const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 import { OTPVerification } from "@/components/auth/OTPVerification";
 import { supabase } from "@/integrations/supabase/client";
-
-const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
+import { generateOTP } from "@/utils/auth-utils";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -49,7 +47,9 @@ const Signup = () => {
       const otp = generateOTP();
       const { error: otpError } = await supabase.from('otp_codes').insert({
         email,
-        code: otp
+        code: otp,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes expiry
+        verified: false
       });
 
       if (otpError) throw otpError;
@@ -58,7 +58,7 @@ const Signup = () => {
         body: {
           to: email,
           subject: "Verify your email",
-          body: `Your verification code is: ${otp}`,
+          body: `Your verification code is: ${otp}. This code will expire in 10 minutes.`,
           isHtml: false
         }
       });
