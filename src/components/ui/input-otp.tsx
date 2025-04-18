@@ -1,6 +1,6 @@
 
 import * as React from "react"
-import { OTPInput, OTPInputContext } from "input-otp"
+import { OTPInput, OTPInputContext, SlotProps } from "input-otp"
 import { Dot } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -29,40 +29,30 @@ const InputOTPGroup = React.forwardRef<
 ))
 InputOTPGroup.displayName = "InputOTPGroup"
 
+// Using SlotProps directly from input-otp package for proper typing
 const InputOTPSlot = React.forwardRef<
-  React.ElementRef<"div">,
-  React.ComponentPropsWithoutRef<"div"> & { index: number }
->(({ index, className, ...props }, ref) => {
-  const inputOTPContext = React.useContext(OTPInputContext)
-  const slots = inputOTPContext?.slots || []
-  const slot = index < slots.length ? slots[index] : null
-  
-  // Safely extract values
-  const char = slot?.char || ''
-  const hasFakeCaret = slot?.hasFakeCaret || false
-  const isActive = slot?.isActive || false
-
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "relative flex h-10 w-10 items-center justify-center border-y border-r border-input text-sm transition-all first:rounded-l-md first:border-l last:rounded-r-md",
-        isActive && "z-10 ring-2 ring-ring ring-offset-background",
-        className
-      )}
-      data-active={isActive ? true : undefined}
-      data-fake-caret={hasFakeCaret ? true : undefined}
-      {...props}
-    >
-      <span className="font-medium text-lg">{char}</span>
-      {hasFakeCaret && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />
-        </div>
-      )}
-    </div>
-  )
-})
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<"div"> & SlotProps
+>(({ char, hasFakeCaret, isActive, className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "relative flex h-10 w-10 items-center justify-center border-y border-r border-input text-sm transition-all first:rounded-l-md first:border-l last:rounded-r-md",
+      isActive && "z-10 ring-2 ring-ring ring-offset-background",
+      className
+    )}
+    data-active={isActive ? "true" : undefined}
+    data-fake-caret={hasFakeCaret ? "true" : undefined}
+    {...props}
+  >
+    <span className="font-medium text-lg">{char}</span>
+    {hasFakeCaret && (
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />
+      </div>
+    )}
+  </div>
+))
 InputOTPSlot.displayName = "InputOTPSlot"
 
 const InputOTPSeparator = React.forwardRef<

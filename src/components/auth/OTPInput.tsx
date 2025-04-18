@@ -33,8 +33,7 @@ export const OTPInput = ({
               <InputOTPSlot 
                 key={i} 
                 {...slot} 
-                index={i} 
-                className="h-12 w-12 rounded-md border border-input bg-background text-lg"
+                className="h-12 w-12 rounded-md border border-input bg-background text-xl font-bold"
               />
             ))}
           </InputOTPGroup>
