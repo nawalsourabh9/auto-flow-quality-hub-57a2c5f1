@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Loader2, Mail } from "lucide-react";
+import { InfoIcon, Loader2, Mail, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -58,12 +57,8 @@ export const SignupForm = ({
   };
 
   const generateOTPCode = async () => {
-    if (!email || !firstName || !lastName || !password || !confirmPassword) {
-      toast.error("Please fill in all fields before generating OTP");
-      return;
-    }
-
-    if (!validatePassword()) {
+    if (!email) {
+      toast.error("Please enter your email address");
       return;
     }
 
@@ -153,6 +148,20 @@ export const SignupForm = ({
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !firstName || !lastName || !password || !confirmPassword) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (!validatePassword()) {
+      return;
+    }
+
+    generateOTPCode();
+  };
+
   return (
     <>
       <Alert className="bg-blue-50 border-blue-200 mb-4">
@@ -163,7 +172,7 @@ export const SignupForm = ({
         </AlertDescription>
       </Alert>
       
-      <form onSubmit={(e) => e.preventDefault()}>
+      <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -190,15 +199,59 @@ export const SignupForm = ({
 
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div className="flex gap-2">
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <Button 
+                type="button"
+                variant="outline"
+                className="w-auto"
+                onClick={generateOTPCode}
+                disabled={otpSending || !email}
+              >
+                {otpSending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Get OTP
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
+
+          {showOtpInput && (
+            <div className="space-y-2">
+              <Label>Enter verification code</Label>
+              <InputOTP
+                value={otpValue}
+                onChange={setOtpValue}
+                maxLength={6}
+                render={({ slots }) => (
+                  <InputOTPGroup className="gap-2">
+                    {slots.map((slot, i) => (
+                      <InputOTPSlot key={i} {...slot} />
+                    ))}
+                  </InputOTPGroup>
+                )}
+              />
+              {latestOtp && (
+                <p className="text-xs text-blue-500 mt-1 cursor-pointer" onClick={autoFillOtp}>
+                  (Testing: Click to auto-fill latest OTP)
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
@@ -225,58 +278,14 @@ export const SignupForm = ({
             )}
           </div>
 
-          {!showOtpInput ? (
-            <Button 
-              type="button" 
-              className="w-auto px-4"
-              onClick={generateOTPCode}
-              disabled={otpSending || !email || !firstName || !lastName || !password || !confirmPassword}
-            >
-              {otpSending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending
-                </>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Generate OTP
-                </>
-              )}
-            </Button>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Enter verification code</Label>
-                <InputOTP
-                  value={otpValue}
-                  onChange={setOtpValue}
-                  maxLength={6}
-                  render={({ slots }) => (
-                    <InputOTPGroup className="gap-2">
-                      {slots.map((slot, i) => (
-                        <InputOTPSlot key={i} {...slot} />
-                      ))}
-                    </InputOTPGroup>
-                  )}
-                />
-                {latestOtp && (
-                  <p className="text-xs text-blue-500 mt-1 cursor-pointer" onClick={autoFillOtp}>
-                    (Testing: Click to auto-fill latest OTP)
-                  </p>
-                )}
-              </div>
-
-              <Button 
-                type="button"
-                className="w-full"
-                onClick={verifyOTP}
-                disabled={otpValue.length !== 6}
-              >
-                Verify OTP
-              </Button>
-            </div>
-          )}
+          <Button 
+            type="submit"
+            className="w-full"
+            disabled={otpSending || !email || !firstName || !lastName || !password || !confirmPassword}
+          >
+            <Send className="mr-2 h-4 w-4" />
+            Submit
+          </Button>
         </div>
         
         <p className="text-center text-sm text-gray-500 mt-4">
@@ -292,4 +301,3 @@ export const SignupForm = ({
     </>
   );
 };
-
