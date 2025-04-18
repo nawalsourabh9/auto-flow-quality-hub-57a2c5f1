@@ -34,17 +34,13 @@ const InputOTPSlot = React.forwardRef<
   React.ComponentPropsWithoutRef<"div"> & { index: number }
 >(({ index, className, ...props }, ref) => {
   const inputOTPContext = React.useContext(OTPInputContext)
+  const slots = inputOTPContext?.slots || []
+  const slot = index < slots.length ? slots[index] : null
   
-  // Check if inputOTPContext and slots exist before accessing
-  const slots = inputOTPContext?.slots || [];
-  
-  // Only access slots[index] if slots array exists and has enough elements
-  const slot = slots.length > index ? slots[index] : null;
-  
-  // Safely extract values with fallbacks for each property
-  const char = slot?.char || '';
-  const hasFakeCaret = slot?.hasFakeCaret || false;
-  const isActive = slot?.isActive || false;
+  // Safely extract values
+  const char = slot?.char || ''
+  const hasFakeCaret = slot?.hasFakeCaret || false
+  const isActive = slot?.isActive || false
 
   return (
     <div
