@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Loader2, Mail, Send } from "lucide-react";
+import { InfoIcon, Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -42,6 +42,17 @@ export const SignupForm = ({
   const [otpValue, setOtpValue] = useState("");
   const [latestOtp, setLatestOtp] = useState<string | null>(null);
   const [showOtpInput, setShowOtpInput] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [countdown]);
 
   const validatePassword = () => {
     if (password !== confirmPassword) {
@@ -90,6 +101,7 @@ export const SignupForm = ({
         toast.success("Verification code sent to your email");
         setLatestOtp(otp);
         setShowOtpInput(true);
+        setCountdown(30); // Start 30 second countdown
       } catch (emailError) {
         console.error("Email sending failed:", emailError);
         toast.warning(
@@ -97,6 +109,7 @@ export const SignupForm = ({
         );
         setLatestOtp(otp);
         setShowOtpInput(true);
+        setCountdown(30); // Start 30 second countdown even in test mode
       }
     } catch (error) {
       console.error("Error during OTP generation:", error);
@@ -208,25 +221,45 @@ export const SignupForm = ({
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
-              <Button 
-                type="button"
-                variant="outline"
-                className="w-auto"
-                onClick={generateOTPCode}
-                disabled={otpSending || !email}
-              >
-                {otpSending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending
-                  </>
-                ) : (
-                  <>
-                    <Mail className="mr-2 h-4 w-4" />
-                    Get OTP
-                  </>
-                )}
-              </Button>
+              {!showOtpInput ? (
+                <Button 
+                  type="submit"
+                  variant="outline"
+                  className="whitespace-nowrap px-4"
+                  disabled={otpSending || !email}
+                >
+                  {otpSending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Get OTP
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button 
+                  type="button"
+                  variant="outline"
+                  className="whitespace-nowrap px-4"
+                  onClick={generateOTPCode}
+                  disabled={countdown > 0 || otpSending}
+                >
+                  {otpSending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending
+                    </>
+                  ) : countdown > 0 ? (
+                    `Resend in ${countdown}s`
+                  ) : (
+                    'Resend OTP'
+                  )}
+                </Button>
+              )}
             </div>
           </div>
 
@@ -250,6 +283,14 @@ export const SignupForm = ({
                   (Testing: Click to auto-fill latest OTP)
                 </p>
               )}
+              <Button 
+                type="button"
+                className="w-full mt-2"
+                onClick={verifyOTP}
+                disabled={otpValue.length !== 6}
+              >
+                Verify Code
+              </Button>
             </div>
           )}
 
@@ -277,15 +318,6 @@ export const SignupForm = ({
               <p className="text-sm text-red-500">{passwordError}</p>
             )}
           </div>
-
-          <Button 
-            type="submit"
-            className="w-full"
-            disabled={otpSending || !email || !firstName || !lastName || !password || !confirmPassword}
-          >
-            <Send className="mr-2 h-4 w-4" />
-            Submit
-          </Button>
         </div>
         
         <p className="text-center text-sm text-gray-500 mt-4">

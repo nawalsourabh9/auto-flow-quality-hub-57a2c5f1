@@ -17,7 +17,7 @@ serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
-      status: 204, // Use 204 for successful OPTIONS responses
+      status: 204,
       headers: corsHeaders 
     });
   }
@@ -32,13 +32,7 @@ serve(async (req) => {
 
     if (!username || !password) {
       console.error("Missing email credentials");
-      return new Response(
-        JSON.stringify({ error: "Email configuration is incomplete" }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        }
-      );
+      throw new Error("Email configuration is incomplete");
     }
 
     // Configure SMTP client for Outlook
@@ -74,7 +68,7 @@ serve(async (req) => {
       JSON.stringify({ success: true, message: "Email sent successfully" }),
       {
         status: 200,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   } catch (error) {
@@ -84,7 +78,7 @@ serve(async (req) => {
       JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
