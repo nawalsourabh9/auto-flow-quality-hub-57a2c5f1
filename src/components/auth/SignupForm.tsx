@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -148,7 +147,6 @@ export const SignupForm = ({
     }
   };
 
-  // Auto-fill OTP for testing
   const autoFillOtp = () => {
     if (latestOtp) {
       setOtpValue(latestOtp);
@@ -257,7 +255,7 @@ export const SignupForm = ({
                   render={({ slots }) => (
                     <InputOTPGroup className="gap-2">
                       {slots.map((slot, i) => (
-                        <InputOTPSlot key={i} {...slot} />
+                        <InputOTPSlot key={i} {...slot} index={i} />
                       ))}
                     </InputOTPGroup>
                   )}
@@ -305,4 +303,3 @@ export const SignupForm = ({
     </>
   );
 };
-
