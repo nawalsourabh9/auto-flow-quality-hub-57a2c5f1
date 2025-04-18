@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { OTPVerification } from "@/components/auth/OTPVerification";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { SignupComplete } from "@/components/auth/SignupComplete";
 
@@ -12,25 +11,18 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
   const { signUp } = useAuth();
 
   // For debugging - will log state changes
   useEffect(() => {
     console.log("Signup state:", {
-      showOTPVerification,
       signupComplete,
       email,
       firstName,
       lastName
     });
-  }, [showOTPVerification, signupComplete, email, firstName, lastName]);
-
-  const handleVerificationStart = () => {
-    console.log("Starting OTP verification for email:", email);
-    setShowOTPVerification(true);
-  };
+  }, [signupComplete, email, firstName, lastName]);
 
   const handleVerificationComplete = async () => {
     console.log("OTP verification completed. Creating account for:", email);
@@ -53,27 +45,20 @@ const Signup = () => {
       <Card className="mx-auto w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">
-            {signupComplete ? "Registration Complete" : (showOTPVerification ? "Verify Your Email" : "Create an account")}
+            {signupComplete ? "Registration Complete" : "Create an account"}
           </CardTitle>
           <CardDescription>
             {signupComplete 
               ? "Your account is pending approval" 
-              : showOTPVerification 
-                ? "Enter the verification code sent to your email"
-                : "Enter your details to create your account"}
+              : "Enter your details to create your account"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {signupComplete ? (
             <SignupComplete />
-          ) : showOTPVerification ? (
-            <OTPVerification
-              email={email}
-              onVerificationComplete={handleVerificationComplete}
-            />
           ) : (
             <SignupForm
-              onVerificationStart={handleVerificationStart}
+              onVerificationStart={handleVerificationComplete}
               email={email}
               setEmail={setEmail}
               firstName={firstName}

@@ -40,7 +40,6 @@ export const SignupForm = ({
   const [passwordError, setPasswordError] = useState("");
   const [otpSending, setOtpSending] = useState(false);
   const [otpValue, setOtpValue] = useState("");
-  const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [latestOtp, setLatestOtp] = useState<string | null>(null);
   const [showOtpInput, setShowOtpInput] = useState(false);
 
@@ -139,7 +138,6 @@ export const SignupForm = ({
 
       if (updateError) throw updateError;
 
-      setIsOtpVerified(true);
       toast.success("Email verified successfully");
       onVerificationStart();
     } catch (error) {
