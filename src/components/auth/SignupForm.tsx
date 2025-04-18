@@ -57,6 +57,8 @@ export const SignupForm = ({
     try {
       setLoading(true);
       const otp = generateOTP();
+      console.log("Generated OTP:", otp); // Debug log
+      
       const { error: otpError } = await supabase.from('otp_codes').insert({
         email,
         code: otp,
@@ -64,7 +66,10 @@ export const SignupForm = ({
         verified: false
       });
 
-      if (otpError) throw otpError;
+      if (otpError) {
+        console.error("OTP error:", otpError);
+        throw otpError;
+      }
 
       const { error: emailError } = await supabase.functions.invoke('send-email', {
         body: {
@@ -75,7 +80,10 @@ export const SignupForm = ({
         }
       });
 
-      if (emailError) throw emailError;
+      if (emailError) {
+        console.error("Email error:", emailError);
+        throw emailError;
+      }
 
       onVerificationStart();
       toast.success("Verification code sent to your email");
@@ -89,7 +97,7 @@ export const SignupForm = ({
 
   return (
     <>
-      <Alert className="bg-blue-50 border-blue-200">
+      <Alert className="bg-blue-50 border-blue-200 mb-4">
         <InfoIcon className="h-4 w-4 text-blue-700" />
         <AlertDescription className="text-blue-700">
           New accounts require administrator approval before they can be used. 

@@ -16,6 +16,10 @@ const Signup = () => {
   const [signupComplete, setSignupComplete] = useState(false);
   const { signUp } = useAuth();
 
+  const handleVerificationStart = () => {
+    setShowOTPVerification(true);
+  };
+
   const handleVerificationComplete = async () => {
     try {
       await signUp(email, password, {
@@ -36,13 +40,13 @@ const Signup = () => {
       <Card className="mx-auto w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">
-            {signupComplete ? "Registration Complete" : "Create an account"}
+            {signupComplete ? "Registration Complete" : (showOTPVerification ? "Verify Your Email" : "Create an account")}
           </CardTitle>
           <CardDescription>
             {signupComplete 
               ? "Your account is pending approval" 
               : showOTPVerification 
-                ? "Verify your email"
+                ? "Enter the verification code sent to your email"
                 : "Enter your details to create your account"}
           </CardDescription>
         </CardHeader>
@@ -56,7 +60,7 @@ const Signup = () => {
             />
           ) : (
             <SignupForm
-              onVerificationStart={() => setShowOTPVerification(true)}
+              onVerificationStart={handleVerificationStart}
               email={email}
               setEmail={setEmail}
               firstName={firstName}
