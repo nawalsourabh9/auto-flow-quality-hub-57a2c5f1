@@ -1,17 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Loader2, Mail } from "lucide-react";
+import { InfoIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { NameFields } from "./NameFields";
+import { EmailVerificationSection } from "./EmailVerificationSection";
+import { PasswordSection } from "./PasswordSection";
 
 interface SignupFormProps {
   onVerificationStart: () => void;
@@ -43,6 +39,8 @@ export const SignupForm = ({
   const [latestOtp, setLatestOtp] = useState<string | null>(null);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [verified, setVerified] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -187,137 +185,43 @@ export const SignupForm = ({
       
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First name</Label>
-              <Input
-                id="firstName"
-                placeholder="John"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last name</Label>
-              <Input
-                id="lastName"
-                placeholder="Doe"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                required
-              />
-            </div>
-          </div>
+          <NameFields
+            firstName={firstName}
+            lastName={lastName}
+            onFirstNameChange={(e) => setFirstName(e.target.value)}
+            onLastNameChange={(e) => setLastName(e.target.value)}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <div className="flex gap-2">
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              {!showOtpInput ? (
-                <Button 
-                  type="submit"
-                  variant="outline"
-                  className="whitespace-nowrap px-4"
-                  disabled={otpSending || !email}
-                >
-                  {otpSending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="mr-2 h-4 w-4" />
-                      Get OTP
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button 
-                  type="button"
-                  variant="outline"
-                  className="whitespace-nowrap px-4"
-                  onClick={generateOTPCode}
-                  disabled={countdown > 0 || otpSending}
-                >
-                  {otpSending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending
-                    </>
-                  ) : countdown > 0 ? (
-                    `Resend in ${countdown}s`
-                  ) : (
-                    'Resend OTP'
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
+          <EmailVerificationSection
+            email={email}
+            otpSending={otpSending}
+            showOtpInput={showOtpInput}
+            countdown={countdown}
+            otpValue={otpValue}
+            latestOtp={latestOtp}
+            verified={verified}
+            loading={loading}
+            onEmailChange={(e) => setEmail(e.target.value)}
+            onGenerateOTP={generateOTPCode}
+            onOtpChange={setOtpValue}
+            onAutoFill={autoFillOtp}
+            onVerify={verifyOTP}
+            onResend={generateOTPCode}
+          />
 
-          {showOtpInput && (
-            <div className="space-y-2">
-              <Label>Enter verification code</Label>
-              <InputOTP
-                value={otpValue}
-                onChange={setOtpValue}
-                maxLength={6}
-                render={({ slots }) => (
-                  <InputOTPGroup className="gap-2">
-                    {slots.map((slot, i) => (
-                      <InputOTPSlot key={i} {...slot} />
-                    ))}
-                  </InputOTPGroup>
-                )}
-              />
-              {latestOtp && (
-                <p className="text-xs text-blue-500 mt-1 cursor-pointer" onClick={autoFillOtp}>
-                  (Testing: Click to auto-fill latest OTP)
-                </p>
-              )}
-              <Button 
-                type="button"
-                className="w-full mt-2"
-                onClick={verifyOTP}
-                disabled={otpValue.length !== 6}
-              >
-                Verify Code
-              </Button>
-            </div>
+          <PasswordSection
+            password={password}
+            confirmPassword={confirmPassword}
+            passwordError={passwordError}
+            onPasswordChange={(e) => setPassword(e.target.value)}
+            onConfirmPasswordChange={(e) => setConfirmPassword(e.target.value)}
+          />
+
+          {!showOtpInput && (
+            <Button type="submit" className="w-full">
+              Submit
+            </Button>
           )}
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-            {passwordError && (
-              <p className="text-sm text-red-500">{passwordError}</p>
-            )}
-          </div>
         </div>
         
         <p className="text-center text-sm text-gray-500 mt-4">
