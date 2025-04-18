@@ -141,6 +141,7 @@ export const SignupForm = ({
 
       setIsOtpVerified(true);
       toast.success("Email verified successfully");
+      onVerificationStart();
     } catch (error) {
       console.error("OTP verification failed:", error);
       toast.error("Failed to verify code");
@@ -279,17 +280,6 @@ export const SignupForm = ({
           )}
         </div>
         
-        <div className="mt-6">
-          <Button 
-            type="button" 
-            className="w-full"
-            onClick={onVerificationStart}
-            disabled={!isOtpVerified}
-          >
-            Create Account
-          </Button>
-        </div>
-
         <p className="text-center text-sm text-gray-500 mt-4">
           Already have an account?{" "}
           <Link
