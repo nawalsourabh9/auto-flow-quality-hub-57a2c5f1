@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { SMTPClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
-import { Canvas, FontStyle } from "https://deno.land/x/pdfkit@v1.0.0/mod.ts";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import { createPdf } from "https://deno.land/x/pdfme@0.1.3/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,35 +57,39 @@ async function generateDashboardReportPDF(recipient: string): Promise<Uint8Array
     day: 'numeric'
   });
 
-  // Create a new PDF document
-  const pdfDoc = new Canvas({
-    margins: { top: 50, bottom: 50, left: 50, right: 50 },
-    size: [612, 792] // US Letter size
+  // Create a new PDF document using the pdfme library
+  const pdf = await createPdf();
+  
+  // Add metadata
+  pdf.addMetadata({
+    title: "E-QMS Daily Dashboard Report",
+    author: "E-QMS System",
+    subject: `Report generated on ${reportDate}`
   });
 
-  // Add metadata
-  pdfDoc.info.title = "E-QMS Daily Dashboard Report";
-  pdfDoc.info.author = "E-QMS System";
-  pdfDoc.info.subject = `Report generated on ${reportDate}`;
-
   // Add header
-  pdfDoc.font('Helvetica-Bold');
-  pdfDoc.fontSize(18);
-  pdfDoc.text("E-QMS Daily Dashboard Report", { align: 'center' });
-  pdfDoc.moveDown();
+  pdf.addPage();
+  pdf.addText("E-QMS Daily Dashboard Report", {
+    x: 50,
+    y: 50,
+    size: 18,
+    font: "helvetica-bold"
+  });
   
-  pdfDoc.fontSize(12);
-  pdfDoc.text(`Generated on ${reportDate}`, { align: 'center' });
-  pdfDoc.moveDown(2);
+  pdf.addText(`Generated on ${reportDate}`, {
+    x: 50,
+    y: 70,
+    size: 12,
+    font: "helvetica"
+  });
 
   // Add Quality Metrics section
-  pdfDoc.fontSize(14);
-  pdfDoc.font('Helvetica-Bold');
-  pdfDoc.text("Quality Metrics Summary");
-  pdfDoc.moveDown();
-  
-  pdfDoc.fontSize(12);
-  pdfDoc.font('Helvetica');
+  pdf.addText("Quality Metrics Summary", {
+    x: 50,
+    y: 100,
+    size: 14,
+    font: "helvetica-bold"
+  });
   
   // Create a table-like structure for metrics
   const metrics = [
@@ -95,22 +99,26 @@ async function generateDashboardReportPDF(recipient: string): Promise<Uint8Array
     { name: "KPI Achievement", value: "92% (Target: 95%)" }
   ];
   
+  let yPos = 120;
   metrics.forEach(metric => {
-    pdfDoc.text(`${metric.name}: ${metric.value}`);
-    pdfDoc.moveDown(0.5);
+    pdf.addText(`${metric.name}: ${metric.value}`, {
+      x: 50,
+      y: yPos,
+      size: 12,
+      font: "helvetica"
+    });
+    yPos += 20;
   });
   
-  pdfDoc.moveDown();
-  
   // Add Document Status section
-  pdfDoc.fontSize(14);
-  pdfDoc.font('Helvetica-Bold');
-  pdfDoc.text("Document Status");
-  pdfDoc.moveDown();
+  pdf.addText("Document Status", {
+    x: 50,
+    y: yPos + 10,
+    size: 14,
+    font: "helvetica-bold"
+  });
   
-  pdfDoc.fontSize(12);
-  pdfDoc.font('Helvetica');
-  
+  yPos += 30;
   const documents = [
     { type: "Procedures", status: "20 of 24 approved (83%)" },
     { type: "Work Instructions", status: "36 of 42 approved (86%)" },
@@ -118,21 +126,24 @@ async function generateDashboardReportPDF(recipient: string): Promise<Uint8Array
   ];
   
   documents.forEach(doc => {
-    pdfDoc.text(`${doc.type}: ${doc.status}`);
-    pdfDoc.moveDown(0.5);
+    pdf.addText(`${doc.type}: ${doc.status}`, {
+      x: 50,
+      y: yPos,
+      size: 12,
+      font: "helvetica"
+    });
+    yPos += 20;
   });
   
-  pdfDoc.moveDown();
-  
   // Add Task Summary section
-  pdfDoc.fontSize(14);
-  pdfDoc.font('Helvetica-Bold');
-  pdfDoc.text("Task Summary");
-  pdfDoc.moveDown();
+  pdf.addText("Task Summary", {
+    x: 50,
+    y: yPos + 10,
+    size: 14,
+    font: "helvetica-bold"
+  });
   
-  pdfDoc.fontSize(12);
-  pdfDoc.font('Helvetica');
-  
+  yPos += 30;
   const tasks = [
     { name: "Tasks Due Soon", value: "8 (3 overdue)" },
     { name: "High Priority Tasks", value: "2" },
@@ -140,21 +151,24 @@ async function generateDashboardReportPDF(recipient: string): Promise<Uint8Array
   ];
   
   tasks.forEach(task => {
-    pdfDoc.text(`${task.name}: ${task.value}`);
-    pdfDoc.moveDown(0.5);
+    pdf.addText(`${task.name}: ${task.value}`, {
+      x: 50,
+      y: yPos,
+      size: 12,
+      font: "helvetica"
+    });
+    yPos += 20;
   });
   
-  pdfDoc.moveDown();
-  
   // Add Upcoming Audits section
-  pdfDoc.fontSize(14);
-  pdfDoc.font('Helvetica-Bold');
-  pdfDoc.text("Upcoming Audits");
-  pdfDoc.moveDown();
+  pdf.addText("Upcoming Audits", {
+    x: 50,
+    y: yPos + 10,
+    size: 14,
+    font: "helvetica-bold"
+  });
   
-  pdfDoc.fontSize(12);
-  pdfDoc.font('Helvetica');
-  
+  yPos += 30;
   const audits = [
     { name: "ISO 9001:2015 Internal Audit", date: "April 20, 2025" },
     { name: "Supplier Quality Assessment", date: "April 15, 2025" },
@@ -162,21 +176,32 @@ async function generateDashboardReportPDF(recipient: string): Promise<Uint8Array
   ];
   
   audits.forEach(audit => {
-    pdfDoc.text(`${audit.name}: ${audit.date}`);
-    pdfDoc.moveDown(0.5);
+    pdf.addText(`${audit.name}: ${audit.date}`, {
+      x: 50,
+      y: yPos,
+      size: 12,
+      font: "helvetica"
+    });
+    yPos += 20;
   });
   
-  pdfDoc.moveDown(2);
-  
   // Add footer
-  pdfDoc.fontSize(10);
-  pdfDoc.font('Helvetica-Italic');
-  pdfDoc.text("This is an automated report from your E-QMS platform. Please do not reply to this email.", { align: 'center' });
-  pdfDoc.moveDown(0.5);
-  pdfDoc.text("To access detailed reports and analytics, log in to the E-QMS Dashboard.", { align: 'center' });
+  pdf.addText("This is an automated report from your E-QMS platform. Please do not reply to this email.", {
+    x: 50,
+    y: 700,
+    size: 10,
+    font: "helvetica-italic"
+  });
   
-  // Finalize PDF
-  return pdfDoc.end();
+  pdf.addText("To access detailed reports and analytics, log in to the E-QMS Dashboard.", {
+    x: 50,
+    y: 720,
+    size: 10,
+    font: "helvetica-italic"
+  });
+  
+  // Finalize PDF and return as buffer
+  return pdf.save();
 }
 
 // Main function handler
@@ -243,7 +268,7 @@ serve(async (req) => {
     }
 
     // Configure SMTP client for Outlook
-    const client = new SMTPClient({
+    const client = new SmtpClient({
       connection: {
         hostname: "smtp.office365.com",
         port: 587,
