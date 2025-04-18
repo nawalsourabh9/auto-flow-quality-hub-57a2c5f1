@@ -39,8 +39,8 @@ const InputOTPSlot = React.forwardRef<
   
   // Safely extract values
   const char = slot?.char || ''
-  const hasFakeCaret = !!slot?.hasFakeCaret
-  const isActive = !!slot?.isActive
+  const hasFakeCaret = slot?.hasFakeCaret || false
+  const isActive = slot?.isActive || false
 
   return (
     <div
@@ -50,11 +50,11 @@ const InputOTPSlot = React.forwardRef<
         isActive && "z-10 ring-2 ring-ring ring-offset-background",
         className
       )}
-      data-active={isActive || undefined}
-      data-fake-caret={hasFakeCaret || undefined}
+      data-active={isActive ? true : undefined}
+      data-fake-caret={hasFakeCaret ? true : undefined}
       {...props}
     >
-      <span className="font-medium text-base">{char}</span>
+      <span className="font-medium text-lg">{char}</span>
       {hasFakeCaret && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />

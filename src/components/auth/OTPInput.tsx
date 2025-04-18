@@ -28,9 +28,14 @@ export const OTPInput = ({
         maxLength={6}
         disabled={disabled}
         render={({ slots }) => (
-          <InputOTPGroup className="gap-2">
+          <InputOTPGroup className="gap-2 mx-auto w-fit">
             {slots.map((slot, i) => (
-              <InputOTPSlot key={i} {...slot} index={i} />
+              <InputOTPSlot 
+                key={i} 
+                {...slot} 
+                index={i} 
+                className="h-12 w-12 rounded-md border border-input bg-background text-lg"
+              />
             ))}
           </InputOTPGroup>
         )}
