@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { SMTPClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,7 +43,7 @@ serve(async (req) => {
     }
 
     // Configure SMTP client for Outlook
-    const client = new SMTPClient({
+    const client = new SmtpClient({
       connection: {
         hostname: "smtp.office365.com",
         port: 587,
