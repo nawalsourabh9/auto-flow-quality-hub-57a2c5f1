@@ -1,11 +1,10 @@
-
 import { CheckCircle2, AlertTriangle, ClipboardList, FileCheck, Gauge, BarChart2, CalendarCheck, UserCheck } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import TaskList from "@/components/dashboard/TaskList";
 import { QualityMetricsChart } from "@/components/dashboard/QualityMetricsChart";
 import { DocumentsStatus } from "@/components/dashboard/DocumentsStatus";
 import { NotificationDemo } from "@/components/notifications/NotificationDemo";
-import { DashboardReportActions } from "@/components/dashboard/DashboardReportActions";
+// Removed DashboardReportActions import
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -174,7 +173,7 @@ const Index = () => {
         <div className="md:col-span-2">
           <div className="space-y-6">
             <DocumentsStatus />
-            <DashboardReportActions />
+            {/* Removed DashboardReportActions component */}
           </div>
         </div>
       </div>
