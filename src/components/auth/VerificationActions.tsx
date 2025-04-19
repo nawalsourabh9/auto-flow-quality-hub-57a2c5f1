@@ -28,11 +28,11 @@ export const VerificationActions = ({
           disabled
         >
           <CircleCheck className="mr-2 h-4 w-4" />
-          Email Verified
+          Verified
         </Button>
       ) : (
         <Button
-          className="w-full"
+          className="w-auto px-3"  // Made the button narrower
           size="sm"
           onClick={onVerify}
           disabled={otpLength !== 6 || loading}
@@ -40,13 +40,14 @@ export const VerificationActions = ({
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Verifying...
+              Verifying
             </>
           ) : (
-            "Verify Code"
+            "Verify"  // Shortened text
           )}
         </Button>
       )}
     </>
   );
 };
+

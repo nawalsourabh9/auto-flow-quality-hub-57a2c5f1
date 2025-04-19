@@ -92,26 +92,31 @@ export const EmailVerificationSection = ({
       </div>
 
       {showOtpInput && (
-        <div className="space-y-4">
-          <OTPInput
-            value={otpValue}
-            onChange={onOtpChange}
-            latestOtp={latestOtp}
-            onAutoFill={onAutoFill}
-            email={email}
-            disabled={verified}
-          />
+        <div className="flex items-center space-x-2">
+          <div className="flex-grow">
+            <OTPInput
+              value={otpValue}
+              onChange={onOtpChange}
+              latestOtp={latestOtp}
+              onAutoFill={onAutoFill}
+              email={email}
+              disabled={verified}
+            />
+          </div>
           
-          <VerificationActions
-            verified={verified}
-            loading={loading}
-            resendLoading={otpSending}
-            onVerify={onVerify}
-            onResend={onResend}
-            otpLength={otpValue.length}
-          />
+          <div className="w-auto">
+            <VerificationActions
+              verified={verified}
+              loading={loading}
+              resendLoading={otpSending}
+              onVerify={onVerify}
+              onResend={onResend}
+              otpLength={otpValue.length}
+            />
+          </div>
         </div>
       )}
     </div>
   );
 };
+
