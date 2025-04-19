@@ -1,10 +1,6 @@
 
-import { Resend } from 'resend';
+import { supabase } from '@/integrations/supabase/client';
 import { getOTPEmailTemplate } from './emailTemplates';
-
-// Create Resend instance with fallback for missing API key
-const API_KEY = import.meta.env.VITE_RESEND_API_KEY || 'dummy_key_for_dev';
-const resend = new Resend(API_KEY);
 
 interface SendEmailParams {
   to: string | string[];
@@ -22,9 +18,9 @@ export const sendEmail = async ({
   try {
     console.log("Sending email to:", to);
     
-    // Check if we're using a dummy key and simulate success
-    if (API_KEY === 'dummy_key_for_dev') {
-      console.warn("⚠️ Using dummy API key for Resend - emails won't actually be sent");
+    // If we're in development, simulate sending
+    if (import.meta.env.DEV) {
+      console.warn("⚠️ Development mode - emails won't actually be sent");
       console.log("Email content:", { to, subject, body: body.substring(0, 100) + '...' });
       
       // Return a mock successful response
@@ -36,16 +32,20 @@ export const sendEmail = async ({
       };
     }
     
-    // Proceed with actual email sending if API key exists
-    const emailResponse = await resend.emails.send({
-      from: "Lovable <onboarding@resend.dev>",
-      to: Array.isArray(to) ? to : [to],
-      subject,
-      html: isHtml ? body : `<p>${body}</p>`,
+    // Send email using edge function
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: {
+        to,
+        subject,
+        body,
+        isHtml
+      }
     });
 
-    console.log("Email sent successfully:", emailResponse);
-    return emailResponse;
+    if (error) throw error;
+    
+    console.log("Email sent successfully:", data);
+    return data;
   } catch (error) {
     console.error("Email service error:", error);
     throw error;
@@ -53,15 +53,39 @@ export const sendEmail = async ({
 };
 
 export const sendOTPEmail = async (to: string, otp: string) => {
-  const htmlContent = getOTPEmailTemplate({ 
-    otp, 
-    expiryMinutes: 10 
-  });
-  
-  return sendEmail({
-    to,
-    subject: "Your Verification Code",
-    body: htmlContent,
-    isHtml: true
-  });
+  try {
+    console.log(`Sending OTP email to ${to} with code ${otp}`);
+    
+    // If we're in development, we'll use the local template
+    if (import.meta.env.DEV) {
+      const htmlContent = getOTPEmailTemplate({ 
+        otp, 
+        expiryMinutes: 10 
+      });
+      
+      return sendEmail({
+        to,
+        subject: "Your Verification Code",
+        body: htmlContent,
+        isHtml: true
+      });
+    }
+    
+    // Send OTP email using edge function
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: {
+        type: 'otp',
+        to,
+        otp
+      }
+    });
+
+    if (error) throw error;
+    
+    console.log("OTP email sent successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("OTP email service error:", error);
+    throw error;
+  }
 };
