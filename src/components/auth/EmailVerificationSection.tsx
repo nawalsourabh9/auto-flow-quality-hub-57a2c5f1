@@ -93,7 +93,7 @@ export const EmailVerificationSection = ({
 
       {showOtpInput && (
         <div className="flex items-center space-x-2">
-          <div className="flex-grow">
+          <div className="flex-grow flex space-between" style={{gap: '12px'}}>
             <OTPInput
               value={otpValue}
               onChange={onOtpChange}
@@ -102,9 +102,6 @@ export const EmailVerificationSection = ({
               email={email}
               disabled={verified}
             />
-          </div>
-          
-          <div className="w-auto self-end">
             <VerificationActions
               verified={verified}
               loading={loading}
@@ -119,3 +116,4 @@ export const EmailVerificationSection = ({
     </div>
   );
 };
+
