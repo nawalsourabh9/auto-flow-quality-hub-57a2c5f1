@@ -23,18 +23,20 @@ export const VerificationActions = ({
     <>
       {verified ? (
         <Button
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full bg-green-600 hover:bg-green-700 flex-grow"
           size="sm"
           disabled
+          style={{marginTop: '30px'}}
         >
           <CircleCheck className="mr-2 h-4 w-4" />
           Verified
         </Button>
       ) : (
         <Button
-          className="w-auto px-3"  // Made the button narrower
+          className="w-auto px-3 flex-grow"   // Made the button narrower
           size="sm"
           onClick={onVerify}
+          style={{marginTop: '30px'}}
           disabled={otpLength !== 6 || loading}
         >
           {loading ? (
@@ -50,4 +52,3 @@ export const VerificationActions = ({
     </>
   );
 };
-
