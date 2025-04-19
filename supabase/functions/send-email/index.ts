@@ -63,17 +63,15 @@ serve(async (req) => {
       html: isHtml ? body : undefined,
     };
 
-    console.log("Sending email with the following configuration:", {
+    console.log("Sending email with configuration:", {
       from: username,
       to: emailContent.to,
       subject: emailContent.subject,
-      hasContent: !!emailContent.content,
-      hasHtml: !!emailContent.html
     });
 
     // Send email
     await client.send(emailContent);
-    console.log("Email sent via SMTP client");
+    console.log("Email sent successfully via SMTP client");
 
     await client.close();
     console.log("SMTP client connection closed");
@@ -86,10 +84,13 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("Detailed error sending email:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message || "Unknown error occurred", stack: error.stack }),
+      JSON.stringify({ 
+        error: error.message || "Unknown error occurred", 
+        stack: error.stack 
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -97,3 +98,4 @@ serve(async (req) => {
     );
   }
 });
+
