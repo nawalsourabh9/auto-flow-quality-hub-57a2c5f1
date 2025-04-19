@@ -214,19 +214,17 @@ export const SignupForm = ({
             onResend={generateOTPCode}
           />
 
-          {!showOtpInput && (
-            <PasswordSection
-              password={password}
-              confirmPassword={confirmPassword}
-              passwordError={passwordError}
-              onPasswordChange={(e) => setPassword(e.target.value)}
-              onConfirmPasswordChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          )}
+          <PasswordSection
+            password={password}
+            confirmPassword={confirmPassword}
+            passwordError={passwordError}
+            onPasswordChange={(e) => setPassword(e.target.value)}
+            onConfirmPasswordChange={(e) => setConfirmPassword(e.target.value)}
+          />
 
-          {!showOtpInput && (
-            <Button type="submit" className="w-full">
-              Submit
+          {!verified && (
+            <Button type="submit" className="w-full" disabled={showOtpInput && !verified}>
+              {showOtpInput ? "Complete Verification to Submit" : "Submit"}
             </Button>
           )}
         </div>
