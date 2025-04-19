@@ -5,23 +5,32 @@ import { getOTPEmailTemplate } from "./emailTemplates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
 
 // Configure SMTP client
 const getSmtpClient = async () => {
-  return new SMTPClient({
-    connection: {
-      hostname: "smtp.gmail.com",
-      port: 465,
-      tls: true,
-      auth: {
-        username: Deno.env.get("EMAIL_USERNAME") || "",
-        password: Deno.env.get("EMAIL_PASSWORD") || "",
-      },
-    },
-  });
+  try {
+    const client = new SMTPClient({
+      connection: {
+        hostname: "smtp.bdsmanufacturing.in",
+        port: 465,
+        tls: true,
+        auth: {
+          username: Deno.env.get("EMAIL_USERNAME") || "",
+          password: Deno.env.get("EMAIL_PASSWORD") || ""
+        }
+      }
+    });
+    
+    // Test connection to ensure it's working
+    await client.connect();
+    console.log("SMTP connection established successfully");
+    return client;
+  } catch (error) {
+    console.error("SMTP client initialization error:", error);
+    throw new Error(`Failed to initialize SMTP client: ${error.message}`);
+  }
 };
 
 interface SendEmailParams {
@@ -39,46 +48,44 @@ interface OTPEmailParams {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, {
+      headers: corsHeaders
+    });
   }
 
+  let client;
+  
   try {
     const requestData = await req.json();
     console.log("Email request received:", JSON.stringify(requestData, null, 2));
-
+    
     // Check if this is an OTP email request
     if (requestData.type === "otp") {
       const { to, otp }: OTPEmailParams = requestData;
       
-      const htmlContent = getOTPEmailTemplate({ 
-        otp, 
-        expiryMinutes: 10 
+      const htmlContent = getOTPEmailTemplate({
+        otp,
+        expiryMinutes: 10
       });
       
       console.log(`Sending OTP email to ${to} with code ${otp}`);
+      console.log("Using username:", Deno.env.get("EMAIL_USERNAME"));
       
-      // Use SMTP client
-      const client = await getSmtpClient();
+      // Initialize SMTP client
+      client = await getSmtpClient();
       
-      try {
-        const emailResponse = await client.send({
-          from: Deno.env.get("EMAIL_USERNAME") || "",
-          to: to,
-          subject: "Your Verification Code",
-          html: htmlContent,
-        });
-
-        await client.close();
-        
-        console.log("OTP email sent successfully:", emailResponse);
-        return new Response(JSON.stringify(emailResponse), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      } catch (error) {
-        await client.close();
-        throw error;
-      }
+      const emailResponse = await client.send({
+        from: Deno.env.get("EMAIL_USERNAME") || "",
+        to: to,
+        subject: "Your Verification Code",
+        html: htmlContent
+      });
+      
+      console.log("OTP email sent successfully:", emailResponse);
+      return new Response(JSON.stringify(emailResponse), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
     } 
     
     // Standard email request
@@ -86,36 +93,39 @@ serve(async (req) => {
     
     console.log(`Sending standard email to ${to}`);
     
-    // Use SMTP client
-    const client = await getSmtpClient();
+    // Initialize SMTP client
+    client = await getSmtpClient();
     
-    try {
-      const emailResponse = await client.send({
-        from: Deno.env.get("EMAIL_USERNAME") || "",
-        to: Array.isArray(to) ? to : [to],
-        subject,
-        html: isHtml ? body : `<p>${body}</p>`,
-      });
-
-      await client.close();
-      
-      console.log("Email sent successfully:", emailResponse);
-      return new Response(JSON.stringify(emailResponse), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      await client.close();
-      throw error;
-    }
+    const emailResponse = await client.send({
+      from: Deno.env.get("EMAIL_USERNAME") || "",
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html: isHtml ? body : `<p>${body}</p>`
+    });
+    
+    console.log("Email sent successfully:", emailResponse);
+    return new Response(JSON.stringify(emailResponse), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   } catch (error) {
     console.error("Error in send-email function:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({
+      error: "Failed to send email",
+      details: error.message
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  } finally {
+    // Close the SMTP client if it exists
+    if (client) {
+      try {
+        await client.close();
+        console.log("SMTP connection closed");
+      } catch (closeError) {
+        console.error("Error closing SMTP connection:", closeError);
       }
-    );
+    }
   }
 });
