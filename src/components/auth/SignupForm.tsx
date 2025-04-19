@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NameFields } from "./NameFields";
 import { EmailVerificationSection } from "./EmailVerificationSection";
 import { PasswordSection } from "./PasswordSection";
-import { sendEmail } from "@/services/emailService";
+import { sendEmail, sendOTPEmail } from "@/services/emailService";
 
 interface SignupFormProps {
   onVerificationStart: () => void;
