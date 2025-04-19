@@ -1,50 +1,35 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { Resend } from 'resend';
+
+const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY);
 
 interface SendEmailParams {
   to: string | string[];
   subject: string;
   body: string;
   isHtml?: boolean;
-  cc?: string | string[];
-  bcc?: string | string[];
-  replyTo?: string;
 }
 
 export const sendEmail = async ({
   to,
   subject,
   body,
-  isHtml = false,
-  cc,
-  bcc,
-  replyTo
+  isHtml = false
 }: SendEmailParams) => {
   try {
     console.log("Sending email to:", to);
     
-    const { data, error } = await supabase.functions.invoke("send-email", {
-      body: {
-        to,
-        subject,
-        body,
-        isHtml,
-        cc,
-        bcc,
-        replyTo
-      }
+    const emailResponse = await resend.emails.send({
+      from: "Lovable <onboarding@resend.dev>",
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html: isHtml ? body : `<p>${body}</p>`,
     });
 
-    if (error) {
-      console.error("Email sending error:", error);
-      throw new Error(`Failed to send email: ${error.message}`);
-    }
-
-    console.log("Email sent successfully:", data);
-    return data;
+    console.log("Email sent successfully:", emailResponse);
+    return emailResponse;
   } catch (error) {
     console.error("Email service error:", error);
-    // Re-throw the error for the caller to handle
     throw error;
   }
 };

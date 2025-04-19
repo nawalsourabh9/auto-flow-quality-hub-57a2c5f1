@@ -91,8 +91,7 @@ export const SignupForm = ({
         await sendEmail({
           to: email,
           subject: "Your OTP Code",
-          body: `Your verification code is: ${otp}. This code will expire in 10 minutes.`,
-          isHtml: false
+          body: `Your verification code is: ${otp}. This code will expire in 10 minutes.`
         });
         
         toast.success("Verification code sent to your email");
@@ -106,7 +105,7 @@ export const SignupForm = ({
         );
         setLatestOtp(otp);
         setShowOtpInput(true);
-        setCountdown(30); // Start 30 second countdown even in test mode
+        setCountdown(30);
       }
     } catch (error) {
       console.error("Error during OTP generation:", error);
