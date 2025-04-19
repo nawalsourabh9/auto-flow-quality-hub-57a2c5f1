@@ -14,7 +14,9 @@ interface VerificationActionsProps {
 export const VerificationActions = ({
   verified,
   loading,
+  resendLoading,
   onVerify,
+  onResend,
   otpLength
 }: VerificationActionsProps) => {
   return (
