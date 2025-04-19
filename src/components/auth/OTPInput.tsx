@@ -20,7 +20,7 @@ export const OTPInput = ({
   disabled 
 }: OTPInputProps) => {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" style={{flexBasis: '68%'}}>
       <Label>Enter verification code sent to your email</Label>
       <InputOTP 
         value={value} 
@@ -28,7 +28,7 @@ export const OTPInput = ({
         maxLength={6}
         disabled={disabled}
         render={({ slots }) => (
-          <InputOTPGroup className="gap-1 mx-auto w-fit">
+          <InputOTPGroup className="gap-1 w-fit">
             {slots.map((slot, i) => (
               <InputOTPSlot 
                 key={i} 
@@ -42,11 +42,7 @@ export const OTPInput = ({
       <p className="text-sm text-gray-500 mt-2">
         A 6-digit code has been sent to {email}
       </p>
-      {latestOtp && (
-        <p className="text-xs text-blue-500 mt-1 cursor-pointer" onClick={onAutoFill}>
-          (Testing: Click to auto-fill latest OTP)
-        </p>
-      )}
     </div>
   );
 };
+
