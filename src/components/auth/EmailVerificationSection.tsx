@@ -104,7 +104,7 @@ export const EmailVerificationSection = ({
             />
           </div>
           
-          <div className="w-auto">
+          <div className="w-auto self-end">
             <VerificationActions
               verified={verified}
               loading={loading}
