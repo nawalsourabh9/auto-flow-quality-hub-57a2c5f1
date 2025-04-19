@@ -23,8 +23,9 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Email function received request");
     const { to, subject, body, isHtml = false, cc, bcc, replyTo } = await req.json() as EmailRequest;
-    console.log(`Attempting to send email to: ${to}`);
+    console.log(`Attempting to send email to: ${to}, subject: ${subject}`);
 
     // Get credentials from environment variables
     const username = Deno.env.get("EMAIL_USERNAME");
@@ -34,6 +35,8 @@ serve(async (req) => {
       console.error("Missing email credentials");
       throw new Error("Email configuration is incomplete");
     }
+
+    console.log("Email credentials found, configuring SMTP client");
 
     // Configure SMTP client for Outlook
     const client = new SmtpClient({
@@ -48,8 +51,8 @@ serve(async (req) => {
       },
     });
 
-    // Send email
-    await client.send({
+    // Prepare email content
+    const emailContent = {
       from: username,
       to: typeof to === "string" ? to : to.join(","),
       cc: cc ? (typeof cc === "string" ? cc : cc.join(",")) : undefined,
@@ -58,11 +61,22 @@ serve(async (req) => {
       subject: subject,
       content: isHtml ? undefined : body,
       html: isHtml ? body : undefined,
+    };
+
+    console.log("Sending email with the following configuration:", {
+      from: username,
+      to: emailContent.to,
+      subject: emailContent.subject,
+      hasContent: !!emailContent.content,
+      hasHtml: !!emailContent.html
     });
 
+    // Send email
+    await client.send(emailContent);
+    console.log("Email sent via SMTP client");
+
     await client.close();
-    
-    console.log("Email sent successfully");
+    console.log("SMTP client connection closed");
     
     return new Response(
       JSON.stringify({ success: true, message: "Email sent successfully" }),
@@ -75,7 +89,7 @@ serve(async (req) => {
     console.error("Error sending email:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "Unknown error occurred", stack: error.stack }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

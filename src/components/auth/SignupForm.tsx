@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NameFields } from "./NameFields";
 import { EmailVerificationSection } from "./EmailVerificationSection";
 import { PasswordSection } from "./PasswordSection";
+import { sendEmail } from "@/services/emailService";
 
 interface SignupFormProps {
   onVerificationStart: () => void;
@@ -87,16 +88,13 @@ export const SignupForm = ({
       if (otpError) throw otpError;
 
       try {
-        const { error: emailError } = await supabase.functions.invoke('send-email', {
-          body: {
-            to: email,
-            subject: "Your OTP Code",
-            body: `Your verification code is: ${otp}. This code will expire in 10 minutes.`,
-            isHtml: false
-          }
+        await sendEmail({
+          to: email,
+          subject: "Your OTP Code",
+          body: `Your verification code is: ${otp}. This code will expire in 10 minutes.`,
+          isHtml: false
         });
-
-        if (emailError) throw emailError;
+        
         toast.success("Verification code sent to your email");
         setLatestOtp(otp);
         setShowOtpInput(true);
