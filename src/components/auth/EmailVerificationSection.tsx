@@ -119,4 +119,3 @@ export const EmailVerificationSection = ({
     </div>
   );
 };
-

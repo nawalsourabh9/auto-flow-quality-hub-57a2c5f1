@@ -42,6 +42,7 @@ export const SignupForm = ({
   const [countdown, setCountdown] = useState(0);
   const [verified, setVerified] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -148,8 +149,8 @@ export const SignupForm = ({
       if (updateError) throw updateError;
 
       setVerified(true);
+      setEmailVerified(true);
       toast.success("Email verified successfully");
-      onVerificationStart();
     } catch (error) {
       console.error("OTP verification failed:", error);
       toast.error("Failed to verify code");
@@ -164,17 +165,31 @@ export const SignupForm = ({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !firstName || !lastName || !password || !confirmPassword) {
-      toast.error("Please fill in all fields");
+    
+    if (!emailVerified) {
+      toast.error("Please verify your email first");
       return;
     }
-
+    
     if (!validatePassword()) {
       return;
     }
 
+    try {
+      await onVerificationStart();
+    } catch (error) {
+      console.error("Error completing signup:", error);
+    }
+  };
+
+  const handleOTPRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firstName || !lastName) {
+      toast.error("Please fill in your name fields");
+      return;
+    }
     generateOTPCode();
   };
 
@@ -188,7 +203,7 @@ export const SignupForm = ({
         </AlertDescription>
       </Alert>
       
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmitForm}>
         <div className="space-y-4">
           <NameFields
             firstName={firstName}
@@ -207,7 +222,7 @@ export const SignupForm = ({
             verified={verified}
             loading={loading}
             onEmailChange={(e) => setEmail(e.target.value)}
-            onGenerateOTP={generateOTPCode}
+            onGenerateOTP={handleOTPRequest}
             onOtpChange={setOtpValue}
             onAutoFill={autoFillOtp}
             onVerify={verifyOTP}
@@ -222,11 +237,13 @@ export const SignupForm = ({
             onConfirmPasswordChange={(e) => setConfirmPassword(e.target.value)}
           />
 
-          {!verified && (
-            <Button type="submit" className="w-full" disabled={showOtpInput && !verified}>
-              {showOtpInput ? "Complete Verification to Submit" : "Submit"}
-            </Button>
-          )}
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={!emailVerified}
+          >
+            {emailVerified ? "Create Account" : "Verify Email to Continue"}
+          </Button>
         </div>
         
         <p className="text-center text-sm text-gray-500 mt-4">
