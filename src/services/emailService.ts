@@ -1,5 +1,6 @@
 
 import { Resend } from 'resend';
+import { getOTPEmailTemplate } from './emailTemplates';
 
 const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY);
 
@@ -32,4 +33,18 @@ export const sendEmail = async ({
     console.error("Email service error:", error);
     throw error;
   }
+};
+
+export const sendOTPEmail = async (to: string, otp: string) => {
+  const htmlContent = getOTPEmailTemplate({ 
+    otp, 
+    expiryMinutes: 10 
+  });
+  
+  return sendEmail({
+    to,
+    subject: "Your Verification Code",
+    body: htmlContent,
+    isHtml: true
+  });
 };

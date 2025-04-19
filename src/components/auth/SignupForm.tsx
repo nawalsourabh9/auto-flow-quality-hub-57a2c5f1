@@ -88,16 +88,11 @@ export const SignupForm = ({
       if (otpError) throw otpError;
 
       try {
-        await sendEmail({
-          to: email,
-          subject: "Your OTP Code",
-          body: `Your verification code is: ${otp}. This code will expire in 10 minutes.`
-        });
-        
+        await sendOTPEmail(email, otp);
         toast.success("Verification code sent to your email");
         setLatestOtp(otp);
         setShowOtpInput(true);
-        setCountdown(30); // Start 30 second countdown
+        setCountdown(30);
       } catch (emailError) {
         console.error("Email sending failed:", emailError);
         toast.warning(
