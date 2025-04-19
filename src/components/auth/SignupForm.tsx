@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -184,8 +183,11 @@ export const SignupForm = ({
     }
   };
 
-  const handleOTPRequest = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleOTPRequest = (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    
     if (!firstName || !lastName) {
       toast.error("Please fill in your name fields");
       return;

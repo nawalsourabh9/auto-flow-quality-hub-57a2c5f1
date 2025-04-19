@@ -15,7 +15,7 @@ interface EmailVerificationSectionProps {
   verified: boolean;
   loading: boolean;
   onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onGenerateOTP: () => void;
+  onGenerateOTP: (e?: React.FormEvent) => void; // Updated to accept an optional event parameter
   onOtpChange: (value: string) => void;
   onAutoFill: () => void;
   onVerify: () => void;
