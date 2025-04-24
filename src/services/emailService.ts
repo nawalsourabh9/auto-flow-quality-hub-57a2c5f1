@@ -56,7 +56,7 @@ export const sendOTPEmail = async (to: string, otp: string) => {
   try {
     console.log(`Sending OTP email to ${to} with code ${otp}`);
     
-    // If we're in development, we'll use the local template
+    // If we're in development, use the local template
     if (import.meta.env.DEV) {
       const htmlContent = getOTPEmailTemplate({ 
         otp, 
@@ -71,7 +71,7 @@ export const sendOTPEmail = async (to: string, otp: string) => {
       });
     }
     
-    // Send OTP email using edge function with the expected format for SMTP edge function
+    // Send OTP email using edge function
     const { data, error } = await supabase.functions.invoke('send-email', {
       body: {
         to,
