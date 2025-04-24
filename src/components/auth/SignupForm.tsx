@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -89,6 +88,7 @@ export const SignupForm = ({
       if (otpError) throw otpError;
 
       try {
+        // Use the updated sendOTPEmail function compatible with our edge function
         await sendOTPEmail(email, otp);
         toast.success("Verification code sent to your email");
         setLatestOtp(otp);
@@ -254,4 +254,3 @@ export const SignupForm = ({
     </>
   );
 };
-

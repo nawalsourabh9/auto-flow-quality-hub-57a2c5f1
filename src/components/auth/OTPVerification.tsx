@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOTP } from "@/hooks/use-otp";
 import { OTPInput } from "./OTPInput";
 import { VerificationActions } from "./VerificationActions";
+import { sendOTPEmail } from "@/services/emailService";
 
 interface OTPVerificationProps {
   email: string;
@@ -48,16 +49,8 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
       if (otpError) throw otpError;
 
       try {
-        const { error: emailError } = await supabase.functions.invoke('send-email', {
-          body: {
-            to: email,
-            subject: "Verify your email",
-            body: `Your verification code is: ${newOtp}. This code will expire in 10 minutes.`,
-            isHtml: false
-          }
-        });
-
-        if (emailError) throw emailError;
+        // Use the updated sendOTPEmail function that's compatible with our edge function
+        await sendOTPEmail(email, newOtp);
         toast.success("New verification code sent to your email");
       } catch (emailError) {
         console.error("Email error during resend:", emailError);

@@ -26,7 +26,7 @@ export const sendEmail = async ({
       // Return a mock successful response
       return {
         id: 'mock_email_id',
-        from: 'Lovable <onboarding@resend.dev>',
+        from: 'noreply@bdsmanufacturing.in',
         to: Array.isArray(to) ? to : [to],
         created_at: new Date().toISOString()
       };
@@ -71,12 +71,12 @@ export const sendOTPEmail = async (to: string, otp: string) => {
       });
     }
     
-    // Send OTP email using edge function
+    // Send OTP email using edge function with the expected format for SMTP edge function
     const { data, error } = await supabase.functions.invoke('send-email', {
       body: {
-        type: 'otp',
         to,
-        otp
+        otp,
+        type: 'otp'
       }
     });
 
