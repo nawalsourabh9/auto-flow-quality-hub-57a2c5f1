@@ -1,11 +1,25 @@
 
 import { Session, User } from '@supabase/supabase-js';
 
-export interface AuthContextType {
+export type ApprovalRecord = {
+  id: string;
+  user_id: string;
+  email: string;
+  status: string;
+  created_at: string;
+};
+
+export type AuthContextType = {
   session: Session | null;
   user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, userData?: any) => Promise<void>;
+  signUp: (email: string, password: string, userData?: any) => Promise<{
+    user: User | null;
+    session: Session | null;
+  } | {
+    user: null;
+    session: null;
+  } | undefined>;
   signOut: () => Promise<void>;
   loading: boolean;
   error: string | null;
@@ -16,15 +30,4 @@ export interface AuthContextType {
   approveUser: (userId: string) => Promise<void>;
   rejectUser: (userId: string) => Promise<void>;
   checkUserApprovalStatus: () => Promise<{ approved: boolean; message: string }>;
-}
-
-export interface ApprovalRecord {
-  id: string;
-  user_id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string | null;
-}
+};
