@@ -12,6 +12,7 @@ const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [signupComplete, setSignupComplete] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { signUp } = useAuth();
 
   // For debugging - will log state changes
@@ -20,13 +21,16 @@ const Signup = () => {
       signupComplete,
       email,
       firstName,
-      lastName
+      lastName,
+      submitting
     });
-  }, [signupComplete, email, firstName, lastName]);
+  }, [signupComplete, email, firstName, lastName, submitting]);
 
   const handleVerificationComplete = async () => {
-    console.log("OTP verification completed. Creating account for:", email);
     try {
+      setSubmitting(true);
+      console.log("OTP verification completed. Creating account for:", email);
+      
       await signUp(email, password, {
         first_name: firstName,
         last_name: lastName
@@ -36,7 +40,9 @@ const Signup = () => {
       toast.success("Account created successfully! Waiting for admin approval.");
     } catch (error) {
       console.error("Error completing signup:", error);
-      toast.error("Failed to complete signup");
+      toast.error("Failed to complete signup. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -63,10 +69,11 @@ const Signup = () => {
               setEmail={setEmail}
               firstName={firstName}
               setFirstName={setFirstName}
-              lastName={lastName}
+              lastName={setLastName}
               setLastName={setLastName}
               password={password}
               setPassword={setPassword}
+              submitting={submitting}
             />
           )}
         </CardContent>

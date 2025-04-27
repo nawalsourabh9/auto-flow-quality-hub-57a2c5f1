@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { NameFields } from "./NameFields";
 import { EmailVerificationSection } from "./EmailVerificationSection";
@@ -21,6 +21,7 @@ interface SignupFormProps {
   setLastName: (name: string) => void;
   password: string;
   setPassword: (password: string) => void;
+  submitting: boolean;
 }
 
 export const SignupForm = ({
@@ -33,6 +34,7 @@ export const SignupForm = ({
   setLastName,
   password,
   setPassword,
+  submitting,
 }: SignupFormProps) => {
   const {
     otpSending,
@@ -134,9 +136,16 @@ export const SignupForm = ({
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={!emailVerified}
+            disabled={!emailVerified || submitting}
           >
-            {emailVerified ? "Create Account" : "Verify Email to Continue"}
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating Account...
+              </>
+            ) : (
+              emailVerified ? "Create Account" : "Verify Email to Continue"
+            )}
           </Button>
         </div>
         

@@ -3,16 +3,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sendOTPEmail } from "@/services/emailService";
+import { useCountdown } from "./use-countdown";
 
 export const useSignupOTP = (email: string) => {
   const [otpSending, setOtpSending] = useState(false);
   const [otpValue, setOtpValue] = useState("");
   const [latestOtp, setLatestOtp] = useState<string | null>(null);
   const [showOtpInput, setShowOtpInput] = useState(false);
-  const [countdown, setCountdown] = useState(0);
   const [verified, setVerified] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [countdown, setCountdown] = useCountdown(0);
 
   const generateOTPCode = async () => {
     if (!email) {
@@ -55,7 +56,7 @@ export const useSignupOTP = (email: string) => {
   const verifyOTP = async () => {
     if (otpValue.length !== 6) {
       toast.error("Please enter a complete 6-digit code");
-      return;
+      return false;
     }
 
     setLoading(true);
@@ -71,7 +72,7 @@ export const useSignupOTP = (email: string) => {
 
       if (error || !data) {
         toast.error("Invalid or expired verification code");
-        return;
+        return false;
       }
 
       const { error: updateError } = await supabase
@@ -84,9 +85,11 @@ export const useSignupOTP = (email: string) => {
       setVerified(true);
       setEmailVerified(true);
       toast.success("Email verified successfully");
+      return true;
     } catch (error) {
       console.error("OTP verification failed:", error);
       toast.error("Failed to verify code");
+      return false;
     } finally {
       setLoading(false);
     }
