@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn } = useAuth();
@@ -28,14 +30,12 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    
     try {
       setLoading(true);
       const { employee } = await signIn(email, password);
       
-      // Log the navigation attempt for debugging
-      console.log('Login successful, attempting navigation to:', (location.state as any)?.from?.pathname || "/");
-      
-      // Add a small delay to ensure localStorage is set before navigation
       setTimeout(() => {
         const from = (location.state as any)?.from?.pathname || "/";
         navigate(from, { replace: true });
@@ -43,6 +43,7 @@ const Login = () => {
       }, 100);
     } catch (error: any) {
       console.error('Login error:', error);
+      setError(error.message);
       toast.error(error.message || 'Failed to login');
     } finally {
       setLoading(false);
@@ -59,6 +60,14 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
+          {error && (
+            <div className="px-6">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            </div>
+          )}
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

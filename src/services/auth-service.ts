@@ -24,6 +24,11 @@ export const signIn = async (email: string, password: string) => {
     throw new Error('Invalid email or password');
   }
 
+  // Check employee status
+  if (employee.status === 'Pending') {
+    throw new Error('Your account is pending admin approval. Please check back later.');
+  }
+
   return { employee };
 };
 
