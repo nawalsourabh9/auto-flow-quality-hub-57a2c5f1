@@ -29,7 +29,7 @@ export type Employee = {
 };
 
 export const departmentOptions = [
-  "Executive",
+  "Executive", 
   "Quality", 
   "Production", 
   "Engineering", 
