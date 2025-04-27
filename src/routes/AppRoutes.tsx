@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/hooks/use-auth";
@@ -32,6 +32,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
   const isPreviewMode = new URLSearchParams(location.search).get('preview') === 'true';
+  
+  // Check for employee in localStorage as a fallback when useAuth() doesn't work
+  const employeeData = localStorage.getItem('employee');
+  const hasEmployee = Boolean(employeeData);
 
   if (loading) {
     return (
@@ -41,7 +45,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!user && !isPreviewMode) {
+  // Allow access if either auth API says user is logged in OR we have employee data in localStorage
+  if ((!user && !hasEmployee) && !isPreviewMode) {
+    console.log("No auth detected, redirecting to login");
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -51,6 +57,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  
+  // Check for employee in localStorage as a fallback
+  const employeeData = localStorage.getItem('employee');
+  const hasEmployee = Boolean(employeeData);
 
   if (loading) {
     return (
@@ -60,7 +70,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!user) {
+  if (!user && !hasEmployee) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,15 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Check if already logged in
+  useEffect(() => {
+    const employee = localStorage.getItem('employee');
+    if (employee) {
+      const from = (location.state as any)?.from?.pathname || "/";
+      navigate(from, { replace: true });
+    }
+  }, [navigate, location.state]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -26,9 +35,15 @@ const Login = () => {
       const { password_hash, ...safeEmployeeData } = employee;
       localStorage.setItem('employee', JSON.stringify(safeEmployeeData));
       
-      const from = (location.state as any)?.from?.pathname || "/";
-      navigate(from, { replace: true });
-      toast.success('Logged in successfully');
+      // Log the navigation attempt for debugging
+      console.log('Login successful, attempting navigation to:', (location.state as any)?.from?.pathname || "/");
+      
+      // Add a small delay to ensure localStorage is set before navigation
+      setTimeout(() => {
+        const from = (location.state as any)?.from?.pathname || "/";
+        navigate(from, { replace: true });
+        toast.success('Logged in successfully');
+      }, 100);
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || 'Failed to login');
@@ -36,14 +51,6 @@ const Login = () => {
       setLoading(false);
     }
   };
-
-  // Check if already logged in
-  const employee = localStorage.getItem('employee');
-  if (employee) {
-    const from = (location.state as any)?.from?.pathname || "/";
-    navigate(from, { replace: true });
-    return null;
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-gray-900">

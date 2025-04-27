@@ -1,5 +1,4 @@
-
-import React, { createContext } from 'react';
+import React, { createContext, useEffect, useState } from 'react';
 import { AuthContextType } from '@/types/auth';
 import { useAuthSession } from '@/hooks/use-auth-session';
 import * as authService from '@/services/auth-service';
@@ -9,6 +8,19 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { session, user, loading, error, setError, setLoading } = useAuthSession();
+  const [employee, setEmployee] = useState<any>(null);
+
+  useEffect(() => {
+    const storedEmployee = localStorage.getItem('employee');
+    if (storedEmployee) {
+      try {
+        setEmployee(JSON.parse(storedEmployee));
+      } catch (e) {
+        console.error("Error parsing employee data:", e);
+        localStorage.removeItem('employee');
+      }
+    }
+  }, []);
 
   const handleAsyncOperation = async <T,>(operation: () => Promise<T>): Promise<T> => {
     try {
@@ -26,20 +38,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const contextValue: AuthContextType = {
     session,
-    user,
+    user: employee || user,
     loading,
     error,
     signIn: (email: string, password: string) => 
       handleAsyncOperation(async () => {
-        await authService.signIn(email, password);
+        const result = await authService.signIn(email, password);
+        if (result && result.employee) {
+          const { password_hash, ...safeEmployeeData } = result.employee;
+          setEmployee(safeEmployeeData);
+          localStorage.setItem('employee', JSON.stringify(safeEmployeeData));
+        }
+        return result;
       }),
     signUp: (email: string, password: string, userData?: any) =>
       handleAsyncOperation(async () => {
         await authService.signUp(email, password, userData);
-        // Return a placeholder that matches the expected return type
         return { user: null, session: null };
       }),
-    signOut: () => handleAsyncOperation(authService.signOut),
+    signOut: () => handleAsyncOperation(async () => {
+      await authService.signOut();
+      setEmployee(null);
+      localStorage.removeItem('employee');
+    }),
     resetPassword: (email: string) => 
       handleAsyncOperation(() => authService.resetPassword(email)),
     updatePassword: (password: string) => 
