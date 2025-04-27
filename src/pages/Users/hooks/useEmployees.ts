@@ -43,7 +43,7 @@ export const useEmployees = () => {
       console.error('Error fetching employees:', error);
       toast.error('Failed to load employees');
     } finally {
-      setLoading(false); // Fixed: call the function instead of reassigning
+      setLoading(false); 
     }
   };
 
