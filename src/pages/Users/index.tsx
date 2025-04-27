@@ -8,15 +8,13 @@ import { DeleteEmployeeDialog } from "./components/DeleteEmployeeDialog";
 import { UsersHeader } from "./components/UsersHeader";
 import { useEmployees } from "./hooks/useEmployees";
 import { Employee } from "./types";
-import { AddEmployeeDialog } from "./components/AddEmployeeDialog";
 
 const Users = () => {
-  const { employees, loading, updateEmployee, deleteEmployee, addEmployee } = useEmployees();
+  const { employees, loading, updateEmployee, deleteEmployee } = useEmployees();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null); // Changed from number to string
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleEditEmployee = async (data: Omit<Employee, "id">) => {
@@ -36,27 +34,9 @@ const Users = () => {
     }
   };
 
-  const handleAddEmployee = async (data: Omit<Employee, "id">) => {
-    try {
-      await addEmployee(data);
-      setIsAddDialogOpen(false);
-      
-      toast({
-        title: "Employee Added",
-        description: "The employee has been successfully added to the system."
-      });
-    } catch (error) {
-      console.error("Failed to add employee:", error);
-    }
-  };
-
   const openEditDialog = (employee: Employee) => {
     setEditingEmployee(employee);
     setIsEditDialogOpen(true);
-  };
-
-  const openAddDialog = () => {
-    setIsAddDialogOpen(true);
   };
 
   const handleDeleteEmployee = async () => {
@@ -91,11 +71,7 @@ const Users = () => {
       </div>
       
       <Card className="border-border">
-        <UsersHeader 
-          searchTerm={searchTerm} 
-          setSearchTerm={setSearchTerm} 
-          onAddEmployee={openAddDialog}
-        />
+        <UsersHeader searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         <CardContent className="p-0">
           <EmployeeList 
             employees={filteredEmployees}
@@ -111,13 +87,6 @@ const Users = () => {
         setIsOpen={setIsEditDialogOpen}
         employee={editingEmployee}
         onSubmit={handleEditEmployee}
-        employees={employees}
-      />
-
-      <AddEmployeeDialog 
-        isOpen={isAddDialogOpen} 
-        setIsOpen={setIsAddDialogOpen}
-        onSubmit={handleAddEmployee}
         employees={employees}
       />
 
