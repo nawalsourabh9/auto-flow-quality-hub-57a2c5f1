@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -87,7 +88,7 @@ export const SignupForm = ({
 
       if (otpError) throw otpError;
 
-      toast.success("Verification code: " + otp + " (sent to email)");
+      toast.success("Verification code sent to your email");
       setLatestOtp(otp);
       setShowOtpInput(true);
       setCountdown(30);
