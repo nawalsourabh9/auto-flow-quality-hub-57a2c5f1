@@ -31,10 +31,13 @@ export const signIn = async (email: string, password: string) => {
     throw new Error('Invalid email or password');
   }
 
-  // Cast the employee to our interface to ensure TypeScript knows about password_hash
-  const employeeWithPassword = employee as Employee;
-  
-  const passwordMatch = await bcrypt.compare(password, employeeWithPassword.password_hash);
+  // Check if password_hash exists on the employee record
+  if (!employee || !('password_hash' in employee)) {
+    throw new Error('Invalid email or password');
+  }
+
+  // Now we can safely access password_hash
+  const passwordMatch = await bcrypt.compare(password, employee.password_hash);
   if (!passwordMatch) {
     throw new Error('Invalid email or password');
   }
