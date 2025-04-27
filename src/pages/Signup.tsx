@@ -83,7 +83,7 @@ const Signup = () => {
               setEmail={setEmail}
               firstName={firstName}
               setFirstName={setFirstName}
-              lastName={setLastName}
+              lastName={lastName}
               setLastName={setLastName}
               password={password}
               setPassword={setPassword}

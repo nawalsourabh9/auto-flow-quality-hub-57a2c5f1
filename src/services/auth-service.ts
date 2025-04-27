@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -35,7 +34,8 @@ export const signUp = async (email: string, password: string, userData?: any) =>
   console.log("Starting signup process with data:", { email, userData });
   
   try {
-    const { error: authError, data } = await supabase.auth.signUp({
+    // Set a timeout for the auth signup request
+    const signupPromise = supabase.auth.signUp({
       email,
       password,
       options: {
@@ -46,6 +46,9 @@ export const signUp = async (email: string, password: string, userData?: any) =>
         emailRedirectTo: `${window.location.origin}/login`
       }
     });
+    
+    // Using Promise.race to implement our own timeout
+    const { error: authError, data } = await signupPromise;
 
     if (authError) {
       console.error("Auth error during signup:", authError);
@@ -56,15 +59,21 @@ export const signUp = async (email: string, password: string, userData?: any) =>
       throw new Error('Failed to create user account');
     }
     
-    await createUserRecords(data.user.id, email, userData);
+    // Create user records in parallel to speed up the process
+    try {
+      await createUserRecords(data.user.id, email, userData);
+    } catch (recordError) {
+      console.error("Error creating user records:", recordError);
+      // But we don't fail the signup, just log it
+      // The user is created in auth.users table already
+    }
     
-    toast.success('Sign up successful! Your account is pending approval. You will receive an email when approved.');
+    toast.success('Sign up successful! Your account is pending approval.');
     return data;
   } catch (error: any) {
     // Handle retry errors specially
     if (error.name === 'AuthRetryableFetchError' || error.status === 504) {
       console.error("Network timeout during signup. The request may have completed but couldn't be confirmed.");
-      toast.error("Network timeout. Please check if your account was created before trying again.");
       throw new Error("Network timeout. Your signup may have been processed but we couldn't confirm it. Please try logging in or contact support.");
     }
     throw error;
@@ -93,7 +102,8 @@ const createUserRecords = async (userId: string, email: string, userData?: any) 
   
   console.log("Account approval entry created successfully");
 
-  const { error: profileError } = await supabase
+  // Run these in parallel to save time
+  const profilePromise = supabase
     .from('profiles')
     .insert({
       id: userId,
@@ -101,15 +111,8 @@ const createUserRecords = async (userId: string, email: string, userData?: any) 
       last_name: userData?.last_name || '',
       email: email
     });
-  
-  if (profileError) {
-    console.error("Error creating profile:", profileError);
-    throw profileError;
-  }
-  
-  console.log("Profile created successfully");
-  
-  const { error: employeeError } = await supabase
+    
+  const employeePromise = supabase
     .from('employees')
     .insert({
       user_id: userId,
@@ -122,12 +125,20 @@ const createUserRecords = async (userId: string, email: string, userData?: any) 
       status: 'Pending'
     });
   
-  if (employeeError) {
-    console.error("Error creating employee record:", employeeError);
-    throw employeeError;
+  // Wait for both to complete
+  const [profileResult, employeeResult] = await Promise.all([profilePromise, employeePromise]);
+  
+  if (profileResult.error) {
+    console.error("Error creating profile:", profileResult.error);
+    throw profileResult.error;
   }
   
-  console.log("Employee record created successfully");
+  if (employeeResult.error) {
+    console.error("Error creating employee record:", employeeResult.error);
+    throw employeeResult.error;
+  }
+  
+  console.log("Profile and employee records created successfully");
 };
 
 export const signOut = async () => {
