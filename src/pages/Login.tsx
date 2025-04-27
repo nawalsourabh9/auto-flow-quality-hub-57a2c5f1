@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { signIn } from "@/services/auth-service";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -15,6 +15,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { signIn } = useAuth();
 
   // Check if already logged in
   useEffect(() => {
@@ -30,10 +31,6 @@ const Login = () => {
     try {
       setLoading(true);
       const { employee } = await signIn(email, password);
-      
-      // Store employee data in localStorage, but omit sensitive information
-      const { password_hash, ...safeEmployeeData } = employee;
-      localStorage.setItem('employee', JSON.stringify(safeEmployeeData));
       
       // Log the navigation attempt for debugging
       console.log('Login successful, attempting navigation to:', (location.state as any)?.from?.pathname || "/");

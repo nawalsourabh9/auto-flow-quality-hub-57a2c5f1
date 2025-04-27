@@ -9,10 +9,25 @@ export type ApprovalRecord = {
   created_at: string;
 };
 
+export type EmployeeData = {
+  id: string;
+  email: string;
+  name: string;
+  employee_id: string;
+  department: string;
+  position: string;
+  role: string;
+  status: string;
+  phone?: string | null;
+  supervisor_id?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type AuthContextType = {
   session: Session | null;
-  user: User | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  user: User | null | EmployeeData;
+  signIn: (email: string, password: string) => Promise<{ employee: EmployeeData }>;
   signUp: (email: string, password: string, userData?: any) => Promise<{
     user: User | null;
     session: Session | null;

@@ -1,23 +1,8 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import * as bcrypt from 'bcryptjs';
-
-// Define an interface for the employee type
-interface Employee {
-  id: string;
-  email: string;
-  password_hash: string;
-  name: string;
-  employee_id: string;
-  department: string;
-  position: string;
-  role: string;
-  status: string;
-  phone?: string;
-  supervisor_id?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import { EmployeeData } from '@/types/auth';
 
 export const signIn = async (email: string, password: string) => {
   const { data: employee, error } = await supabase

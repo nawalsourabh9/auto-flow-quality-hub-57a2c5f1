@@ -1,5 +1,6 @@
+
 import React, { createContext, useEffect, useState } from 'react';
-import { AuthContextType } from '@/types/auth';
+import { AuthContextType, EmployeeData } from '@/types/auth';
 import { useAuthSession } from '@/hooks/use-auth-session';
 import * as authService from '@/services/auth-service';
 import * as approvalService from '@/services/approval-service';
@@ -8,7 +9,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { session, user, loading, error, setError, setLoading } = useAuthSession();
-  const [employee, setEmployee] = useState<any>(null);
+  const [employee, setEmployee] = useState<EmployeeData | null>(null);
 
   useEffect(() => {
     const storedEmployee = localStorage.getItem('employee');
