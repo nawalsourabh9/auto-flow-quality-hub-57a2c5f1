@@ -1,12 +1,11 @@
-# Welcome to your Lovable project
+
+# BDS Management System
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/5c3ae1e7-9534-4be6-acc3-da1f4f5ebc23
 
 ## How can I edit this code?
-
-There are several ways of editing your application.
 
 **Use Lovable**
 
