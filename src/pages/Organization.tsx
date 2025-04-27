@@ -37,25 +37,25 @@ import { departmentOptions } from "@/pages/Users/types";
 import { Employee } from "@/pages/Users/types";
 
 interface Department {
-  id: number;
+  id: string;  // Changed from number to string
   name: string;
   managerId: string | null;
-  parentDepartmentId: number | null;
+  parentDepartmentId: string | null;  // Changed from number to string
   description: string;
 }
 
 const createDepartmentMap = () => {
-  const departmentMap: Record<string, number> = {};
+  const departmentMap: Record<string, string> = {}; // Changed from Record<string, number>
   
   departmentOptions.forEach((dept, index) => {
-    departmentMap[dept] = index + 1;
+    departmentMap[dept] = (index + 1).toString(); // Convert to string
   });
   
   return departmentMap;
 };
 
-const createReverseDepartmentMap = (departmentMap: Record<string, number>) => {
-  const reverseDepartmentMap: Record<number, string> = {};
+const createReverseDepartmentMap = (departmentMap: Record<string, string>) => {
+  const reverseDepartmentMap: Record<string, string> = {}; // Changed from Record<number, string>
   
   Object.entries(departmentMap).forEach(([name, id]) => {
     reverseDepartmentMap[id] = name;
@@ -66,7 +66,7 @@ const createReverseDepartmentMap = (departmentMap: Record<string, number>) => {
 
 const generateInitialDepartments = (): Department[] => {
   const departments: Department[] = [
-    { id: 1, name: "Executive", managerId: null, parentDepartmentId: null, description: "Executive Leadership Team" }
+    { id: "1", name: "Executive", managerId: null, parentDepartmentId: null, description: "Executive Leadership Team" }
   ];
   
   let id = 2;
@@ -74,12 +74,14 @@ const generateInitialDepartments = (): Department[] => {
     if (dept === "Executive") return;
     
     departments.push({
-      id: id++,
+      id: id.toString(), // Convert to string
       name: dept,
       managerId: null,
-      parentDepartmentId: 1,
+      parentDepartmentId: "1", // Changed from 1 to "1"
       description: `${dept} Department`
     });
+    
+    id++;
   });
   
   return departments;
@@ -103,7 +105,7 @@ const convertEmployeeToTeamMember = (employee: Employee): TeamMember => {
     name: employee.name,
     email: employee.email,
     position: employee.position,
-    department: departmentMap[employee.department] || 1,
+    department: departmentMap[employee.department] || "1", // Changed from number to string
     initials: initials,
     phone: employee.phone,
     supervisorId: employee.supervisorId
@@ -131,9 +133,9 @@ const Organization = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newDepartment, setNewDepartment] = useState<Partial<Department>>({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [expandedDepartments, setExpandedDepartments] = useState<number[]>([1]);
+  const [expandedDepartments, setExpandedDepartments] = useState<string[]>(["1"]); // Changed from number[] to string[]
   const [viewMode, setViewMode] = useState<"list" | "tree">("list");
-  const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null);
+  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null); // Changed from number to string
   const [departmentToDelete, setDepartmentToDelete] = useState<Department | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -215,7 +217,7 @@ const Organization = () => {
     return Array.from(employeeMap.values());
   };
 
-  const findChildDepartments = (departmentId: number) => {
+  const findChildDepartments = (departmentId: string) => { // Changed from number to string
     return departments.filter(dept => dept.parentDepartmentId === departmentId);
   };
 
@@ -225,7 +227,7 @@ const Organization = () => {
     return employee ? employee.name : "Unassigned";
   };
 
-  const toggleDepartment = (departmentId: number) => {
+  const toggleDepartment = (departmentId: string) => { // Changed from number to string
     setExpandedDepartments(prev => 
       prev.includes(departmentId) 
         ? prev.filter(id => id !== departmentId) 
@@ -244,7 +246,7 @@ const Organization = () => {
     }
 
     const newDept: Department = {
-      id: departments.length + 1,
+      id: (departments.length + 1).toString(), // Convert to string
       name: newDepartment.name || "",
       managerId: newDepartment.managerId || null,
       parentDepartmentId: newDepartment.parentDepartmentId || null,
@@ -302,7 +304,7 @@ const Organization = () => {
 
   const rootDepartments = filteredDepartments.filter(dept => dept.parentDepartmentId === null);
 
-  const getDepartmentTeamMembers = (departmentId: number) => {
+  const getDepartmentTeamMembers = (departmentId: string) => { // Changed from number to string
     return teamMembers.filter(member => member.department === departmentId);
   };
 
@@ -330,7 +332,7 @@ const Organization = () => {
     setTeamMembers(teamMembers.filter(member => member.id !== memberId));
   };
 
-  const getDepartmentName = (departmentId: number) => {
+  const getDepartmentName = (departmentId: string) => { // Changed from number to string
     const department = departments.find(dept => dept.id === departmentId);
     return department ? department.name : "Unknown Department";
   };
@@ -339,7 +341,7 @@ const Organization = () => {
     const childDepartments = findChildDepartments(department.id);
     const isExpanded = expandedDepartments.includes(department.id);
     const departmentMembers = getDepartmentTeamMembers(department.id);
-    const isExecutiveDepartment = department.id === 1;
+    const isExecutiveDepartment = department.id === "1"; // Changed from 1 to "1"
 
     return (
       <div key={department.id} className="department-item">
@@ -402,7 +404,7 @@ const Organization = () => {
   const renderTreeViewItem = (department: Department) => {
     const childDepartments = findChildDepartments(department.id);
     const departmentMembers = getDepartmentTeamMembers(department.id);
-    const isExecutiveDepartment = department.id === 1;
+    const isExecutiveDepartment = department.id === "1";
 
     return (
       <div key={department.id} className="mb-2">
@@ -488,7 +490,7 @@ const Organization = () => {
     );
   };
 
-  const handleUpdateDepartment = (departmentId: number, updatedData: Partial<Department>) => {
+  const handleUpdateDepartment = (departmentId: string, updatedData: Partial<Department>) => { // Changed from number to string
     const updatedDepartments = departments.map(dept => 
       dept.id === departmentId ? { ...dept, ...updatedData } : dept
     );
@@ -602,7 +604,7 @@ const Organization = () => {
                 <label>Parent Department</label>
                 <Select
                   value={newDepartment.parentDepartmentId?.toString() || ""}
-                  onValueChange={(value) => setNewDepartment({...newDepartment, parentDepartmentId: value ? parseInt(value) : null})}
+                  onValueChange={(value) => setNewDepartment({...newDepartment, parentDepartmentId: value ? value : null})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select parent department" />
@@ -610,7 +612,7 @@ const Organization = () => {
                   <SelectContent>
                     <SelectItem value="none">None (Top Level)</SelectItem>
                     {departments.map(dept => (
-                      <SelectItem key={dept.id} value={dept.id.toString()}>
+                      <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
                       </SelectItem>
                     ))}
@@ -622,7 +624,7 @@ const Organization = () => {
                 <label>Department Manager</label>
                 <Select
                   value={newDepartment.managerId?.toString() || ""}
-                  onValueChange={(value) => setNewDepartment({...newDepartment, managerId: value ? parseInt(value) : null})}
+                  onValueChange={(value) => setNewDepartment({...newDepartment, managerId: value ? value : null})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select manager" />
@@ -630,7 +632,7 @@ const Organization = () => {
                   <SelectContent>
                     <SelectItem value="none">Unassigned</SelectItem>
                     {employees.map(emp => (
-                      <SelectItem key={emp.id} value={emp.id.toString()}>
+                      <SelectItem key={emp.id} value={emp.id}>
                         {emp.name} - {emp.position}
                       </SelectItem>
                     ))}

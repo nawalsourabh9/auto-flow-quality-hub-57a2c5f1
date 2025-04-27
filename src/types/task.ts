@@ -1,3 +1,4 @@
+
 import { TaskDocument } from "@/types/document";
 
 export interface Task {
@@ -42,14 +43,14 @@ export interface Task {
 
 // Team member interface for organization management
 export type TeamMember = {
-  id: string;  // Changed from number to string
+  id: string;  
   name: string;
   email: string;
   position: string;
-  department: number;
+  department: string;  // Changed to string to match department IDs
   initials: string;
   phone?: string;
-  supervisorId?: string | null;  // Changed from number to string
+  supervisorId?: string | null;
 };
 
 // Audit interface for audit management

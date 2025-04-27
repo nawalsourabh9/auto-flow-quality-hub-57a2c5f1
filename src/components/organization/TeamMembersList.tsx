@@ -21,7 +21,7 @@ import { toast } from "@/hooks/use-toast";
 import { TeamMember } from "@/types/task";
 
 interface TeamMembersListProps {
-  departmentId: number;
+  departmentId: string;
   departmentName: string;
   teamMembers: TeamMember[];
   onAddMember: (member: Omit<TeamMember, "id">) => void;
