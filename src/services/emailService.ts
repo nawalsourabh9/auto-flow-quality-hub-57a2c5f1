@@ -29,6 +29,18 @@ export const sendEmail = async ({
   try {
     console.log("Sending email to:", to);
     
+    // Always use mock data in development or preview environments
+    if (window.location.hostname === 'localhost' || window.location.hostname.includes('lovable')) {
+      console.log("Development environment detected, using mock email response");
+      return {
+        id: 'simulated_email_id',
+        from: 'noreply@bdsmanufacturing.in',
+        to: Array.isArray(to) ? to : [to],
+        created_at: new Date().toISOString(),
+        simulated: true
+      };
+    }
+    
     // Add retry logic for network issues
     let retries = 3;
     let success = false;
@@ -94,7 +106,7 @@ export const sendOTPEmail = async (to: string, otp: string) => {
     console.log(`Sending OTP email to ${to} with code ${otp}`);
     
     // For testing in development environment, use mock response
-    if (window.location.hostname === 'localhost' || window.location.hostname.includes('lovable.app')) {
+    if (window.location.hostname === 'localhost' || window.location.hostname.includes('lovable')) {
       console.log("Development environment detected, using mock OTP email");
       // Show the OTP code in the console for easy testing
       console.log(`OTP code for testing: ${otp}`);
