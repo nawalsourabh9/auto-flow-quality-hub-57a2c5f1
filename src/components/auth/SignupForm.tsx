@@ -55,6 +55,7 @@ export const SignupForm = ({
     confirmPassword,
     setConfirmPassword,
     passwordError,
+    setPasswordError,
     validatePassword
   } = usePasswordValidation();
 
@@ -66,7 +67,7 @@ export const SignupForm = ({
       return;
     }
     
-    if (!validatePassword()) {
+    if (!validatePassword(password, confirmPassword)) {
       return;
     }
 

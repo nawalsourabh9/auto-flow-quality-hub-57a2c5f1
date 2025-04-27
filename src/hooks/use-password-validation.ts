@@ -2,12 +2,11 @@
 import { useState } from "react";
 
 export const usePasswordValidation = () => {
-  const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
-  const validatePassword = () => {
-    if (password !== confirmPassword) {
+  const validatePassword = (password: string, confirmPwd: string) => {
+    if (password !== confirmPwd) {
       setPasswordError("Passwords do not match");
       return false;
     }
@@ -20,11 +19,10 @@ export const usePasswordValidation = () => {
   };
 
   return {
-    password,
-    setPassword,
     confirmPassword,
     setConfirmPassword,
     passwordError,
+    setPasswordError,
     validatePassword
   };
 };
