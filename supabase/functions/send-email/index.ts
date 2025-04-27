@@ -19,9 +19,8 @@ const getSmtpClient = async () => {
       }
     });
     
-    // Test connection to ensure it's working
-    await client.connect();
-    console.log("SMTP connection established successfully");
+    // No need to call connect explicitly as SMTPClient methods handle this internally
+    console.log("SMTP client initialized successfully");
     return client;
   } catch (error) {
     console.error("SMTP client initialization error:", error);

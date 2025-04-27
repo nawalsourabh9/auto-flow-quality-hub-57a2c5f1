@@ -48,7 +48,7 @@ export const sendEmail = async ({
             }
           }),
           new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error("Request timeout")), 10000)
+            setTimeout(() => reject(new Error("Request timeout")), 15000)
           )
         ]) as EmailResponse;
         
@@ -64,7 +64,7 @@ export const sendEmail = async ({
         
         if (retries > 0) {
           // Wait before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
         } else {
           throw e;
         }
@@ -93,11 +93,7 @@ export const sendOTPEmail = async (to: string, otp: string) => {
   try {
     console.log(`Sending OTP email to ${to} with code ${otp}`);
     
-    const htmlContent = getOTPEmailTemplate({ 
-      otp, 
-      expiryMinutes: 10 
-    });
-    
+    // We don't need to generate HTML content here as the edge function will do that
     return await supabase.functions.invoke('send-email', {
       body: {
         type: 'otp',
