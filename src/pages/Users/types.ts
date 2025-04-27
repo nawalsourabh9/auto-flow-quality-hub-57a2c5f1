@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 export const employeeFormSchema = z.object({
@@ -25,7 +26,6 @@ export type Employee = {
   supervisorId?: string;
   created_at?: string;
   updated_at?: string;
-  user_id?: string;
 };
 
 export const departmentOptions = [

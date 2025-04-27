@@ -4,6 +4,7 @@ import { Employee } from "../types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import * as bcrypt from 'bcryptjs';
 
 export const useEmployees = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -36,8 +37,7 @@ export const useEmployees = () => {
         phone: emp.phone || undefined,
         supervisorId: emp.supervisor_id || undefined,
         created_at: emp.created_at,
-        updated_at: emp.updated_at,
-        user_id: emp.user_id
+        updated_at: emp.updated_at
       }));
 
       setEmployees(formattedEmployees);
@@ -51,6 +51,10 @@ export const useEmployees = () => {
 
   const addEmployee = async (employeeData: Omit<Employee, 'id'>) => {
     try {
+      // Generate a password hash for the new employee (using a default password)
+      const defaultPassword = "changeme123";  // You might want to generate a random password instead
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
       const dbEmployee = {
         name: employeeData.name,
         email: employeeData.email,
@@ -61,7 +65,7 @@ export const useEmployees = () => {
         status: employeeData.status,
         phone: employeeData.phone,
         supervisor_id: employeeData.supervisorId,
-        user_id: user?.id // Link employee to current user if they're creating their own record
+        password_hash: hashedPassword
       };
 
       const { data, error } = await supabase
@@ -91,8 +95,7 @@ export const useEmployees = () => {
         phone: data.phone || undefined,
         supervisorId: data.supervisor_id || undefined,
         created_at: data.created_at,
-        updated_at: data.updated_at,
-        user_id: data.user_id
+        updated_at: data.updated_at
       };
 
       setEmployees(prev => [...prev, newEmployee]);
@@ -139,8 +142,7 @@ export const useEmployees = () => {
         phone: data.phone || undefined,
         supervisorId: data.supervisor_id || undefined,
         created_at: data.created_at,
-        updated_at: data.updated_at,
-        user_id: data.user_id
+        updated_at: data.updated_at
       };
 
       setEmployees(prev => 
