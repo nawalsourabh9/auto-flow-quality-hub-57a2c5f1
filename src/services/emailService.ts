@@ -29,18 +29,6 @@ export const sendEmail = async ({
   try {
     console.log("Sending email to:", to);
     
-    // Always use mock data in development or preview environments
-    if (window.location.hostname === 'localhost' || window.location.hostname.includes('lovable')) {
-      console.log("Development environment detected, using mock email response");
-      return {
-        id: 'simulated_email_id',
-        from: 'noreply@bdsmanufacturing.in',
-        to: Array.isArray(to) ? to : [to],
-        created_at: new Date().toISOString(),
-        simulated: true
-      };
-    }
-    
     // Add retry logic for network issues
     let retries = 3;
     let success = false;
@@ -89,15 +77,7 @@ export const sendEmail = async ({
     return data;
   } catch (error) {
     console.error("Email service error:", error);
-    
-    // Return mock data for testing when function fails
-    return {
-      id: 'simulated_email_id',
-      from: 'noreply@bdsmanufacturing.in',
-      to: Array.isArray(to) ? to : [to],
-      created_at: new Date().toISOString(),
-      simulated: true
-    };
+    throw error;
   }
 };
 
@@ -105,21 +85,6 @@ export const sendOTPEmail = async (to: string, otp: string) => {
   try {
     console.log(`Sending OTP email to ${to} with code ${otp}`);
     
-    // For testing in development environment, use mock response
-    if (window.location.hostname === 'localhost' || window.location.hostname.includes('lovable')) {
-      console.log("Development environment detected, using mock OTP email");
-      // Show the OTP code in the console for easy testing
-      console.log(`OTP code for testing: ${otp}`);
-      return {
-        id: 'simulated_otp_email_id',
-        from: 'noreply@bdsmanufacturing.in',
-        to: [to],
-        created_at: new Date().toISOString(),
-        simulated: true
-      };
-    }
-    
-    // Production environment - attempt to send real email
     const requestBody = {
       type: 'otp',
       to,
@@ -147,14 +112,6 @@ export const sendOTPEmail = async (to: string, otp: string) => {
   } catch (error) {
     console.error("OTP email service error:", error);
     console.error("Error details:", error instanceof Error ? error.message : String(error));
-    
-    // Always return mock data instead of throwing to prevent app crashes
-    return {
-      id: 'simulated_otp_email_id',
-      from: 'noreply@bdsmanufacturing.in',
-      to: [to],
-      created_at: new Date().toISOString(),
-      simulated: true
-    };
+    throw error;
   }
 };
