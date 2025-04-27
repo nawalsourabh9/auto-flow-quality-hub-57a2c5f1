@@ -61,3 +61,20 @@ export const signOut = async () => {
   localStorage.removeItem('employee');
   toast.success('Signed out successfully');
 };
+
+// Add these stub methods to fix TypeScript errors in AuthProvider.tsx
+export const resetPassword = async (email: string): Promise<void> => {
+  console.warn('resetPassword not implemented');
+};
+
+export const updatePassword = async (password: string): Promise<void> => {
+  console.warn('updatePassword not implemented');
+};
+
+export const updateProfile = async (data: any, userId: string): Promise<void> => {
+  console.warn('updateProfile not implemented');
+};
+
+export const changePassword = async (currentPassword: string, newPassword: string, email: string): Promise<void> => {
+  console.warn('changePassword not implemented');
+};

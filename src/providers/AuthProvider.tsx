@@ -30,9 +30,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     error,
     signIn: (email: string, password: string) => 
-      handleAsyncOperation(() => authService.signIn(email, password)),
+      handleAsyncOperation(async () => {
+        await authService.signIn(email, password);
+      }),
     signUp: (email: string, password: string, userData?: any) =>
-      handleAsyncOperation(() => authService.signUp(email, password, userData)),
+      handleAsyncOperation(async () => {
+        await authService.signUp(email, password, userData);
+        // Return a placeholder that matches the expected return type
+        return { user: null, session: null };
+      }),
     signOut: () => handleAsyncOperation(authService.signOut),
     resetPassword: (email: string) => 
       handleAsyncOperation(() => authService.resetPassword(email)),
