@@ -37,7 +37,7 @@ export const signIn = async (email: string, password: string) => {
   }
 
   // Now we can safely access password_hash
-  const passwordMatch = await bcrypt.compare(password, employee.password_hash);
+  const passwordMatch = await bcrypt.compare(password, employee.password_hash as string);
   if (!passwordMatch) {
     throw new Error('Invalid email or password');
   }
