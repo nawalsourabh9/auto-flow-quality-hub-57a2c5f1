@@ -98,11 +98,12 @@ export const sendOTPEmail = async (to: string, otp: string) => {
       expiryMinutes: 10 
     });
     
-    return sendEmail({
-      to,
-      subject: "Your Verification Code",
-      body: htmlContent,
-      isHtml: true
+    return await supabase.functions.invoke('send-email', {
+      body: {
+        type: 'otp',
+        to,
+        otp
+      }
     });
   } catch (error) {
     console.error("OTP email service error:", error);
