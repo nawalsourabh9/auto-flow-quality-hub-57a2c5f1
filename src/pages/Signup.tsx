@@ -39,17 +39,19 @@ const Signup = () => {
         last_name: lastName
       });
       
-      if (result && result.user) {
-        setSignupComplete(true);
+      // Always consider signup complete if we got this far, even with timeout
+      // because the account might have been created despite the timeout
+      setSignupComplete(true);
+      
+      if (result && result.user && result.user.id !== 'timeout') {
         toast.success("Account created successfully! Waiting for admin approval.");
       }
     } catch (error: any) {
       console.error("Error completing signup:", error);
       
-      // Special handling for network timeouts
-      if (error.message && error.message.includes("Network timeout")) {
-        toast.warning("Network timeout occurred. If you don't receive a confirmation email, please try again later.");
-        // Still show signup complete screen since the account might have been created
+      // For network errors, still show signup complete since account might have been created
+      if (error.message && (error.message.includes("Network") || error.message.includes("timeout"))) {
+        toast.warning("Network issue occurred. If you don't receive a confirmation email, please try again later.");
         setSignupComplete(true);
       } else {
         setError(error.message || "Failed to complete signup. Please try again.");
