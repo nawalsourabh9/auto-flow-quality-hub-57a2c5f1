@@ -3,6 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import * as bcrypt from 'bcryptjs';
 
+// Define an interface for the employee type that includes password_hash
+interface Employee {
+  id: string;
+  email: string;
+  password_hash: string;
+  name: string;
+  employee_id: string;
+  department: string;
+  position: string;
+  role: string;
+  status: string;
+  phone?: string;
+  supervisor_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export const signIn = async (email: string, password: string) => {
   const { data: employee, error } = await supabase
     .from('employees')
@@ -14,7 +31,10 @@ export const signIn = async (email: string, password: string) => {
     throw new Error('Invalid email or password');
   }
 
-  const passwordMatch = await bcrypt.compare(password, employee.password_hash);
+  // Cast the employee to our interface to ensure TypeScript knows about password_hash
+  const employeeWithPassword = employee as Employee;
+  
+  const passwordMatch = await bcrypt.compare(password, employeeWithPassword.password_hash);
   if (!passwordMatch) {
     throw new Error('Invalid email or password');
   }
