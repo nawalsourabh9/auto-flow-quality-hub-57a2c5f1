@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Loader2 } from "lucide-react";
+import { InfoIcon, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { NameFields } from "./NameFields";
 import { EmailVerificationSection } from "./EmailVerificationSection";
@@ -22,6 +22,7 @@ interface SignupFormProps {
   password: string;
   setPassword: (password: string) => void;
   submitting: boolean;
+  error?: string | null;
 }
 
 export const SignupForm = ({
@@ -35,6 +36,7 @@ export const SignupForm = ({
   password,
   setPassword,
   submitting,
+  error,
 }: SignupFormProps) => {
   const {
     otpSending,
@@ -100,6 +102,13 @@ export const SignupForm = ({
           You'll receive an email notification when your account is approved.
         </AlertDescription>
       </Alert>
+      
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       
       <form onSubmit={handleSubmitForm}>
         <div className="space-y-4">

@@ -13,6 +13,7 @@ const Signup = () => {
   const [lastName, setLastName] = useState("");
   const [signupComplete, setSignupComplete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { signUp } = useAuth();
 
   // For debugging - will log state changes
@@ -22,26 +23,40 @@ const Signup = () => {
       email,
       firstName,
       lastName,
-      submitting
+      submitting,
+      error
     });
-  }, [signupComplete, email, firstName, lastName, submitting]);
+  }, [signupComplete, email, firstName, lastName, submitting, error]);
 
   const handleVerificationComplete = async () => {
     try {
       setSubmitting(true);
+      setError(null);
       console.log("OTP verification completed. Creating account for:", email);
       
-      await signUp(email, password, {
+      const result = await signUp(email, password, {
         first_name: firstName,
         last_name: lastName
       });
       
-      setSignupComplete(true);
-      toast.success("Account created successfully! Waiting for admin approval.");
-    } catch (error) {
+      if (result && result.user) {
+        setSignupComplete(true);
+        toast.success("Account created successfully! Waiting for admin approval.");
+      }
+    } catch (error: any) {
       console.error("Error completing signup:", error);
-      toast.error("Failed to complete signup. Please try again.");
-      setSubmitting(false); // Only reset submitting on error
+      let errorMessage = "Failed to complete signup. Please try again.";
+      
+      if (error.code === "over_email_send_rate_limit") {
+        errorMessage = "Too many email requests. Please wait a few minutes before trying again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -73,6 +88,7 @@ const Signup = () => {
               password={password}
               setPassword={setPassword}
               submitting={submitting}
+              error={error}
             />
           )}
         </CardContent>
