@@ -353,6 +353,62 @@ export type Database = {
           },
         ]
       }
+      employees: {
+        Row: {
+          created_at: string | null
+          department: string
+          email: string
+          employee_id: string
+          id: string
+          name: string
+          phone: string | null
+          position: string
+          role: string
+          status: string
+          supervisor_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department: string
+          email: string
+          employee_id: string
+          id?: string
+          name: string
+          phone?: string | null
+          position: string
+          role: string
+          status?: string
+          supervisor_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department?: string
+          email?: string
+          employee_id?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          position?: string
+          role?: string
+          status?: string
+          supervisor_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       non_conformance_attachments: {
         Row: {
           file_path: string
@@ -695,11 +751,36 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: { user_id: string; role: Database["public"]["Enums"]["app_role"] }
+        Returns: boolean
+      }
       update_profile: {
         Args: {
           user_id: string
@@ -711,7 +792,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "user" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -826,6 +907,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "user", "viewer"],
+    },
   },
 } as const

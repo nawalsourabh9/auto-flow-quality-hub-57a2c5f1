@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -10,28 +9,28 @@ import { useEmployees } from "./hooks/useEmployees";
 import { Employee } from "./types";
 
 const Users = () => {
-  const { employees, setEmployees } = useEmployees();
+  const { employees, loading, updateEmployee, deleteEmployee } = useEmployees();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const handleEditEmployee = (data: Omit<Employee, "id">) => {
+  const handleEditEmployee = async (data: Omit<Employee, "id">) => {
     if (!editingEmployee) return;
     
-    const updatedEmployees = employees.map(emp => 
-      emp.id === editingEmployee.id ? { ...data, id: emp.id } : emp
-    );
-    
-    setEmployees(updatedEmployees);
-    setIsEditDialogOpen(false);
-    setEditingEmployee(null);
-    
-    toast({
-      title: "Employee Updated",
-      description: "The employee details have been successfully updated."
-    });
+    try {
+      await updateEmployee(editingEmployee.id, data);
+      setIsEditDialogOpen(false);
+      setEditingEmployee(null);
+      
+      toast({
+        title: "Employee Updated",
+        description: "The employee details have been successfully updated."
+      });
+    } catch (error) {
+      console.error("Failed to update employee:", error);
+    }
   };
 
   const openEditDialog = (employee: Employee) => {
@@ -39,18 +38,21 @@ const Users = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleDeleteEmployee = () => {
+  const handleDeleteEmployee = async () => {
     if (employeeToDelete !== null) {
-      const updatedEmployees = employees.filter(emp => emp.id !== employeeToDelete);
-      setEmployees(updatedEmployees);
-      setIsDeleteDialogOpen(false);
-      setEmployeeToDelete(null);
-      
-      toast({
-        title: "Employee Removed",
-        description: "The employee has been successfully removed from the system.",
-        variant: "destructive"
-      });
+      try {
+        await deleteEmployee(employeeToDelete);
+        setIsDeleteDialogOpen(false);
+        setEmployeeToDelete(null);
+        
+        toast({
+          title: "Employee Removed",
+          description: "The employee has been successfully removed from the system.",
+          variant: "destructive"
+        });
+      } catch (error) {
+        console.error("Failed to delete employee:", error);
+      }
     }
   };
 

@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 export const employeeFormSchema = z.object({
@@ -10,12 +9,16 @@ export const employeeFormSchema = z.object({
   position: z.string().min(1, { message: "Position is required." }),
   status: z.enum(["Active", "Inactive"], { message: "Please select a status." }),
   phone: z.string().optional(),
-  supervisorId: z.number().optional()
+  supervisorId: z.string().optional()
 });
 
-export type Employee = z.infer<typeof employeeFormSchema> & { id: number };
+export type Employee = z.infer<typeof employeeFormSchema> & { 
+  id: number;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
+};
 
-// Ensures all departments are consistent across the application
 export const departmentOptions = [
   "Executive",
   "Quality", 

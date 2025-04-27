@@ -1,60 +1,108 @@
 
 import { useState, useEffect } from "react";
 import { Employee } from "../types";
-
-const initialEmployees: Employee[] = [
-  { 
-    id: 1, 
-    name: "John Doe", 
-    email: "john.doe@example.com", 
-    role: "Admin", 
-    department: "Quality", 
-    status: "Active", 
-    employeeId: "EMP001", 
-    position: "Quality Manager",
-    phone: "+1 (555) 123-4567",
-    supervisorId: undefined
-  },
-  { id: 2, name: "Jane Smith", email: "jane.smith@example.com", role: "Manager", department: "Production", status: "Active", employeeId: "EMP002", position: "Production Lead" },
-  { id: 3, name: "Robert Johnson", email: "robert.johnson@example.com", role: "User", department: "Engineering", status: "Inactive", employeeId: "EMP003", position: "Design Engineer" },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const useEmployees = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [lastSyncTime, setLastSyncTime] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
-  // Load employees from localStorage on component mount and on regular intervals
   useEffect(() => {
-    const loadEmployees = () => {
-      const storedEmployees = localStorage.getItem('employees');
-      const currentTime = Date.now();
-      
-      if (storedEmployees) {
-        const parsedEmployees = JSON.parse(storedEmployees);
-        if (currentTime > lastSyncTime) {
-          setEmployees(parsedEmployees);
-          setLastSyncTime(currentTime);
-        }
-      } else {
-        setEmployees(initialEmployees);
-        localStorage.setItem('employees', JSON.stringify(initialEmployees));
-        setLastSyncTime(currentTime);
-      }
-    };
-    
-    loadEmployees();
-    const intervalId = setInterval(loadEmployees, 2000);
-    return () => clearInterval(intervalId);
-  }, [lastSyncTime]);
+    fetchEmployees();
+  }, []);
 
-  // Save employees to localStorage whenever they change
-  useEffect(() => {
-    if (employees.length > 0) {
-      const currentTime = Date.now();
-      localStorage.setItem('employees', JSON.stringify(employees));
-      setLastSyncTime(currentTime);
+  const fetchEmployees = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+
+      setEmployees(data.map(emp => ({
+        ...emp,
+        id: parseInt(emp.id), // Convert UUID to number for compatibility
+      })));
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      toast.error('Failed to load employees');
+    } finally {
+      setLoading = false;
     }
-  }, [employees]);
+  };
 
-  return { employees, setEmployees };
+  const addEmployee = async (employeeData: Omit<Employee, 'id'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .insert([employeeData])
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') { // Unique violation
+          toast.error('An employee with this email already exists');
+        } else {
+          toast.error('Failed to add employee');
+        }
+        throw error;
+      }
+
+      setEmployees(prev => [...prev, { ...data, id: parseInt(data.id) }]);
+      return data;
+    } catch (error) {
+      console.error('Error adding employee:', error);
+      throw error;
+    }
+  };
+
+  const updateEmployee = async (id: number, updates: Partial<Employee>) => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setEmployees(prev => 
+        prev.map(emp => emp.id === id ? { ...emp, ...data } : emp)
+      );
+      return data;
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      toast.error('Failed to update employee');
+      throw error;
+    }
+  };
+
+  const deleteEmployee = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setEmployees(prev => prev.filter(emp => emp.id !== id));
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      toast.error('Failed to delete employee');
+      throw error;
+    }
+  };
+
+  return { 
+    employees, 
+    loading, 
+    addEmployee, 
+    updateEmployee, 
+    deleteEmployee,
+    refetch: fetchEmployees
+  };
 };
