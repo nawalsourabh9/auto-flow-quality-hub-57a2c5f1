@@ -93,14 +93,19 @@ export const sendOTPEmail = async (to: string, otp: string) => {
   try {
     console.log(`Sending OTP email to ${to} with code ${otp}`);
     
-    // We don't need to generate HTML content here as the edge function will do that
-    return await supabase.functions.invoke('send-email', {
+    // We don't generate HTML here - sending a cleaner request to the edge function
+    const { data, error } = await supabase.functions.invoke('send-email', {
       body: {
         type: 'otp',
         to,
         otp
       }
     });
+
+    if (error) throw error;
+    
+    console.log("OTP email sent successfully:", data);
+    return data;
   } catch (error) {
     console.error("OTP email service error:", error);
     
