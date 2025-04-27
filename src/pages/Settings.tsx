@@ -10,7 +10,7 @@ const Settings = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Configure your E-QMS application settings</p>
+        <p className="text-muted-foreground">Configure your BDS Management System settings</p>
       </div>
       
       <Tabs defaultValue="general" className="w-full">
@@ -30,7 +30,7 @@ const Settings = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="company-name">Company Name</Label>
-                  <Input id="company-name" defaultValue="Auto Components Manufacturing" className="rounded-sm" />
+                  <Input id="company-name" defaultValue="BDS Manufacturing" className="rounded-sm" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="site-location">Site Location</Label>
