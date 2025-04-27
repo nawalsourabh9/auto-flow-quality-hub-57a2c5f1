@@ -8,7 +8,7 @@ export const employeeFormSchema = z.object({
   department: z.string().min(1, { message: "Please select a department." }),
   employeeId: z.string().min(1, { message: "Employee ID is required." }),
   position: z.string().min(1, { message: "Position is required." }),
-  status: z.enum(["Active", "Inactive"], { message: "Please select a status." }),
+  status: z.enum(["Active", "Inactive", "Pending"], { message: "Please select a status." }),
   phone: z.string().optional(),
   supervisorId: z.string().optional()
 });
@@ -21,7 +21,7 @@ export type Employee = {
   department: string;
   employeeId: string;
   position: string;
-  status: "Active" | "Inactive";
+  status: "Active" | "Inactive" | "Pending";
   phone?: string;
   supervisorId?: string;
   created_at?: string;

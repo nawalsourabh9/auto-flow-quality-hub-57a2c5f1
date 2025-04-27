@@ -1,3 +1,4 @@
+
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -145,6 +146,7 @@ export function EmployeeForm({
                   <SelectContent>
                     <SelectItem value="Active">Active</SelectItem>
                     <SelectItem value="Inactive">Inactive</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -176,8 +178,8 @@ export function EmployeeForm({
             <FormItem>
               <FormLabel>Reports To</FormLabel>
               <Select 
-                onValueChange={(value) => field.onChange(value === "none" ? undefined : parseInt(value))}
-                value={field.value?.toString() || "none"}
+                onValueChange={(value) => field.onChange(value === "none" ? undefined : value)}
+                value={field.value || "none"}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -187,7 +189,7 @@ export function EmployeeForm({
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
                   {employees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id.toString()}>
+                    <SelectItem key={emp.id} value={emp.id}>
                       {emp.name} - {emp.position}
                     </SelectItem>
                   ))}

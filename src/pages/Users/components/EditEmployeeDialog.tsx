@@ -31,6 +31,7 @@ export function EditEmployeeDialog({ isOpen, setIsOpen, employee, onSubmit, empl
   // Reset form when employee changes
   useEffect(() => {
     if (employee) {
+      console.log("Setting form values with:", { ...employee });
       form.reset({
         name: employee.name,
         email: employee.email,
@@ -40,12 +41,13 @@ export function EditEmployeeDialog({ isOpen, setIsOpen, employee, onSubmit, empl
         position: employee.position,
         status: employee.status,
         phone: employee.phone,
-        supervisorId: employee.supervisorId
+        supervisorId: employee.supervisorId || undefined
       });
     }
   }, [employee, form]);
 
   const handleSubmit = (data: Omit<Employee, "id">) => {
+    console.log("Submitting form with data:", data);
     onSubmit(data);
   };
 
@@ -64,7 +66,7 @@ export function EditEmployeeDialog({ isOpen, setIsOpen, employee, onSubmit, empl
           onSubmit={handleSubmit}
           submitButtonText="Update Employee"
           onCancel={handleCancel}
-          employees={employees}
+          employees={employees.filter(emp => employee ? emp.id !== employee.id : true)}
         />
       </DialogContent>
     </Dialog>
