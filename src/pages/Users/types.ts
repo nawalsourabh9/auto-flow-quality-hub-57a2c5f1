@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 export const employeeFormSchema = z.object({
@@ -12,8 +13,18 @@ export const employeeFormSchema = z.object({
   supervisorId: z.string().optional()
 });
 
-export type Employee = z.infer<typeof employeeFormSchema> & { 
-  id: number;
+// Modify the Employee type to match the database schema
+export type Employee = {
+  id: string;  // Changed from number to string to match UUID format
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  employeeId: string; // This will be mapped to/from employee_id
+  position: string;
+  status: "Active" | "Inactive";
+  phone?: string;
+  supervisorId?: string; // This will be mapped to/from supervisor_id
   created_at?: string;
   updated_at?: string;
   user_id?: string;

@@ -21,23 +21,50 @@ export const useEmployees = () => {
 
       if (error) throw error;
 
-      setEmployees(data.map(emp => ({
-        ...emp,
-        id: parseInt(emp.id), // Convert UUID to number for compatibility
-      })));
+      // Map database fields to our Employee type
+      const formattedEmployees: Employee[] = data.map(emp => ({
+        id: emp.id,
+        name: emp.name,
+        email: emp.email,
+        role: emp.role,
+        department: emp.department,
+        employeeId: emp.employee_id,
+        position: emp.position,
+        status: emp.status as "Active" | "Inactive",
+        phone: emp.phone || undefined,
+        supervisorId: emp.supervisor_id || undefined,
+        created_at: emp.created_at,
+        updated_at: emp.updated_at,
+        user_id: emp.user_id
+      }));
+
+      setEmployees(formattedEmployees);
     } catch (error) {
       console.error('Error fetching employees:', error);
       toast.error('Failed to load employees');
     } finally {
-      setLoading = false;
+      setLoading(false); // Fixed: call the function instead of reassigning
     }
   };
 
   const addEmployee = async (employeeData: Omit<Employee, 'id'>) => {
     try {
+      // Convert from our Employee type to database schema
+      const dbEmployee = {
+        name: employeeData.name,
+        email: employeeData.email,
+        role: employeeData.role,
+        department: employeeData.department,
+        employee_id: employeeData.employeeId,
+        position: employeeData.position,
+        status: employeeData.status,
+        phone: employeeData.phone,
+        supervisor_id: employeeData.supervisorId
+      };
+
       const { data, error } = await supabase
         .from('employees')
-        .insert([employeeData])
+        .insert([dbEmployee])
         .select()
         .single();
 
@@ -50,29 +77,75 @@ export const useEmployees = () => {
         throw error;
       }
 
-      setEmployees(prev => [...prev, { ...data, id: parseInt(data.id) }]);
-      return data;
+      // Map the response back to our Employee type
+      const newEmployee: Employee = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        department: data.department,
+        employeeId: data.employee_id,
+        position: data.position,
+        status: data.status as "Active" | "Inactive",
+        phone: data.phone || undefined,
+        supervisorId: data.supervisor_id || undefined,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        user_id: data.user_id
+      };
+
+      setEmployees(prev => [...prev, newEmployee]);
+      return newEmployee;
     } catch (error) {
       console.error('Error adding employee:', error);
       throw error;
     }
   };
 
-  const updateEmployee = async (id: number, updates: Partial<Employee>) => {
+  const updateEmployee = async (id: string, updates: Partial<Employee>) => {
     try {
+      // Convert from our Employee type to database schema
+      const dbUpdates: any = {};
+      if (updates.name) dbUpdates.name = updates.name;
+      if (updates.email) dbUpdates.email = updates.email;
+      if (updates.role) dbUpdates.role = updates.role;
+      if (updates.department) dbUpdates.department = updates.department;
+      if (updates.employeeId) dbUpdates.employee_id = updates.employeeId;
+      if (updates.position) dbUpdates.position = updates.position;
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+      if (updates.supervisorId !== undefined) dbUpdates.supervisor_id = updates.supervisorId;
+
       const { data, error } = await supabase
         .from('employees')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
 
+      // Map the response back to our Employee type
+      const updatedEmployee: Employee = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        department: data.department,
+        employeeId: data.employee_id,
+        position: data.position,
+        status: data.status as "Active" | "Inactive",
+        phone: data.phone || undefined,
+        supervisorId: data.supervisor_id || undefined,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        user_id: data.user_id
+      };
+
       setEmployees(prev => 
-        prev.map(emp => emp.id === id ? { ...emp, ...data } : emp)
+        prev.map(emp => emp.id === id ? updatedEmployee : emp)
       );
-      return data;
+      return updatedEmployee;
     } catch (error) {
       console.error('Error updating employee:', error);
       toast.error('Failed to update employee');
@@ -80,7 +153,7 @@ export const useEmployees = () => {
     }
   };
 
-  const deleteEmployee = async (id: number) => {
+  const deleteEmployee = async (id: string) => {
     try {
       const { error } = await supabase
         .from('employees')

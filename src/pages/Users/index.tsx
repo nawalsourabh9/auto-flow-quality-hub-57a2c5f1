@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -13,7 +14,7 @@ const Users = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null); // Changed from number to string
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleEditEmployee = async (data: Omit<Employee, "id">) => {

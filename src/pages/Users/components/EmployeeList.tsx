@@ -6,7 +6,7 @@ import { Employee } from "../types";
 interface EmployeeListProps {
   employees: Employee[];
   openEditDialog: (employee: Employee) => void;
-  setEmployeeToDelete: (id: number) => void;
+  setEmployeeToDelete: (id: string) => void;
   setIsDeleteDialogOpen: (isOpen: boolean) => void;
 }
 
