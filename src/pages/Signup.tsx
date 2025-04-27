@@ -69,7 +69,7 @@ const Signup = () => {
               setEmail={setEmail}
               firstName={firstName}
               setFirstName={setFirstName}
-              lastName={setLastName}
+              lastName={lastName} // Fixed: passing the state value instead of the setter function
               setLastName={setLastName}
               password={password}
               setPassword={setPassword}
