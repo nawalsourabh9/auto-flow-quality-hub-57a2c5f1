@@ -37,7 +37,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       
-      // First check account status
       const { data: approvalData, error: approvalError } = await supabase
         .from('account_approvals')
         .select('status_code')
@@ -79,7 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log("Starting signup process with data:", { email, userData });
       
-      // 1. Create the auth user
       const { error: authError, data } = await supabase.auth.signUp({
         email,
         password,
@@ -103,7 +101,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log("Auth user created successfully with ID:", data.user.id);
       
-      // 2. Create account approval entry
       const { error: approvalError } = await supabase
         .from('account_approvals')
         .insert({
@@ -123,7 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log("Account approval entry created successfully");
 
-      // 3. Create profile entry
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -140,7 +136,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log("Profile created successfully");
       
-      // 4. Create employee entry with basic information
       const { error: employeeError } = await supabase
         .from('employees')
         .insert({
@@ -167,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(error.message);
       console.error("Signup error:", error);
       toast.error(`Sign up failed: ${error.message}`);
-      throw error; // Rethrow to allow component to handle it
+      throw error;
     } finally {
       setLoading(false);
     }

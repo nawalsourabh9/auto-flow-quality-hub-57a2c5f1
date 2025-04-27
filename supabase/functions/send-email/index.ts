@@ -19,7 +19,6 @@ const getSmtpClient = async () => {
       }
     });
     
-    // No need to call connect explicitly as SMTPClient methods handle this internally
     console.log("SMTP client initialized successfully");
     return client;
   } catch (error) {
@@ -28,24 +27,9 @@ const getSmtpClient = async () => {
   }
 };
 
-interface SendEmailParams {
-  to: string | string[];
-  subject: string;
-  body: string;
-  isHtml?: boolean;
-}
-
-interface OTPEmailParams {
-  to: string;
-  otp: string;
-}
-
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: corsHeaders
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   let client;
@@ -54,9 +38,8 @@ serve(async (req) => {
     const requestData = await req.json();
     console.log("Email request received:", JSON.stringify(requestData, null, 2));
     
-    // Check if this is an OTP email request
     if (requestData.type === "otp") {
-      const { to, otp }: OTPEmailParams = requestData;
+      const { to, otp } = requestData;
       
       const htmlContent = getOTPEmailTemplate({
         otp,
@@ -66,7 +49,6 @@ serve(async (req) => {
       console.log(`Sending OTP email to ${to} with code ${otp}`);
       console.log("Using username:", Deno.env.get("EMAIL_USERNAME"));
       
-      // Initialize SMTP client
       client = await getSmtpClient();
       
       const emailResponse = await client.send({
@@ -83,12 +65,10 @@ serve(async (req) => {
       });
     } 
     
-    // Standard email request
-    const { to, subject, body, isHtml = false }: SendEmailParams = requestData;
+    const { to, subject, body, isHtml = false } = requestData;
     
     console.log(`Sending standard email to ${to}`);
     
-    // Initialize SMTP client
     client = await getSmtpClient();
     
     const emailResponse = await client.send({
@@ -113,7 +93,6 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   } finally {
-    // Close the SMTP client if it exists
     if (client) {
       try {
         await client.close();

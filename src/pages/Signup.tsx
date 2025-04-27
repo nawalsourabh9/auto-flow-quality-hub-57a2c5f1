@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
@@ -32,7 +31,7 @@ const Signup = () => {
     try {
       setSubmitting(true);
       setError(null);
-      console.log("OTP verification completed. Creating account for:", email);
+      console.log("Creating account for:", email);
       
       const result = await signUp(email, password, {
         first_name: firstName,
@@ -45,16 +44,8 @@ const Signup = () => {
       }
     } catch (error: any) {
       console.error("Error completing signup:", error);
-      let errorMessage = "Failed to complete signup. Please try again.";
-      
-      if (error.code === "over_email_send_rate_limit") {
-        errorMessage = "Too many email requests. Please wait a few minutes before trying again.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      setError(errorMessage);
-      toast.error(errorMessage);
+      setError(error.message || "Failed to complete signup. Please try again.");
+      toast.error(error.message || "Failed to complete signup. Please try again.");
     } finally {
       setSubmitting(false);
     }
