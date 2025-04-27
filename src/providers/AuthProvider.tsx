@@ -10,11 +10,12 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { session, user, loading, error, setError, setLoading } = useAuthSession();
 
-  const handleAsyncOperation = async (operation: () => Promise<any>) => {
+  const handleAsyncOperation = async <T,>(operation: () => Promise<T>): Promise<T> => {
     try {
       setLoading(true);
       setError(null);
-      await operation();
+      const result = await operation();
+      return result;
     } catch (error: any) {
       setError(error.message);
       throw error;
