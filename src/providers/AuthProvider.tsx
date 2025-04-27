@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,11 +87,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             ...userData,
             approved: false,
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/login`
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error("Auth error during signup:", authError);
+        throw authError;
+      }
       
       if (!data.user) {
         throw new Error('Failed to create user account');
@@ -159,10 +162,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("Employee record created successfully");
       
       toast.success('Sign up successful! Your account is pending approval. You will receive an email when approved.');
+      return data;
     } catch (error: any) {
       setError(error.message);
       console.error("Signup error:", error);
       toast.error(`Sign up failed: ${error.message}`);
+      throw error; // Rethrow to allow component to handle it
     } finally {
       setLoading(false);
     }

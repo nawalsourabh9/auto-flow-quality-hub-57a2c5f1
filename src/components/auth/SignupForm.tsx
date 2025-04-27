@@ -72,9 +72,10 @@ export const SignupForm = ({
     }
 
     try {
+      console.log("Form submission starting with data:", { email, firstName, lastName });
       await onVerificationStart();
     } catch (error) {
-      console.error("Error completing signup:", error);
+      console.error("Error in form submission:", error);
     }
   };
 
