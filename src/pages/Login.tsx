@@ -22,8 +22,9 @@ const Login = () => {
       setLoading(true);
       const { employee } = await signIn(email, password);
       
-      // Store employee data in localStorage
-      localStorage.setItem('employee', JSON.stringify(employee));
+      // Store employee data in localStorage, but omit sensitive information
+      const { password_hash, ...safeEmployeeData } = employee;
+      localStorage.setItem('employee', JSON.stringify(safeEmployeeData));
       
       const from = (location.state as any)?.from?.pathname || "/";
       navigate(from, { replace: true });

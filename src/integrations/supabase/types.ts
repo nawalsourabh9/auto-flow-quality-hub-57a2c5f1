@@ -361,13 +361,13 @@ export type Database = {
           employee_id: string
           id: string
           name: string
+          password_hash: string
           phone: string | null
           position: string
           role: string
           status: string
           supervisor_id: string | null
           updated_at: string | null
-          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -376,13 +376,13 @@ export type Database = {
           employee_id: string
           id?: string
           name: string
+          password_hash: string
           phone?: string | null
           position: string
           role: string
           status?: string
           supervisor_id?: string | null
           updated_at?: string | null
-          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -391,13 +391,13 @@ export type Database = {
           employee_id?: string
           id?: string
           name?: string
+          password_hash?: string
           phone?: string | null
           position?: string
           role?: string
           status?: string
           supervisor_id?: string | null
           updated_at?: string | null
-          user_id?: string | null
         }
         Relationships: [
           {

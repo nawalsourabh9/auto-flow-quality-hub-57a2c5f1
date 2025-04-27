@@ -1,9 +1,8 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import * as bcrypt from 'bcryptjs';
 
-// Define an interface for the employee type that includes password_hash
+// Define an interface for the employee type
 interface Employee {
   id: string;
   email: string;
@@ -31,13 +30,11 @@ export const signIn = async (email: string, password: string) => {
     throw new Error('Invalid email or password');
   }
 
-  // Check if password_hash exists on the employee record
-  if (!employee || !('password_hash' in employee)) {
+  if (!employee || !employee.password_hash) {
     throw new Error('Invalid email or password');
   }
 
-  // Now we can safely access password_hash
-  const passwordMatch = await bcrypt.compare(password, employee.password_hash as string);
+  const passwordMatch = await bcrypt.compare(password, employee.password_hash);
   if (!passwordMatch) {
     throw new Error('Invalid email or password');
   }
