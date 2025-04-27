@@ -64,7 +64,7 @@ export const useEmployees = () => {
         position: employeeData.position,
         status: employeeData.status,
         phone: employeeData.phone,
-        supervisor_id: employeeData.supervisorId,
+        supervisor_id: employeeData.supervisorId, // Direct mapping of supervisorId
         password_hash: hashedPassword
       };
 
