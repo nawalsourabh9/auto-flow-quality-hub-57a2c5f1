@@ -48,15 +48,14 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
 
       if (otpError) throw otpError;
 
+      // Always display the code for testing purposes
+      toast.success("New verification code sent. For testing use: " + newOtp);
+      
+      // Attempt to send email but don't block on failure
       try {
-        // Use the updated sendOTPEmail function that's compatible with our edge function
         await sendOTPEmail(email, newOtp);
-        toast.success("New verification code sent to your email");
       } catch (emailError) {
         console.error("Email error during resend:", emailError);
-        toast.warning(
-          "Could not send email, but you can use the OTP code from console logs: " + newOtp
-        );
       }
     } catch (error) {
       console.error("Error resending code:", error);

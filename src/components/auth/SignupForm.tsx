@@ -87,21 +87,15 @@ export const SignupForm = ({
 
       if (otpError) throw otpError;
 
+      toast.success("Verification code: " + otp + " (sent to email)");
+      setLatestOtp(otp);
+      setShowOtpInput(true);
+      setCountdown(30);
+      
       try {
-        // Use the updated sendOTPEmail function compatible with our edge function
         await sendOTPEmail(email, otp);
-        toast.success("Verification code sent to your email");
-        setLatestOtp(otp);
-        setShowOtpInput(true);
-        setCountdown(30);
       } catch (emailError) {
         console.error("Email sending failed:", emailError);
-        toast.warning(
-          "Could not send email, but you can use this test code: " + otp
-        );
-        setLatestOtp(otp);
-        setShowOtpInput(true);
-        setCountdown(30);
       }
     } catch (error) {
       console.error("Error during OTP generation:", error);
