@@ -34,31 +34,41 @@ export const signIn = async (email: string, password: string) => {
 export const signUp = async (email: string, password: string, userData?: any) => {
   console.log("Starting signup process with data:", { email, userData });
   
-  const { error: authError, data } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        ...userData,
-        approved: false,
-      },
-      emailRedirectTo: `${window.location.origin}/login`
-    }
-  });
+  try {
+    const { error: authError, data } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          ...userData,
+          approved: false,
+        },
+        emailRedirectTo: `${window.location.origin}/login`
+      }
+    });
 
-  if (authError) {
-    console.error("Auth error during signup:", authError);
-    throw authError;
+    if (authError) {
+      console.error("Auth error during signup:", authError);
+      throw authError;
+    }
+    
+    if (!data.user) {
+      throw new Error('Failed to create user account');
+    }
+    
+    await createUserRecords(data.user.id, email, userData);
+    
+    toast.success('Sign up successful! Your account is pending approval. You will receive an email when approved.');
+    return data;
+  } catch (error: any) {
+    // Handle retry errors specially
+    if (error.name === 'AuthRetryableFetchError' || error.status === 504) {
+      console.error("Network timeout during signup. The request may have completed but couldn't be confirmed.");
+      toast.error("Network timeout. Please check if your account was created before trying again.");
+      throw new Error("Network timeout. Your signup may have been processed but we couldn't confirm it. Please try logging in or contact support.");
+    }
+    throw error;
   }
-  
-  if (!data.user) {
-    throw new Error('Failed to create user account');
-  }
-  
-  await createUserRecords(data.user.id, email, userData);
-  
-  toast.success('Sign up successful! Your account is pending approval. You will receive an email when approved.');
-  return data;
 };
 
 const createUserRecords = async (userId: string, email: string, userData?: any) => {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
@@ -44,8 +45,16 @@ const Signup = () => {
       }
     } catch (error: any) {
       console.error("Error completing signup:", error);
-      setError(error.message || "Failed to complete signup. Please try again.");
-      toast.error(error.message || "Failed to complete signup. Please try again.");
+      
+      // Special handling for network timeouts
+      if (error.message && error.message.includes("Network timeout")) {
+        toast.warning("Network timeout occurred. If you don't receive a confirmation email, please try again later.");
+        // Still show signup complete screen since the account might have been created
+        setSignupComplete(true);
+      } else {
+        setError(error.message || "Failed to complete signup. Please try again.");
+        toast.error(error.message || "Failed to complete signup. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -74,7 +83,7 @@ const Signup = () => {
               setEmail={setEmail}
               firstName={firstName}
               setFirstName={setFirstName}
-              lastName={lastName}
+              lastName={setLastName}
               setLastName={setLastName}
               password={password}
               setPassword={setPassword}
