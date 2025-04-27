@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +26,7 @@ interface TeamMembersListProps {
   teamMembers: TeamMember[];
   onAddMember: (member: Omit<TeamMember, "id">) => void;
   onUpdateMember: (member: TeamMember) => void;
-  onDeleteMember: (memberId: number) => void;
+  onDeleteMember: (memberId: string) => void;
 }
 
 export function TeamMembersList({
@@ -72,7 +71,7 @@ export function TeamMembersList({
       .slice(0, 2);
   };
 
-  const getSupervisorName = (supervisorId: number | null): string => {
+  const getSupervisorName = (supervisorId: string | null): string => {
     if (!supervisorId) return "None";
     const supervisor = teamMembers.find(member => member.id === supervisorId);
     return supervisor ? supervisor.name : "Unknown";
@@ -105,7 +104,6 @@ export function TeamMembersList({
       supervisorId: null
     });
     
-    // Make sure localStorage is updated for Users page to see changes
     const existingEmployees = localStorage.getItem('employees');
     if (existingEmployees) {
       try {
@@ -309,7 +307,7 @@ export function TeamMembersList({
                   value={newMember.supervisorId?.toString() || "none"}
                   onValueChange={(value) => setNewMember({
                     ...newMember, 
-                    supervisorId: value && value !== "none" ? parseInt(value) : null
+                    supervisorId: value && value !== "none" ? value : null
                   })}
                 >
                   <SelectTrigger id="supervisor">
@@ -318,7 +316,7 @@ export function TeamMembersList({
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {supervisors.map(supervisor => (
-                      <SelectItem key={supervisor.id} value={supervisor.id.toString()}>
+                      <SelectItem key={supervisor.id} value={supervisor.id}>
                         {supervisor.name} - {supervisor.position}
                       </SelectItem>
                     ))}
@@ -400,7 +398,7 @@ export function TeamMembersList({
                   value={memberToEdit?.supervisorId?.toString() || "none"}
                   onValueChange={(value) => memberToEdit && setMemberToEdit({
                     ...memberToEdit, 
-                    supervisorId: value && value !== "none" ? parseInt(value) : null
+                    supervisorId: value && value !== "none" ? value : null
                   })}
                 >
                   <SelectTrigger id="editSupervisor">
@@ -411,7 +409,7 @@ export function TeamMembersList({
                     {supervisors
                       .filter(supervisor => supervisor.id !== memberToEdit?.id)
                       .map(supervisor => (
-                        <SelectItem key={supervisor.id} value={supervisor.id.toString()}>
+                        <SelectItem key={supervisor.id} value={supervisor.id}>
                           {supervisor.name} - {supervisor.position}
                         </SelectItem>
                       ))

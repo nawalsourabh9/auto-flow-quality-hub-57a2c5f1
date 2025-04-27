@@ -41,16 +41,16 @@ export interface Task {
 }
 
 // Team member interface for organization management
-export interface TeamMember {
-  id: number;
+export type TeamMember = {
+  id: string;  // Changed from number to string
   name: string;
   email: string;
   position: string;
   department: number;
   initials: string;
   phone?: string;
-  supervisorId?: number | null;
-}
+  supervisorId?: string | null;  // Changed from number to string
+};
 
 // Audit interface for audit management
 export interface Audit {

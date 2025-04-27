@@ -39,7 +39,7 @@ import { Employee } from "@/pages/Users/types";
 interface Department {
   id: number;
   name: string;
-  managerId: number | null;
+  managerId: string | null;
   parentDepartmentId: number | null;
   description: string;
 }
@@ -105,7 +105,8 @@ const convertEmployeeToTeamMember = (employee: Employee): TeamMember => {
     position: employee.position,
     department: departmentMap[employee.department] || 1,
     initials: initials,
-    phone: employee.phone
+    phone: employee.phone,
+    supervisorId: employee.supervisorId
   };
 };
 
@@ -117,7 +118,7 @@ const convertTeamMemberToEmployee = (teamMember: TeamMember): Employee => {
     position: teamMember.position,
     department: reverseDepartmentMap[teamMember.department] || "Executive",
     status: "Active",
-    employeeId: `EMP${String(teamMember.id).padStart(3, '0')}`,
+    employeeId: `EMP${teamMember.id.substring(0, 3)}`,
     phone: teamMember.phone,
     role: "User"
   };
@@ -189,7 +190,7 @@ const Organization = () => {
   }, [teamMembers]);
 
   const mergeEmployeesData = (convertedEmployees: Employee[], existingEmployees: Employee[]): Employee[] => {
-    const employeeMap = new Map<number, Employee>();
+    const employeeMap = new Map<string, Employee>();
     
     existingEmployees.forEach(emp => {
       employeeMap.set(emp.id, emp);
@@ -218,7 +219,7 @@ const Organization = () => {
     return departments.filter(dept => dept.parentDepartmentId === departmentId);
   };
 
-  const getManagerName = (managerId: number | null) => {
+  const getManagerName = (managerId: string | null) => {
     if (!managerId) return "Unassigned";
     const employee = employees.find(emp => emp.id === managerId);
     return employee ? employee.name : "Unassigned";
@@ -306,10 +307,10 @@ const Organization = () => {
   };
 
   const handleAddTeamMember = (newMember: Omit<TeamMember, "id">) => {
-    const highestId = teamMembers.reduce((max, member) => (member.id > max ? member.id : max), 0);
+    const newId = crypto.randomUUID();
     const member: TeamMember = {
       ...newMember,
-      id: highestId + 1
+      id: newId
     };
     setTeamMembers([...teamMembers, member]);
     
@@ -325,7 +326,7 @@ const Organization = () => {
     ));
   };
 
-  const handleDeleteTeamMember = (memberId: number) => {
+  const handleDeleteTeamMember = (memberId: string) => {
     setTeamMembers(teamMembers.filter(member => member.id !== memberId));
   };
 
