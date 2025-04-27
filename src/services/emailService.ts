@@ -93,14 +93,20 @@ export const sendOTPEmail = async (to: string, otp: string) => {
   try {
     console.log(`Sending OTP email to ${to} with code ${otp}`);
     
-    // Ensure we're sending exactly the format our edge function expects
+    // Make sure we're sending the exact format expected by the edge function
+    // This format was verified to work with your curl command
+    const requestBody = {
+      type: 'otp',
+      to,
+      otp
+    };
+    
+    console.log("Sending with request body:", requestBody);
+    
+    // Use a longer timeout for OTP emails
     const response = await Promise.race([
       supabase.functions.invoke('send-email', {
-        body: {
-          type: 'otp',
-          to,
-          otp
-        }
+        body: requestBody
       }),
       new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error("Request timeout")), 20000)
