@@ -93,21 +93,30 @@ export const sendOTPEmail = async (to: string, otp: string) => {
   try {
     console.log(`Sending OTP email to ${to} with code ${otp}`);
     
-    // We don't generate HTML here - sending a cleaner request to the edge function
-    const { data, error } = await supabase.functions.invoke('send-email', {
-      body: {
-        type: 'otp',
-        to,
-        otp
-      }
-    });
-
-    if (error) throw error;
+    // Ensure we're sending exactly the format our edge function expects
+    const response = await Promise.race([
+      supabase.functions.invoke('send-email', {
+        body: {
+          type: 'otp',
+          to,
+          otp
+        }
+      }),
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error("Request timeout")), 20000)
+      )
+    ]);
     
-    console.log("OTP email sent successfully:", data);
-    return data;
+    if (response.error) {
+      console.error("OTP email error response:", response.error);
+      throw response.error;
+    }
+    
+    console.log("OTP email sent successfully:", response.data);
+    return response.data;
   } catch (error) {
     console.error("OTP email service error:", error);
+    console.error("Error details:", error instanceof Error ? error.message : String(error));
     
     // Return mock data instead of throwing
     return {
