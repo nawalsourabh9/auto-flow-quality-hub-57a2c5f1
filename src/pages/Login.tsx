@@ -54,76 +54,6 @@ const Login = () => {
     }
   };
 
-  // Debug function to check approval status
-  const checkApprovalStatus = async () => {
-    if (!email) {
-      toast.error("Please enter an email first");
-      return;
-    }
-    
-    try {
-      setDebugInfo("Checking approval status...");
-      
-      // First try to sign in to get the user ID
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) {
-        setDebugInfo(`Login error: ${error.message}`);
-        return;
-      }
-      
-      if (!data.user) {
-        setDebugInfo(`User with email ${email} not found`);
-        return;
-      }
-      
-      // Now get the approval status
-      const { data: approvalData, error: approvalError } = await supabase
-        .from('account_approvals')
-        .select('status')
-        .eq('user_id', data.user.id)
-        .maybeSingle();
-      
-      if (approvalError) {
-        setDebugInfo(`Approval check error: ${approvalError.message}`);
-        return;
-      }
-      
-      if (!approvalData) {
-        setDebugInfo(`No approval record found for ${email}`);
-      } else {
-        setDebugInfo(`Approval status for ${email}: ${approvalData.status}`);
-      }
-      
-      // Sign out after checking
-      await supabase.auth.signOut();
-      
-    } catch (error: any) {
-      setDebugInfo(`Error: ${error.message}`);
-    }
-  };
-
-  // Debug function to create admin
-  const recreateAdmin = async () => {
-    try {
-      setDebugInfo("Attempting to recreate admin...");
-      const { data, error } = await supabase.functions.invoke('create-admin');
-      
-      if (error) {
-        setDebugInfo(`Admin creation error: ${error.message}`);
-        return;
-      }
-      
-      setDebugInfo(`Admin creation result: ${JSON.stringify(data)}`);
-      toast.success("Admin user recreation attempted. Check debug info for results.");
-    } catch (error: any) {
-      setDebugInfo(`Error: ${error.message}`);
-    }
-  };
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-gray-900">
       <Card className="mx-auto w-full max-w-md">
@@ -182,30 +112,6 @@ const Login = () => {
               <div className="p-3 text-xs bg-gray-100 rounded overflow-auto max-h-32">
                 <p className="font-semibold">Debug Info:</p>
                 <pre className="whitespace-pre-wrap">{debugInfo}</pre>
-              </div>
-            )}
-            
-            {/* Debug buttons - only visible in development */}
-            {import.meta.env.DEV && (
-              <div className="flex gap-2 mt-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs"
-                  onClick={checkApprovalStatus}
-                >
-                  Check Approval
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-xs"
-                  onClick={recreateAdmin}
-                >
-                  Recreate Admin
-                </Button>
               </div>
             )}
           </CardContent>
