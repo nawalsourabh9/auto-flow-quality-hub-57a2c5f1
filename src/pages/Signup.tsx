@@ -41,7 +41,6 @@ const Signup = () => {
     } catch (error) {
       console.error("Error completing signup:", error);
       toast.error("Failed to complete signup. Please try again.");
-    } finally {
       setSubmitting(false);
     }
   };

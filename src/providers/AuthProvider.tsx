@@ -17,6 +17,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log("Auth state change event:", event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setLoading(false);
@@ -77,7 +78,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       
-      const { error, data } = await supabase.auth.signUp({
+      console.log("Starting signup process with data:", { email, userData });
+      
+      // 1. Create the auth user
+      const { error: authError, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -88,26 +92,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
       
-      if (data.user) {
-        const { error: dbError } = await supabase
-          .from('account_approvals')
-          .insert({
-            user_id: data.user.id,
-            email: email,
-            first_name: userData?.first_name || '',
-            last_name: userData?.last_name || '',
-            status: 'pending',
-            created_at: new Date().toISOString()
-          });
-        
-        if (dbError) throw dbError;
+      if (!data.user) {
+        throw new Error('Failed to create user account');
       }
+      
+      console.log("Auth user created successfully with ID:", data.user.id);
+      
+      // 2. Create account approval entry
+      const { error: approvalError } = await supabase
+        .from('account_approvals')
+        .insert({
+          user_id: data.user.id,
+          email: email,
+          first_name: userData?.first_name || '',
+          last_name: userData?.last_name || '',
+          status: 'pending',
+          status_code: 'pending',
+          created_at: new Date().toISOString()
+        });
+      
+      if (approvalError) {
+        console.error("Error creating approval record:", approvalError);
+        throw approvalError;
+      }
+      
+      console.log("Account approval entry created successfully");
+
+      // 3. Create profile entry
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          first_name: userData?.first_name || '',
+          last_name: userData?.last_name || '',
+          email: email
+        });
+      
+      if (profileError) {
+        console.error("Error creating profile:", profileError);
+        throw profileError;
+      }
+      
+      console.log("Profile created successfully");
+      
+      // 4. Create employee entry with basic information
+      const { error: employeeError } = await supabase
+        .from('employees')
+        .insert({
+          user_id: data.user.id,
+          name: `${userData?.first_name || ''} ${userData?.last_name || ''}`.trim(),
+          email: email,
+          employee_id: `EMP-${Math.floor(100000 + Math.random() * 900000)}`,
+          department: 'Unassigned',
+          position: 'New Employee',
+          role: 'user',
+          status: 'Pending'
+        });
+      
+      if (employeeError) {
+        console.error("Error creating employee record:", employeeError);
+        throw employeeError;
+      }
+      
+      console.log("Employee record created successfully");
       
       toast.success('Sign up successful! Your account is pending approval. You will receive an email when approved.');
     } catch (error: any) {
       setError(error.message);
+      console.error("Signup error:", error);
       toast.error(`Sign up failed: ${error.message}`);
     } finally {
       setLoading(false);
