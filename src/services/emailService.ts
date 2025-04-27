@@ -9,6 +9,17 @@ interface SendEmailParams {
   isHtml?: boolean;
 }
 
+interface EmailResponse {
+  data: {
+    id: string;
+    from: string;
+    to: string[];
+    created_at: string;
+    [key: string]: any;
+  } | null;
+  error: Error | null;
+}
+
 export const sendEmail = async ({
   to,
   subject,
@@ -36,10 +47,10 @@ export const sendEmail = async ({
               isHtml
             }
           }),
-          new Promise((_, reject) => 
+          new Promise<never>((_, reject) => 
             setTimeout(() => reject(new Error("Request timeout")), 10000)
           )
-        ]);
+        ]) as EmailResponse;
         
         data = response.data;
         error = response.error;
