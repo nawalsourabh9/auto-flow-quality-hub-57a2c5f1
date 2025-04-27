@@ -3,10 +3,12 @@ import { useState, useEffect } from "react";
 import { Employee } from "../types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 export const useEmployees = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchEmployees();
@@ -43,13 +45,12 @@ export const useEmployees = () => {
       console.error('Error fetching employees:', error);
       toast.error('Failed to load employees');
     } finally {
-      setLoading(false); // Fixed: call the function instead of reassigning
+      setLoading(false);
     }
   };
 
   const addEmployee = async (employeeData: Omit<Employee, 'id'>) => {
     try {
-      // Convert from our Employee type to database schema
       const dbEmployee = {
         name: employeeData.name,
         email: employeeData.email,
@@ -59,7 +60,8 @@ export const useEmployees = () => {
         position: employeeData.position,
         status: employeeData.status,
         phone: employeeData.phone,
-        supervisor_id: employeeData.supervisorId
+        supervisor_id: employeeData.supervisorId,
+        user_id: user?.id // Link employee to current user if they're creating their own record
       };
 
       const { data, error } = await supabase
@@ -77,7 +79,6 @@ export const useEmployees = () => {
         throw error;
       }
 
-      // Map the response back to our Employee type
       const newEmployee: Employee = {
         id: data.id,
         name: data.name,
