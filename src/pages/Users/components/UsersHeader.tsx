@@ -1,6 +1,9 @@
 
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { UserSearch } from "./UserSearch";
+import { Button } from "@/components/ui/button";
+import { UserRoundPlus } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface UsersHeaderProps {
   searchTerm: string;
@@ -13,6 +16,12 @@ export const UsersHeader = ({ searchTerm, setSearchTerm }: UsersHeaderProps) => 
       <CardTitle className="text-lg">Employees</CardTitle>
       <div className="flex items-center gap-2">
         <UserSearch searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+        <Link to="/invite-user">
+          <Button size="sm" className="flex items-center gap-1">
+            <UserRoundPlus className="h-4 w-4" />
+            Invite User
+          </Button>
+        </Link>
       </div>
     </CardHeader>
   );
