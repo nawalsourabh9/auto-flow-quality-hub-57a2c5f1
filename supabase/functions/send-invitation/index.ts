@@ -75,13 +75,6 @@ serve(async (req) => {
       );
     }
 
-    // Create a team member record - we'll create this during user signup instead
-    // to avoid DB schema issues and focus on successful invitation
-    if (firstName && lastName && position) {
-      const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-      console.log(`User data prepared with initials: ${initials}, ready for account creation`);
-    }
-
     // Preparing user metadata with all the provided information
     const userData = {
       role: role || "user",
@@ -96,22 +89,18 @@ serve(async (req) => {
 
     console.log("Sending invitation with user data:", JSON.stringify(userData, null, 2));
     
-    // Generate signup link with custom redirect URL
+    // Generate invite URL with specified redirect URL
     const redirectTo = `${req.headers.get("origin")}/accept-invite`;
     console.log(`Setting redirect URL to: ${redirectTo}`);
-    
-    // Send invitation email
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: "signup",
-      email: email,
-      options: {
-        redirectTo: redirectTo,
-        data: userData,
-      }
+
+    // Instead of using auth.admin.generateLink, use auth.admin.inviteUserByEmail
+    const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
+      redirectTo: redirectTo,
+      data: userData,
     });
 
     if (error) {
-      console.error("Error generating signup link:", error);
+      console.error("Error sending invitation:", error);
       return new Response(
         JSON.stringify({ error: error.message }),
         {
@@ -121,25 +110,9 @@ serve(async (req) => {
       );
     }
 
-    console.log("Signup link generated successfully");
+    console.log("Invitation sent successfully, response:", data);
     
-    // Get the signup URL from the response
-    const signupURL = data?.properties?.action_link;
-    
-    if (!signupURL) {
-      console.error("No signup URL was generated");
-      return new Response(
-        JSON.stringify({ error: "Failed to generate signup URL" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    console.log("Signup URL generated:", signupURL);
-    
-    // Send a custom email using fetch to the send-email function
+    // Send a custom email as well using the send-email function
     try {
       console.log("Sending custom invitation email via send-email function");
       
@@ -151,18 +124,12 @@ serve(async (req) => {
           <p>Hello ${fullName},</p>
           <p>You have been invited to join BDS Manufacturing's Quality Management System${positionText}.</p>
           <p>Our QMS platform helps us maintain compliance with IATF 16949 and ISO 9001 standards while improving our quality processes.</p>
-          <p>Please click the button below to create your account:</p>
-          <div style="margin: 30px 0; text-align: center;">
-            <a href="${signupURL}" style="background-color: #0055a4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Create Account</a>
-          </div>
-          <p>If the button doesn't work, you can copy and paste this URL into your browser:</p>
-          <p style="word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 4px;">${signupURL}</p>
+          <p>Please check your email for an invitation link to create your account.</p>
           <p>If you have any questions, please contact your administrator.</p>
           <p>Thank you,<br>BDS Manufacturing QMS Team</p>
         </div>
       `;
 
-      // Use the send-email edge function instead of direct SMTP
       const emailResponse = await supabase.functions.invoke("send-email", {
         body: {
           to: email,
