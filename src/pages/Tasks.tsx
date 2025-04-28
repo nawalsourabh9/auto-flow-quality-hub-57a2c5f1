@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import TaskForm from "@/components/tasks/TaskForm";
 import { useTasks } from "@/hooks/use-tasks";
+import { supabase } from "@/integrations/supabase/client";
 
 const Tasks = () => {
   const { data: tasks = [], isLoading } = useTasks();
@@ -37,7 +38,7 @@ const Tasks = () => {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
-  const pendingTasks = tasks.filter(task => task.approval_status === 'pending');
+  const pendingTasks = tasks.filter(task => task.approvalStatus === 'pending');
 
   const filteredPendingTasks = pendingTasks.filter(task => {
     const matchesSearch = 
@@ -111,14 +112,24 @@ const Tasks = () => {
     }
   };
 
-  const handleCreateTask = async (newTask: Omit<Task, "id" | "created_at">) => {
+  const handleCreateTask = async (newTask: Omit<Task, "id" | "createdAt">) => {
     try {
       const needsApproval = !isDepartmentHead();
       
       const { data, error } = await supabase
         .from('tasks')
         .insert({
-          ...newTask,
+          title: newTask.title,
+          description: newTask.description,
+          department: newTask.department,
+          assignee: newTask.assignee,
+          priority: newTask.priority,
+          due_date: newTask.dueDate,
+          is_recurring: newTask.isRecurring || false,
+          is_customer_related: newTask.isCustomerRelated || false,
+          customer_name: newTask.customerName,
+          recurring_frequency: newTask.recurringFrequency,
+          attachments_required: newTask.attachmentsRequired,
           approval_status: needsApproval ? 'pending' : 'approved',
           status: 'not-started'
         })
