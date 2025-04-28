@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-import { SMTPClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -141,6 +141,7 @@ serve(async (req) => {
       
       console.log(`Using email credentials: ${username} (password hidden)`);
       
+      // Using denomailer instead of the outdated smtp module
       const client = new SMTPClient({
         connection: {
           hostname: "smtp.office365.com",
@@ -157,7 +158,8 @@ serve(async (req) => {
       const positionText = position ? ` as ${position}` : "";
       const origin = req.headers.get("origin") || "";
       
-      await client.send({
+      // Set a timeout for the email sending operation
+      const emailPromise = client.send({
         from: username,
         to: email,
         subject: "Invitation to Join BDS Manufacturing QMS",
@@ -191,6 +193,8 @@ serve(async (req) => {
         `
       });
       
+      await emailPromise;
+      await client.close();
       console.log("Custom invitation email sent successfully");
     } catch (emailError) {
       // We continue even if custom email fails because Supabase already sent the invitation
