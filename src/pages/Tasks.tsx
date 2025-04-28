@@ -11,123 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import TaskForm from "@/components/tasks/TaskForm";
-
-// Sample task data
-const sampleTasks: Task[] = [
-  {
-    id: "1",
-    title: "Review Process Flow Diagram for Assembly Line 3",
-    description: "Analyze and update the process flow for improved efficiency",
-    department: "Engineering",
-    assignee: "JD",
-    priority: "high",
-    dueDate: "2025-04-15",
-    status: "in-progress",
-    createdAt: "2025-04-01",
-    isRecurring: false,
-    attachmentsRequired: "required",
-    assigneeDetails: {
-      name: "John Doe",
-      initials: "JD",
-      department: "Engineering",
-      position: "Process Engineer"
-    }
-  },
-  {
-    id: "2",
-    title: "Quality Audit - Supplier ABC",
-    description: "Conduct quality audit for new supplier components",
-    department: "Quality",
-    assignee: "SM",
-    priority: "medium",
-    dueDate: "2025-04-20",
-    status: "not-started",
-    createdAt: "2025-04-02",
-    isRecurring: false,
-    attachmentsRequired: "optional",
-    assigneeDetails: {
-      name: "Sarah Miller",
-      initials: "SM",
-      department: "Quality",
-      position: "Quality Specialist"
-    }
-  },
-  {
-    id: "3",
-    title: "Update Customer Complaint Documentation",
-    description: "Review and update the customer complaint handling procedure",
-    department: "Quality",
-    assignee: "RJ",
-    priority: "high",
-    dueDate: "2025-04-08",
-    status: "overdue",
-    createdAt: "2025-03-25",
-    isRecurring: false,
-    isCustomerRelated: true,
-    customerName: "XYZ Industries",
-    attachmentsRequired: "required",
-    assigneeDetails: {
-      name: "Robert Johnson",
-      initials: "RJ",
-      department: "Quality",
-      position: "Quality Manager"
-    }
-  }
-];
-
-// Sample pending approval tasks
-const pendingApprovalTasks: Task[] = [
-  {
-    id: "4",
-    title: "Equipment Calibration for Lab Instruments",
-    description: "Perform quarterly calibration of all laboratory instruments",
-    department: "Quality",
-    assignee: "",
-    priority: "high",
-    dueDate: "2025-04-25",
-    status: "not-started",
-    createdAt: "2025-04-07",
-    isRecurring: true,
-    recurringFrequency: "Quarterly",
-    attachmentsRequired: "required",
-    assigneeDetails: {
-      name: "",
-      initials: "",
-      department: "Quality",
-      position: ""
-    }
-  },
-  {
-    id: "5",
-    title: "Regulatory Compliance Review",
-    description: "Review recent regulatory changes and update compliance documentation",
-    department: "Regulatory",
-    assignee: "",
-    priority: "medium",
-    dueDate: "2025-04-30",
-    status: "not-started",
-    createdAt: "2025-04-08",
-    isRecurring: false,
-    attachmentsRequired: "optional",
-    assigneeDetails: {
-      name: "",
-      initials: "",
-      department: "Regulatory",
-      position: ""
-    }
-  }
-];
+import { useTasks } from "@/hooks/use-tasks";
 
 const Tasks = () => {
-  const [tasks, setTasks] = useState<Task[]>(sampleTasks);
-  const [pendingTasks, setPendingTasks] = useState<Task[]>(pendingApprovalTasks);
+  const { data: tasks = [], isLoading } = useTasks();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all-tasks");
 
-  // Check if the current user is a department head (mock function)
   const isDepartmentHead = () => {
     // In a real app, this would check the user's role
     return true;
@@ -136,7 +29,7 @@ const Tasks = () => {
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = 
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      task.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     
     const matchesStatus = !statusFilter || task.status === statusFilter;
     const matchesPriority = !priorityFilter || task.priority === priorityFilter;
@@ -144,10 +37,12 @@ const Tasks = () => {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
+  const pendingTasks = tasks.filter(task => task.approval_status === 'pending');
+
   const filteredPendingTasks = pendingTasks.filter(task => {
     const matchesSearch = 
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      task.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     
     const matchesPriority = !priorityFilter || task.priority === priorityFilter;
     
@@ -160,78 +55,103 @@ const Tasks = () => {
       title: "Task Selected",
       description: `Viewing task: ${task.title}`
     });
-    // Task viewing logic here
   };
 
-  const handleApproveTask = (task: Task) => {
-    // In a real app, this would call an API to approve the task
-    setPendingTasks(pendingTasks.filter(t => t.id !== task.id));
-    
-    // Add the task to the regular tasks list with a random assignee
-    const assignees = ["JD", "SM", "RJ"];
-    const randomAssignee = assignees[Math.floor(Math.random() * assignees.length)];
-    const assigneeDetails = {
-      name: randomAssignee === "JD" ? "John Doe" : randomAssignee === "SM" ? "Sarah Miller" : "Robert Johnson",
-      initials: randomAssignee,
-      department: task.department,
-      position: randomAssignee === "JD" ? "Process Engineer" : randomAssignee === "SM" ? "Quality Specialist" : "Quality Manager"
-    };
-    
-    const approvedTask: Task = {
-      ...task,
-      assignee: randomAssignee,
-      assigneeDetails,
-      status: "not-started"
-    };
-    
-    setTasks([...tasks, approvedTask]);
-    
-    toast({
-      title: "Task Approved",
-      description: `Task "${task.title}" has been approved and assigned to ${assigneeDetails.name}`
-    });
-  };
+  const handleApproveTask = async (task: Task) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          approval_status: 'approved',
+          approved_by: (await supabase.auth.getUser()).data.user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', task.id);
 
-  const handleRejectTask = (task: Task) => {
-    // In a real app, this would call an API to reject the task
-    setPendingTasks(pendingTasks.filter(t => t.id !== task.id));
-    
-    toast({
-      title: "Task Rejected",
-      description: `Task "${task.title}" has been rejected`
-    });
-  };
+      if (error) throw error;
 
-  const handleCreateTask = (newTask: Task) => {
-    // Add a unique ID to the new task
-    const taskWithId = {
-      ...newTask,
-      id: String(Date.now()),
-      createdAt: new Date().toISOString().split('T')[0],
-      status: 'not-started' as 'not-started' | 'in-progress' | 'overdue' | 'completed'
-    };
-    
-    // Determine if the task needs approval
-    const needsApproval = isDepartmentHead() ? false : true;
-    
-    if (needsApproval) {
-      // If needs approval, add to pending tasks
-      setPendingTasks([...pendingTasks, taskWithId]);
       toast({
-        title: "Task Submitted for Approval",
-        description: "Your task has been submitted and is awaiting approval."
+        title: "Task Approved",
+        description: `Task "${task.title}" has been approved`
       });
-    } else {
-      // If created by department head, add directly to tasks
-      setTasks([...tasks, taskWithId]);
+    } catch (error) {
+      console.error('Error approving task:', error);
       toast({
-        title: "Task Created",
-        description: `Task "${taskWithId.title}" has been created successfully.`
+        title: "Error",
+        description: "Failed to approve task",
+        variant: "destructive"
       });
     }
-    
-    setIsCreateDialogOpen(false);
   };
+
+  const handleRejectTask = async (task: Task) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          approval_status: 'rejected',
+          rejected_by: (await supabase.auth.getUser()).data.user?.id,
+          rejected_at: new Date().toISOString()
+        })
+        .eq('id', task.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Task Rejected",
+        description: `Task "${task.title}" has been rejected`
+      });
+    } catch (error) {
+      console.error('Error rejecting task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject task",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCreateTask = async (newTask: Omit<Task, "id" | "created_at">) => {
+    try {
+      const needsApproval = !isDepartmentHead();
+      
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({
+          ...newTask,
+          approval_status: needsApproval ? 'pending' : 'approved',
+          status: 'not-started'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: needsApproval ? "Task Submitted for Approval" : "Task Created",
+        description: needsApproval 
+          ? "Your task has been submitted and is awaiting approval."
+          : `Task "${data.title}" has been created successfully.`
+      });
+
+      setIsCreateDialogOpen(false);
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create task",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-muted-foreground">Loading tasks...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
