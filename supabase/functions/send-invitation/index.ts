@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { SMTPClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -131,17 +131,70 @@ serve(async (req) => {
     try {
       console.log("Attempting to send custom invitation email");
       
-      await sendCustomInvitationEmail({
-        to: email, 
-        firstName: firstName || "",
-        lastName: lastName || "",
-        position: position || "",
-        origin: req.headers.get("origin") || ""
+      const username = Deno.env.get("EMAIL_USERNAME");
+      const password = Deno.env.get("EMAIL_PASSWORD");
+      
+      if (!username || !password) {
+        console.error("Missing email credentials");
+        throw new Error("Email configuration is incomplete");
+      }
+      
+      console.log(`Using email credentials: ${username} (password hidden)`);
+      
+      const client = new SMTPClient({
+        connection: {
+          hostname: "smtp.office365.com",
+          port: 587,
+          tls: true,
+          auth: {
+            username,
+            password,
+          }
+        },
       });
+
+      const fullName = firstName && lastName ? `${firstName} ${lastName}` : email;
+      const positionText = position ? ` as ${position}` : "";
+      const origin = req.headers.get("origin") || "";
+      
+      await client.send({
+        from: username,
+        to: email,
+        subject: "Invitation to Join BDS Manufacturing QMS",
+        content: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e4e4e4; border-radius: 5px;">
+            <h1 style="color: #0055a4; margin-bottom: 20px;">Welcome to BDS Manufacturing!</h1>
+            <p>Hello ${fullName},</p>
+            <p>You have been invited to join BDS Manufacturing's Quality Management System${positionText}.</p>
+            <p>Our QMS platform helps us maintain compliance with IATF 16949 and ISO 9001 standards while improving our quality processes.</p>
+            <p>You will receive a separate email with a link to set up your account. If you don't see it, please check your spam folder.</p>
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="${origin}/accept-invite" style="background-color: #0055a4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Accept Invitation</a>
+            </div>
+            <p>If you have any questions, please contact your administrator.</p>
+            <p>Thank you,<br>BDS Manufacturing QMS Team</p>
+          </div>
+        `,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e4e4e4; border-radius: 5px;">
+            <h1 style="color: #0055a4; margin-bottom: 20px;">Welcome to BDS Manufacturing!</h1>
+            <p>Hello ${fullName},</p>
+            <p>You have been invited to join BDS Manufacturing's Quality Management System${positionText}.</p>
+            <p>Our QMS platform helps us maintain compliance with IATF 16949 and ISO 9001 standards while improving our quality processes.</p>
+            <p>You will receive a separate email with a link to set up your account. If you don't see it, please check your spam folder.</p>
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="${origin}/accept-invite" style="background-color: #0055a4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Accept Invitation</a>
+            </div>
+            <p>If you have any questions, please contact your administrator.</p>
+            <p>Thank you,<br>BDS Manufacturing QMS Team</p>
+          </div>
+        `
+      });
+      
       console.log("Custom invitation email sent successfully");
     } catch (emailError) {
+      // We continue even if custom email fails because Supabase already sent the invitation
       console.error("Failed to send custom invitation email:", emailError);
-      // Continue even if custom email fails, since Supabase invitation was sent
     }
 
     return new Response(
@@ -162,79 +215,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Function to send a custom email invitation
-async function sendCustomInvitationEmail({ to, firstName, lastName, position, origin }: {
-  to: string;
-  firstName: string;
-  lastName: string;
-  position: string;
-  origin: string;
-}) {
-  const username = Deno.env.get("EMAIL_USERNAME");
-  const password = Deno.env.get("EMAIL_PASSWORD");
-
-  if (!username || !password) {
-    console.error("Missing email credentials");
-    throw new Error("Email configuration is incomplete");
-  }
-
-  console.log(`Using email credentials: ${username} (password hidden)`);
-  
-  try {
-    // Configure SMTP client with error handling
-    const client = new SMTPClient({
-      connection: {
-        hostname: "smtp.office365.com",
-        port: 587,
-        tls: true,
-        auth: {
-          username,
-          password,
-        },
-      },
-      debug: true, // Enable debug logging
-    });
-
-    const fullName = firstName && lastName ? `${firstName} ${lastName}` : to;
-    const positionText = position ? ` as ${position}` : "";
-
-    console.log(`Sending email to: ${to}, fullName: ${fullName}`);
-    
-    // Send email with timeout handling
-    const sendPromise = client.send({
-      from: username,
-      to,
-      subject: "Invitation to Join BDS Manufacturing QMS",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e4e4e4; border-radius: 5px;">
-          <h1 style="color: #0055a4; margin-bottom: 20px;">Welcome to BDS Manufacturing!</h1>
-          <p>Hello ${fullName},</p>
-          <p>You have been invited to join BDS Manufacturing's Quality Management System${positionText}.</p>
-          <p>Our QMS platform helps us maintain compliance with IATF 16949 and ISO 9001 standards while improving our quality processes.</p>
-          <p>You will receive a separate email with a link to set up your account. If you don't see it, please check your spam folder.</p>
-          <div style="margin: 30px 0; text-align: center;">
-            <a href="${origin}/accept-invite" style="background-color: #0055a4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Accept Invitation</a>
-          </div>
-          <p>If you have any questions, please contact your administrator.</p>
-          <p>Thank you,<br>BDS Manufacturing QMS Team</p>
-        </div>
-      `,
-    });
-
-    // Set a timeout for the email sending operation
-    const timeout = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Email sending timed out")), 30000);
-    });
-
-    // Wait for either the send operation to complete or timeout
-    await Promise.race([sendPromise, timeout]);
-
-    console.log("Email sent, closing connection");
-    await client.close();
-    console.log("SMTP connection closed");
-  } catch (error) {
-    console.error("Error sending custom invitation email:", error);
-    throw new Error(`Failed to send custom invitation email: ${error.message}`);
-  }
-}
