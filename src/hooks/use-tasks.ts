@@ -7,18 +7,10 @@ export const useTasks = () => {
   return useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
+      // Remove the problematic join query and fetch only tasks
       const { data, error } = await supabase
         .from("tasks")
-        .select(`
-          *,
-          assigneeDetails:team_members!tasks_assignee_fkey(
-            name,
-            avatar,
-            initials,
-            department,
-            position
-          )
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -42,13 +34,8 @@ export const useTasks = () => {
         customerName: item.customer_name || "",
         recurringFrequency: item.recurring_frequency || "",
         attachmentsRequired: item.attachments_required as 'none' | 'optional' | 'required',
-        assigneeDetails: item.assigneeDetails ? {
-          name: item.assigneeDetails.name,
-          avatar: item.assigneeDetails.avatar,
-          initials: item.assigneeDetails.initials,
-          department: item.assigneeDetails.department,
-          position: item.assigneeDetails.position
-        } : undefined,
+        // Remove the assigneeDetails that was causing the issue
+        assigneeDetails: undefined,
         approvalStatus: item.approval_status as 'pending' | 'approved' | 'rejected' | undefined,
         approvedBy: item.approved_by,
         approvedAt: item.approved_at,
