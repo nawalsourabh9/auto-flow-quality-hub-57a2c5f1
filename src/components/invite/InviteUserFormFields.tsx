@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,11 +97,13 @@ export function InviteUserFormFields({ formData, onChange }: InviteUserFormField
         <Input
           id="email"
           type="email"
-          placeholder="user@example.com"
-          value={formData.email}
-          onChange={(e) => onChange("email", e.target.value)}
-          required
+          value="sourabh.nawal@bdsmanufacturing.in"
+          readOnly
+          className="bg-gray-100 cursor-not-allowed"
         />
+        <p className="text-xs text-muted-foreground mt-1">
+          All invitations will be sent to this email
+        </p>
       </div>
       
       <div className="space-y-2">

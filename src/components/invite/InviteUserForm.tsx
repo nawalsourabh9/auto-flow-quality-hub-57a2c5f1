@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -21,7 +20,7 @@ export interface InviteFormData {
 
 export function InviteUserForm() {
   const [formData, setFormData] = useState<InviteFormData>({
-    email: "",
+    email: "sourabh.nawal@bdsmanufacturing.in",
     firstName: "",
     lastName: "",
     position: "",
@@ -35,6 +34,9 @@ export function InviteUserForm() {
   const navigate = useNavigate();
 
   const handleChange = (field: keyof InviteFormData, value: string) => {
+    if (field === "email") {
+      return;
+    }
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -45,7 +47,7 @@ export function InviteUserForm() {
 
     try {
       console.log("Sending invitation with data:", {
-        email: formData.email,
+        email: "sourabh.nawal@bdsmanufacturing.in",
         firstName: formData.firstName,
         lastName: formData.lastName,
         position: formData.position,
@@ -57,7 +59,7 @@ export function InviteUserForm() {
       
       const response = await supabase.functions.invoke("send-invitation", {
         body: {
-          email: formData.email,
+          email: "sourabh.nawal@bdsmanufacturing.in",
           firstName: formData.firstName,
           lastName: formData.lastName,
           position: formData.position,
@@ -75,11 +77,10 @@ export function InviteUserForm() {
       }
 
       setSuccess(true);
-      toast.success(`Invitation sent to ${formData.email}`);
+      toast.success(`Invitation sent to sourabh.nawal@bdsmanufacturing.in`);
       
-      // Reset form after successful invitation
       setFormData({
-        email: "",
+        email: "sourabh.nawal@bdsmanufacturing.in",
         firstName: "",
         lastName: "",
         position: "",
@@ -126,7 +127,7 @@ export function InviteUserForm() {
           <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-md text-center">
             <h3 className="font-medium text-green-800 dark:text-green-300">Invitation Sent!</h3>
             <p className="text-green-700 dark:text-green-400 mt-1">
-              An invitation has been sent to {formData.email}.
+              An invitation has been sent to sourabh.nawal@bdsmanufacturing.in.
             </p>
           </div>
           <Button
