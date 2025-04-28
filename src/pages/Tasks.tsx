@@ -23,7 +23,6 @@ const Tasks = () => {
   const [activeTab, setActiveTab] = useState("all-tasks");
 
   const isDepartmentHead = () => {
-    // In a real app, this would check the user's role
     return true;
   };
 
@@ -326,7 +325,7 @@ const Tasks = () => {
       )}
 
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Create New Task</DialogTitle>
           </DialogHeader>

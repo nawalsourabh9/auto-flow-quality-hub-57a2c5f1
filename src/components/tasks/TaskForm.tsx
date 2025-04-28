@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +29,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
     initialData.attachmentsRequired || "optional"
   );
   
-  // Document selection and upload states
   const [selectedDocuments, setSelectedDocuments] = useState<TaskDocument[]>(initialData.documents || []);
   const [documentUploads, setDocumentUploads] = useState({
     sop: { selected: false, file: null as File | null },
@@ -42,7 +40,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Get assignee details based on selected assignee
     let assigneeDetails = {
       name: "",
       initials: "",
@@ -73,10 +70,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
       };
     }
 
-    // Create documents based on selections and uploads
     const documents: TaskDocument[] = [];
     
-    // Create placeholder documents based on selections
     if (documentUploads.sop.selected) {
       documents.push({
         id: `doc-sop-${Math.random().toString(36).substring(2, 9)}`,
@@ -173,7 +168,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[65vh] overflow-y-auto pr-2">
       <div className="grid grid-cols-1 gap-4">
         <div>
           <label htmlFor="title" className="block text-sm font-medium mb-1">
@@ -198,11 +193,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
             onChange={(e) => setDescription(e.target.value)}
             required
             placeholder="Enter task description"
-            rows={3}
+            rows={2}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="department" className="block text-sm font-medium mb-1">
               Department <span className="text-destructive">*</span>
@@ -238,7 +233,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="dueDate" className="block text-sm font-medium mb-1">
               Due Date <span className="text-destructive">*</span>
@@ -293,8 +288,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
         <div>
           <h3 className="text-sm font-medium mb-3">Documents</h3>
           
-          <div className="space-y-4">
-            {/* Standard Operating Procedure */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="border rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Checkbox 
@@ -314,14 +308,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
                     type="file" 
                     id="sopFile"
                     onChange={(e) => handleFileUpload("sop", e.target.files?.[0] || null)}
-                    className="flex-1 text-sm"
+                    className="flex-1 text-xs"
                   />
                   <Upload size={16} className="text-muted-foreground" />
                 </div>
               )}
             </div>
             
-            {/* Data Recording Format */}
             <div className="border rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Checkbox 
@@ -341,14 +334,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
                     type="file" 
                     id="dataFormatFile"
                     onChange={(e) => handleFileUpload("dataFormat", e.target.files?.[0] || null)}
-                    className="flex-1 text-sm"
+                    className="flex-1 text-xs"
                   />
                   <Upload size={16} className="text-muted-foreground" />
                 </div>
               )}
             </div>
             
-            {/* Report Format */}
             <div className="border rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Checkbox 
@@ -368,14 +360,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
                     type="file" 
                     id="reportFormatFile"
                     onChange={(e) => handleFileUpload("reportFormat", e.target.files?.[0] || null)}
-                    className="flex-1 text-sm"
+                    className="flex-1 text-xs"
                   />
                   <Upload size={16} className="text-muted-foreground" />
                 </div>
               )}
             </div>
             
-            {/* Rules and Procedures */}
             <div className="border rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Checkbox 
@@ -395,7 +386,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
                     type="file" 
                     id="rulesProcFile"
                     onChange={(e) => handleFileUpload("rulesAndProcedures", e.target.files?.[0] || null)}
-                    className="flex-1 text-sm"
+                    className="flex-1 text-xs"
                   />
                   <Upload size={16} className="text-muted-foreground" />
                 </div>
