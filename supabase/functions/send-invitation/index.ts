@@ -37,11 +37,18 @@ serve(async (req) => {
     const requestData = await req.json();
     console.log("Received request data:", JSON.stringify(requestData, null, 2));
     
-    // Use the original request data for metadata but override the email
-    const { role, departmentId, firstName, lastName, position, phone, supervisorId }: InvitationRequest = requestData;
+    const { email, role, departmentId, firstName, lastName, position, phone, supervisorId }: InvitationRequest = requestData;
     
-    // Always use this specific email address
-    const email = "sourabh.nawal@bdsmanufacturing.in";
+    if (!email) {
+      console.error("Email is required but was not provided");
+      return new Response(
+        JSON.stringify({ error: "Email is required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
     
     console.log(`Processing invitation for: ${email}, role: ${role}, departmentId: ${departmentId}`);
 
@@ -113,7 +120,7 @@ serve(async (req) => {
 
       const emailResponse = await supabase.functions.invoke("send-email", {
         body: {
-          to: email, // Use the fixed email address
+          to: email,
           subject: "Invitation to Join BDS Manufacturing QMS",
           body: emailBody,
           isHtml: true
