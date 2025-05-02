@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -227,29 +228,29 @@ const TasksTable: React.FC<TasksTableProps> = ({
       <Card>
         <CardContent className="p-0">
           <div className="rounded-md border">
-            <table className="w-full">
+            <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left text-sm font-medium">Task</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Assignee</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Due Date</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Priority</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Documents</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium border-r last:border-r-0">Task</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium border-r last:border-r-0">Assignee</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium border-r last:border-r-0">Due Date</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium border-r last:border-r-0">Priority</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium border-r last:border-r-0">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium border-r last:border-r-0">Documents</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {tasks.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground border-b">
                       No tasks found
                     </td>
                   </tr>
                 ) : (
                   tasks.map((task) => (
                     <tr key={task.id} className={`border-b hover:bg-muted/50 ${task.isCustomerRelated ? 'bg-green-50/50' : ''}`}>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 border-r">
                         <div>
                           <p className="font-medium flex items-center gap-2">
                             {task.title}
@@ -260,7 +261,7 @@ const TasksTable: React.FC<TasksTableProps> = ({
                           </p>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 border-r">
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
                             <AvatarImage src={task.assigneeDetails?.avatar} />
@@ -271,10 +272,10 @@ const TasksTable: React.FC<TasksTableProps> = ({
                           <span className="text-sm">{task.assigneeDetails?.name}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm">{task.dueDate}</td>
-                      <td className="px-4 py-3">{getPriorityBadge(task.priority)}</td>
-                      <td className="px-4 py-3">{getStatusBadge(task.status)}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-sm border-r">{task.dueDate}</td>
+                      <td className="px-4 py-3 border-r">{getPriorityBadge(task.priority)}</td>
+                      <td className="px-4 py-3 border-r">{getStatusBadge(task.status)}</td>
+                      <td className="px-4 py-3 border-r">
                         <div className="flex flex-wrap gap-1">
                           {getAttachmentBadge(task.attachmentsRequired)}
                           {getDocumentBadges(task)}

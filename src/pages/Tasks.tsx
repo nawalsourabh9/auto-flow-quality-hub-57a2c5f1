@@ -117,6 +117,17 @@ const Tasks = () => {
     try {
       const needsApproval = !isDepartmentHead();
       
+      // Get the current user session to ensure authentication
+      const { data: authData } = await supabase.auth.getSession();
+      if (!authData.session) {
+        toast({
+          title: "Authentication Required",
+          description: "You must be logged in to create tasks.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('tasks')
         .insert({
