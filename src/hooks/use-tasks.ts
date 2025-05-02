@@ -7,43 +7,83 @@ export const useTasks = () => {
   return useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
-      // Remove the problematic join query and fetch only tasks
-      const { data, error } = await supabase
+      // Fetch tasks
+      const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching tasks:", error);
-        throw error;
+      if (tasksError) {
+        console.error("Error fetching tasks:", tasksError);
+        throw tasksError;
+      }
+
+      // Get unique employee IDs from tasks
+      const employeeIds = [...new Set(tasksData.map(task => task.assignee).filter(id => id))];
+      
+      // Fetch employee details if there are assignees
+      let employeesData = [];
+      if (employeeIds.length > 0) {
+        const { data: empData, error: empError } = await supabase
+          .from("employees")
+          .select("id, name, department, position, employee_id")
+          .in("id", employeeIds);
+          
+        if (empError) {
+          console.error("Error fetching employees:", empError);
+        } else {
+          employeesData = empData || [];
+        }
       }
 
       // Map the database fields to our Task interface
-      const tasks: Task[] = data.map(item => ({
-        id: item.id,
-        title: item.title,
-        description: item.description || "",
-        department: item.department,
-        assignee: item.assignee || "",
-        priority: item.priority as 'low' | 'medium' | 'high',
-        dueDate: item.due_date || "",
-        status: item.status as 'completed' | 'in-progress' | 'overdue' | 'not-started',
-        createdAt: item.created_at || "",
-        isRecurring: item.is_recurring || false,
-        isCustomerRelated: item.is_customer_related || false,
-        customerName: item.customer_name || "",
-        recurringFrequency: item.recurring_frequency || "",
-        attachmentsRequired: item.attachments_required as 'none' | 'optional' | 'required',
-        // Remove the assigneeDetails that was causing the issue
-        assigneeDetails: undefined,
-        approvalStatus: item.approval_status as 'pending' | 'approved' | 'rejected' | undefined,
-        approvedBy: item.approved_by,
-        approvedAt: item.approved_at,
-        rejectedBy: item.rejected_by,
-        rejectedAt: item.rejected_at,
-        rejectionReason: item.rejection_reason,
-        departmentHeadId: item.department_head_id
-      }));
+      const tasks: Task[] = tasksData.map(item => {
+        // Find employee details
+        const employee = employeesData.find(emp => emp.id === item.assignee);
+        
+        // Generate assignee details
+        let assigneeDetails = undefined;
+        if (employee) {
+          // Create initials from name (e.g., "John Doe" -> "JD")
+          const initials = employee.name
+            .split(' ')
+            .map(name => name[0])
+            .join('')
+            .toUpperCase();
+            
+          assigneeDetails = {
+            name: employee.name,
+            initials: initials,
+            department: employee.department,
+            position: employee.position
+          };
+        }
+
+        return {
+          id: item.id,
+          title: item.title,
+          description: item.description || "",
+          department: item.department,
+          assignee: item.assignee || "",
+          priority: item.priority as 'low' | 'medium' | 'high',
+          dueDate: item.due_date || "",
+          status: item.status as 'completed' | 'in-progress' | 'overdue' | 'not-started',
+          createdAt: item.created_at || "",
+          isRecurring: item.is_recurring || false,
+          isCustomerRelated: item.is_customer_related || false,
+          customerName: item.customer_name || "",
+          recurringFrequency: item.recurring_frequency || "",
+          attachmentsRequired: item.attachments_required as 'none' | 'optional' | 'required',
+          assigneeDetails,
+          approvalStatus: item.approval_status as 'pending' | 'approved' | 'rejected' | undefined,
+          approvedBy: item.approved_by,
+          approvedAt: item.approved_at,
+          rejectedBy: item.rejected_by,
+          rejectedAt: item.rejected_at,
+          rejectionReason: item.rejection_reason,
+          departmentHeadId: item.department_head_id
+        };
+      });
 
       return tasks;
     }

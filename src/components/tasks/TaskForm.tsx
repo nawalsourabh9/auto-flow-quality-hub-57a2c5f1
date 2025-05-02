@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,16 @@ import { TaskDocument } from "@/types/document";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  position: string;
+  employee_id: string;
+}
 
 interface TaskFormProps {
   onSubmit: (task: Task) => void;
@@ -28,6 +38,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
   const [attachmentsRequired, setAttachmentsRequired] = useState<"none" | "optional" | "required">(
     initialData.attachmentsRequired || "optional"
   );
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
   const [selectedDocuments, setSelectedDocuments] = useState<TaskDocument[]>(initialData.documents || []);
   const [documentUploads, setDocumentUploads] = useState({
@@ -37,9 +49,32 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
     rulesAndProcedures: { selected: false, file: null as File | null },
   });
 
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('employees')
+          .select('id, name, email, department, position, employee_id')
+          .order('name');
+
+        if (error) throw error;
+        setEmployees(data || []);
+      } catch (error) {
+        console.error("Error fetching employees:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEmployees();
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const selectedEmployee = employees.find(emp => emp.id === assignee);
+    
     let assigneeDetails = {
       name: "",
       initials: "",
@@ -47,26 +82,19 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
       position: ""
     };
 
-    if (assignee === "JD") {
+    if (selectedEmployee) {
+      // Get initials from name (e.g., "John Doe" -> "JD")
+      const initials = selectedEmployee.name
+        .split(' ')
+        .map(name => name[0])
+        .join('')
+        .toUpperCase();
+        
       assigneeDetails = {
-        name: "John Doe",
-        initials: "JD",
-        department: department,
-        position: "Process Engineer"
-      };
-    } else if (assignee === "SM") {
-      assigneeDetails = {
-        name: "Sarah Miller",
-        initials: "SM",
-        department: department,
-        position: "Quality Specialist"
-      };
-    } else if (assignee === "RJ") {
-      assigneeDetails = {
-        name: "Robert Johnson",
-        initials: "RJ",
-        department: department,
-        position: "Quality Manager"
+        name: selectedEmployee.name,
+        initials: initials,
+        department: selectedEmployee.department,
+        position: selectedEmployee.position
       };
     }
 
@@ -253,12 +281,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
             </label>
             <Select value={assignee} onValueChange={setAssignee}>
               <SelectTrigger>
-                <SelectValue placeholder="Select assignee" />
+                <SelectValue placeholder={isLoading ? "Loading employees..." : "Select assignee"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="JD">John Doe (JD)</SelectItem>
-                <SelectItem value="SM">Sarah Miller (SM)</SelectItem>
-                <SelectItem value="RJ">Robert Johnson (RJ)</SelectItem>
+                {employees.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {employee.name} ({employee.employee_id})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
