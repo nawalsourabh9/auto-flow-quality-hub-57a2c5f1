@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -182,14 +183,14 @@ const TaskForm: React.FC<TaskFormProps> = ({
           <label htmlFor="title" className="block text-sm font-medium mb-1">
             Task Title <span className="text-destructive">*</span>
           </label>
-          <Input id="title" value={title} onChange={e => setTitle(e.target.value)} required placeholder="Enter task title" className="rounded-xl" />
+          <Input id="title" value={title} onChange={e => setTitle(e.target.value)} required placeholder="Enter task title" className="border-input rounded-xl" />
         </div>
 
         <div>
           <label htmlFor="description" className="block text-sm font-medium mb-1">
             Description <span className="text-destructive">*</span>
           </label>
-          <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} required placeholder="Enter task description" rows={2} className="rounded-xl" />
+          <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} required placeholder="Enter task description" rows={2} className="border-input rounded-xl" />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -198,7 +199,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
               Department <span className="text-destructive">*</span>
             </label>
             <Select value={department} onValueChange={setDepartment} required>
-              <SelectTrigger className="rounded-xl">
+              <SelectTrigger className="border-input rounded-xl">
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
@@ -216,7 +217,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
               Priority <span className="text-destructive">*</span>
             </label>
             <Select value={priority} onValueChange={(value: "low" | "medium" | "high") => setPriority(value)}>
-              <SelectTrigger className="rounded-xl">
+              <SelectTrigger className="border-input rounded-xl">
                 <SelectValue placeholder="Select priority" />
               </SelectTrigger>
               <SelectContent>
@@ -233,7 +234,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
             <label htmlFor="dueDate" className="block text-sm font-medium mb-1">
               Due Date <span className="text-destructive">*</span>
             </label>
-            <Input id="dueDate" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required className="rounded-xl" />
+            <Input id="dueDate" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required className="border-input rounded-xl" />
           </div>
 
           <div>
@@ -241,7 +242,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
               Assignee
             </label>
             <Select value={assignee} onValueChange={setAssignee}>
-              <SelectTrigger className="rounded-xl">
+              <SelectTrigger className="border-input rounded-xl">
                 <SelectValue placeholder={isLoading ? "Loading employees..." : "Select assignee"} />
               </SelectTrigger>
               <SelectContent>
@@ -258,7 +259,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
             Attachments
           </label>
           <Select value={attachmentsRequired} onValueChange={(value: "none" | "optional" | "required") => setAttachmentsRequired(value)}>
-            <SelectTrigger className="rounded-xl">
+            <SelectTrigger className="border-input rounded-xl">
               <SelectValue placeholder="Attachment requirements" />
             </SelectTrigger>
             <SelectContent>
@@ -275,7 +276,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
           <h3 className="text-sm font-medium mb-3">Documents</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="border rounded-md p-3">
+            <div className="border border-input rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Checkbox id="docSOP" checked={documentUploads.sop.selected} onCheckedChange={checked => handleDocumentSelect("sop", checked === true)} />
                 <Label htmlFor="docSOP" className="flex items-center">
@@ -290,7 +291,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
                 </div>}
             </div>
             
-            <div className="border rounded-md p-3">
+            <div className="border border-input rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Checkbox id="docDataFormat" checked={documentUploads.dataFormat.selected} onCheckedChange={checked => handleDocumentSelect("dataFormat", checked === true)} />
                 <Label htmlFor="docDataFormat" className="flex items-center">
@@ -305,7 +306,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
                 </div>}
             </div>
             
-            <div className="border rounded-md p-3">
+            <div className="border border-input rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Checkbox id="docReportFormat" checked={documentUploads.reportFormat.selected} onCheckedChange={checked => handleDocumentSelect("reportFormat", checked === true)} />
                 <Label htmlFor="docReportFormat" className="flex items-center">
@@ -320,7 +321,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
                 </div>}
             </div>
             
-            <div className="border rounded-md p-3">
+            <div className="border border-input rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Checkbox id="docRulesProc" checked={documentUploads.rulesAndProcedures.selected} onCheckedChange={checked => handleDocumentSelect("rulesAndProcedures", checked === true)} />
                 <Label htmlFor="docRulesProc" className="flex items-center">
@@ -348,7 +349,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
             <label htmlFor="customerName" className="block text-sm font-medium mb-1">
               Customer Name <span className="text-destructive">*</span>
             </label>
-            <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} required={isCustomerRelated} placeholder="Enter customer name" />
+            <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} required={isCustomerRelated} placeholder="Enter customer name" className="border-input" />
           </div>}
       </div>
 

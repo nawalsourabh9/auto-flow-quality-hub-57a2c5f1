@@ -8,7 +8,7 @@ import { Task } from "@/types/task";
 import TasksTable from "@/components/tasks/TaskTable";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import TaskForm from "@/components/tasks/TaskForm";
 import { useTasks } from "@/hooks/use-tasks";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,7 @@ const Tasks = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all-tasks");
 
+  // All users have department head privileges now
   const isDepartmentHead = () => {
     return true;
   };
@@ -113,20 +114,10 @@ const Tasks = () => {
     }
   };
 
-  const handleCreateTask = async (newTask: Omit<Task, "id" | "createdAt">) => {
+  const handleCreateTask = async (newTask: Task) => {
     try {
-      const needsApproval = !isDepartmentHead();
-      
-      // Get the current user session to ensure authentication
-      const { data: authData } = await supabase.auth.getSession();
-      if (!authData.session) {
-        toast({
-          title: "Authentication Required",
-          description: "You must be logged in to create tasks.",
-          variant: "destructive"
-        });
-        return;
-      }
+      // Since we've removed all permission checks, all users can create tasks directly
+      // No need to check if they're department heads
       
       const { data, error } = await supabase
         .from('tasks')
@@ -142,27 +133,29 @@ const Tasks = () => {
           customer_name: newTask.customerName,
           recurring_frequency: newTask.recurringFrequency,
           attachments_required: newTask.attachmentsRequired,
-          approval_status: needsApproval ? 'pending' : 'approved',
+          // All tasks are automatically approved
+          approval_status: 'approved',
           status: 'not-started'
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating task:', error);
+        throw error;
+      }
 
       toast({
-        title: needsApproval ? "Task Submitted for Approval" : "Task Created",
-        description: needsApproval 
-          ? "Your task has been submitted and is awaiting approval."
-          : `Task "${data.title}" has been created successfully.`
+        title: "Task Created",
+        description: `Task "${data.title}" has been created successfully.`
       });
 
       setIsCreateDialogOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating task:', error);
       toast({
         title: "Error",
-        description: "Failed to create task",
+        description: `Failed to create task: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     }
@@ -242,6 +235,9 @@ const Tasks = () => {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Create New Task</DialogTitle>
+            <DialogDescription>
+              Fill in the details below to create a new task
+            </DialogDescription>
           </DialogHeader>
           <TaskForm onSubmit={handleCreateTask} />
         </DialogContent>
