@@ -116,8 +116,7 @@ const Tasks = () => {
 
   const handleCreateTask = async (newTask: Task) => {
     try {
-      // Since we've removed all permission checks, all users can create tasks directly
-      // No need to check if they're department heads
+      console.log("Creating task:", newTask);
       
       const { data, error } = await supabase
         .from('tasks')
@@ -133,8 +132,7 @@ const Tasks = () => {
           customer_name: newTask.customerName,
           recurring_frequency: newTask.recurringFrequency,
           attachments_required: newTask.attachmentsRequired,
-          // All tasks are automatically approved
-          approval_status: 'approved',
+          approval_status: 'approved', // All tasks are automatically approved
           status: 'not-started'
         })
         .select()

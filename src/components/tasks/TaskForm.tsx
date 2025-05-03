@@ -183,14 +183,14 @@ const TaskForm: React.FC<TaskFormProps> = ({
           <label htmlFor="title" className="block text-sm font-medium mb-1">
             Task Title <span className="text-destructive">*</span>
           </label>
-          <Input id="title" value={title} onChange={e => setTitle(e.target.value)} required placeholder="Enter task title" className="border-input rounded-xl" />
+          <Input id="title" value={title} onChange={e => setTitle(e.target.value)} required placeholder="Enter task title" className="border border-input rounded-md" />
         </div>
 
         <div>
           <label htmlFor="description" className="block text-sm font-medium mb-1">
             Description <span className="text-destructive">*</span>
           </label>
-          <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} required placeholder="Enter task description" rows={2} className="border-input rounded-xl" />
+          <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} required placeholder="Enter task description" rows={2} className="border border-input rounded-md" />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -199,7 +199,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
               Department <span className="text-destructive">*</span>
             </label>
             <Select value={department} onValueChange={setDepartment} required>
-              <SelectTrigger className="border-input rounded-xl">
+              <SelectTrigger className="border border-input rounded-md">
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
@@ -217,7 +217,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
               Priority <span className="text-destructive">*</span>
             </label>
             <Select value={priority} onValueChange={(value: "low" | "medium" | "high") => setPriority(value)}>
-              <SelectTrigger className="border-input rounded-xl">
+              <SelectTrigger className="border border-input rounded-md">
                 <SelectValue placeholder="Select priority" />
               </SelectTrigger>
               <SelectContent>
@@ -234,7 +234,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
             <label htmlFor="dueDate" className="block text-sm font-medium mb-1">
               Due Date <span className="text-destructive">*</span>
             </label>
-            <Input id="dueDate" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required className="border-input rounded-xl" />
+            <Input id="dueDate" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required className="border border-input rounded-md" />
           </div>
 
           <div>
@@ -242,7 +242,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
               Assignee
             </label>
             <Select value={assignee} onValueChange={setAssignee}>
-              <SelectTrigger className="border-input rounded-xl">
+              <SelectTrigger className="border border-input rounded-md">
                 <SelectValue placeholder={isLoading ? "Loading employees..." : "Select assignee"} />
               </SelectTrigger>
               <SelectContent>
@@ -259,7 +259,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
             Attachments
           </label>
           <Select value={attachmentsRequired} onValueChange={(value: "none" | "optional" | "required") => setAttachmentsRequired(value)}>
-            <SelectTrigger className="border-input rounded-xl">
+            <SelectTrigger className="border border-input rounded-md">
               <SelectValue placeholder="Attachment requirements" />
             </SelectTrigger>
             <SelectContent>
@@ -349,7 +349,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
             <label htmlFor="customerName" className="block text-sm font-medium mb-1">
               Customer Name <span className="text-destructive">*</span>
             </label>
-            <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} required={isCustomerRelated} placeholder="Enter customer name" className="border-input" />
+            <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} required={isCustomerRelated} placeholder="Enter customer name" className="border border-input" />
           </div>}
       </div>
 
