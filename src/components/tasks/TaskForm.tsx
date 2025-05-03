@@ -11,7 +11,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-
 interface Employee {
   id: string;
   name: string;
@@ -20,13 +19,14 @@ interface Employee {
   position: string;
   employee_id: string;
 }
-
 interface TaskFormProps {
   onSubmit: (task: Task) => void;
   initialData?: Partial<Task>;
 }
-
-const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
+const TaskForm: React.FC<TaskFormProps> = ({
+  onSubmit,
+  initialData = {}
+}) => {
   const [title, setTitle] = useState(initialData.title || "");
   const [description, setDescription] = useState(initialData.description || "");
   const [department, setDepartment] = useState(initialData.department || "");
@@ -35,29 +35,36 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
   const [assignee, setAssignee] = useState(initialData.assignee || "");
   const [isCustomerRelated, setIsCustomerRelated] = useState(initialData.isCustomerRelated || false);
   const [customerName, setCustomerName] = useState(initialData.customerName || "");
-  const [attachmentsRequired, setAttachmentsRequired] = useState<"none" | "optional" | "required">(
-    initialData.attachmentsRequired || "optional"
-  );
+  const [attachmentsRequired, setAttachmentsRequired] = useState<"none" | "optional" | "required">(initialData.attachmentsRequired || "optional");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  
   const [selectedDocuments, setSelectedDocuments] = useState<TaskDocument[]>(initialData.documents || []);
   const [documentUploads, setDocumentUploads] = useState({
-    sop: { selected: false, file: null as File | null },
-    dataFormat: { selected: false, file: null as File | null },
-    reportFormat: { selected: false, file: null as File | null },
-    rulesAndProcedures: { selected: false, file: null as File | null },
+    sop: {
+      selected: false,
+      file: null as File | null
+    },
+    dataFormat: {
+      selected: false,
+      file: null as File | null
+    },
+    reportFormat: {
+      selected: false,
+      file: null as File | null
+    },
+    rulesAndProcedures: {
+      selected: false,
+      file: null as File | null
+    }
   });
-
   useEffect(() => {
     const fetchEmployees = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('employees')
-          .select('id, name, email, department, position, employee_id')
-          .order('name');
-
+        const {
+          data,
+          error
+        } = await supabase.from('employees').select('id, name, email, department, position, employee_id').order('name');
         if (error) throw error;
         setEmployees(data || []);
       } catch (error) {
@@ -66,30 +73,20 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
         setIsLoading(false);
       }
     };
-
     fetchEmployees();
   }, []);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     const selectedEmployee = employees.find(emp => emp.id === assignee);
-    
     let assigneeDetails = {
       name: "",
       initials: "",
       department: department,
       position: ""
     };
-
     if (selectedEmployee) {
       // Get initials from name (e.g., "John Doe" -> "JD")
-      const initials = selectedEmployee.name
-        .split(' ')
-        .map(name => name[0])
-        .join('')
-        .toUpperCase();
-        
+      const initials = selectedEmployee.name.split(' ').map(name => name[0]).join('').toUpperCase();
       assigneeDetails = {
         name: selectedEmployee.name,
         initials: initials,
@@ -97,9 +94,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
         position: selectedEmployee.position
       };
     }
-
     const documents: TaskDocument[] = [];
-    
     if (documentUploads.sop.selected) {
       documents.push({
         id: `doc-sop-${Math.random().toString(36).substring(2, 9)}`,
@@ -108,10 +103,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
         documentType: "sop",
         version: "1.0",
         uploadDate: new Date().toISOString(),
-        uploadedBy: assigneeDetails.name,
+        uploadedBy: assigneeDetails.name
       });
     }
-    
     if (documentUploads.dataFormat.selected) {
       documents.push({
         id: `doc-df-${Math.random().toString(36).substring(2, 9)}`,
@@ -120,10 +114,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
         documentType: "dataFormat",
         version: "1.0",
         uploadDate: new Date().toISOString(),
-        uploadedBy: assigneeDetails.name,
+        uploadedBy: assigneeDetails.name
       });
     }
-    
     if (documentUploads.reportFormat.selected) {
       documents.push({
         id: `doc-rf-${Math.random().toString(36).substring(2, 9)}`,
@@ -132,10 +125,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
         documentType: "reportFormat",
         version: "1.0",
         uploadDate: new Date().toISOString(),
-        uploadedBy: assigneeDetails.name,
+        uploadedBy: assigneeDetails.name
       });
     }
-    
     if (documentUploads.rulesAndProcedures.selected) {
       documents.push({
         id: `doc-rp-${Math.random().toString(36).substring(2, 9)}`,
@@ -144,10 +136,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
         documentType: "rulesAndProcedures",
         version: "1.0",
         uploadDate: new Date().toISOString(),
-        uploadedBy: assigneeDetails.name,
+        uploadedBy: assigneeDetails.name
       });
     }
-
     const newTask: Task = {
       id: initialData.id || "",
       title,
@@ -165,64 +156,40 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
       assigneeDetails,
       documents: documents.length > 0 ? documents : undefined
     };
-
     onSubmit(newTask);
   };
-
-  const handleDocumentSelect = (
-    docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", 
-    selected: boolean
-  ) => {
+  const handleDocumentSelect = (docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", selected: boolean) => {
     setDocumentUploads(prev => ({
       ...prev,
-      [docType]: { 
-        ...prev[docType], 
-        selected 
+      [docType]: {
+        ...prev[docType],
+        selected
       }
     }));
   };
-
-  const handleFileUpload = (
-    docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", 
-    file: File | null
-  ) => {
+  const handleFileUpload = (docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", file: File | null) => {
     setDocumentUploads(prev => ({
       ...prev,
-      [docType]: { 
-        ...prev[docType], 
-        file 
+      [docType]: {
+        ...prev[docType],
+        file
       }
     }));
   };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[65vh] overflow-y-auto pr-2">
+  return <form onSubmit={handleSubmit} className="space-y-4 max-h-[65vh] overflow-y-auto pr-2">
       <div className="grid grid-cols-1 gap-4">
         <div>
           <label htmlFor="title" className="block text-sm font-medium mb-1">
             Task Title <span className="text-destructive">*</span>
           </label>
-          <Input
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            placeholder="Enter task title"
-          />
+          <Input id="title" value={title} onChange={e => setTitle(e.target.value)} required placeholder="Enter task title" className="rounded-xl" />
         </div>
 
         <div>
           <label htmlFor="description" className="block text-sm font-medium mb-1">
             Description <span className="text-destructive">*</span>
           </label>
-          <Textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            placeholder="Enter task description"
-            rows={2}
-          />
+          <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} required placeholder="Enter task description" rows={2} className="rounded-xl" />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -231,7 +198,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
               Department <span className="text-destructive">*</span>
             </label>
             <Select value={department} onValueChange={setDepartment} required>
-              <SelectTrigger>
+              <SelectTrigger className="rounded-xl">
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
@@ -249,7 +216,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
               Priority <span className="text-destructive">*</span>
             </label>
             <Select value={priority} onValueChange={(value: "low" | "medium" | "high") => setPriority(value)}>
-              <SelectTrigger>
+              <SelectTrigger className="rounded-xl">
                 <SelectValue placeholder="Select priority" />
               </SelectTrigger>
               <SelectContent>
@@ -266,13 +233,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
             <label htmlFor="dueDate" className="block text-sm font-medium mb-1">
               Due Date <span className="text-destructive">*</span>
             </label>
-            <Input
-              id="dueDate"
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              required
-            />
+            <Input id="dueDate" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required className="rounded-xl" />
           </div>
 
           <div>
@@ -280,15 +241,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
               Assignee
             </label>
             <Select value={assignee} onValueChange={setAssignee}>
-              <SelectTrigger>
+              <SelectTrigger className="rounded-xl">
                 <SelectValue placeholder={isLoading ? "Loading employees..." : "Select assignee"} />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((employee) => (
-                  <SelectItem key={employee.id} value={employee.id}>
+                {employees.map(employee => <SelectItem key={employee.id} value={employee.id}>
                     {employee.name} ({employee.employee_id})
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -298,11 +257,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
           <label htmlFor="attachments" className="block text-sm font-medium mb-1">
             Attachments
           </label>
-          <Select 
-            value={attachmentsRequired} 
-            onValueChange={(value: "none" | "optional" | "required") => setAttachmentsRequired(value)}
-          >
-            <SelectTrigger>
+          <Select value={attachmentsRequired} onValueChange={(value: "none" | "optional" | "required") => setAttachmentsRequired(value)}>
+            <SelectTrigger className="rounded-xl">
               <SelectValue placeholder="Attachment requirements" />
             </SelectTrigger>
             <SelectContent>
@@ -321,135 +277,79 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="border rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
-                <Checkbox 
-                  id="docSOP"
-                  checked={documentUploads.sop.selected}
-                  onCheckedChange={(checked) => handleDocumentSelect("sop", checked === true)}
-                />
+                <Checkbox id="docSOP" checked={documentUploads.sop.selected} onCheckedChange={checked => handleDocumentSelect("sop", checked === true)} />
                 <Label htmlFor="docSOP" className="flex items-center">
                   <FileText className="h-4 w-4 text-green-500 mr-2" />
                   Standard Operating Procedure
                 </Label>
               </div>
               
-              {documentUploads.sop.selected && (
-                <div className="ml-6 mt-2 flex gap-2 items-center">
-                  <Input 
-                    type="file" 
-                    id="sopFile"
-                    onChange={(e) => handleFileUpload("sop", e.target.files?.[0] || null)}
-                    className="flex-1 text-xs"
-                  />
+              {documentUploads.sop.selected && <div className="ml-6 mt-2 flex gap-2 items-center">
+                  <Input type="file" id="sopFile" onChange={e => handleFileUpload("sop", e.target.files?.[0] || null)} className="flex-1 text-xs" />
                   <Upload size={16} className="text-muted-foreground" />
-                </div>
-              )}
+                </div>}
             </div>
             
             <div className="border rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
-                <Checkbox 
-                  id="docDataFormat"
-                  checked={documentUploads.dataFormat.selected}
-                  onCheckedChange={(checked) => handleDocumentSelect("dataFormat", checked === true)}
-                />
+                <Checkbox id="docDataFormat" checked={documentUploads.dataFormat.selected} onCheckedChange={checked => handleDocumentSelect("dataFormat", checked === true)} />
                 <Label htmlFor="docDataFormat" className="flex items-center">
                   <Database className="h-4 w-4 text-blue-500 mr-2" />
                   Data Recording Format
                 </Label>
               </div>
               
-              {documentUploads.dataFormat.selected && (
-                <div className="ml-6 mt-2 flex gap-2 items-center">
-                  <Input 
-                    type="file" 
-                    id="dataFormatFile"
-                    onChange={(e) => handleFileUpload("dataFormat", e.target.files?.[0] || null)}
-                    className="flex-1 text-xs"
-                  />
+              {documentUploads.dataFormat.selected && <div className="ml-6 mt-2 flex gap-2 items-center">
+                  <Input type="file" id="dataFormatFile" onChange={e => handleFileUpload("dataFormat", e.target.files?.[0] || null)} className="flex-1 text-xs" />
                   <Upload size={16} className="text-muted-foreground" />
-                </div>
-              )}
+                </div>}
             </div>
             
             <div className="border rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
-                <Checkbox 
-                  id="docReportFormat"
-                  checked={documentUploads.reportFormat.selected}
-                  onCheckedChange={(checked) => handleDocumentSelect("reportFormat", checked === true)}
-                />
+                <Checkbox id="docReportFormat" checked={documentUploads.reportFormat.selected} onCheckedChange={checked => handleDocumentSelect("reportFormat", checked === true)} />
                 <Label htmlFor="docReportFormat" className="flex items-center">
                   <PieChart className="h-4 w-4 text-amber-500 mr-2" />
                   Report Format
                 </Label>
               </div>
               
-              {documentUploads.reportFormat.selected && (
-                <div className="ml-6 mt-2 flex gap-2 items-center">
-                  <Input 
-                    type="file" 
-                    id="reportFormatFile"
-                    onChange={(e) => handleFileUpload("reportFormat", e.target.files?.[0] || null)}
-                    className="flex-1 text-xs"
-                  />
+              {documentUploads.reportFormat.selected && <div className="ml-6 mt-2 flex gap-2 items-center">
+                  <Input type="file" id="reportFormatFile" onChange={e => handleFileUpload("reportFormat", e.target.files?.[0] || null)} className="flex-1 text-xs" />
                   <Upload size={16} className="text-muted-foreground" />
-                </div>
-              )}
+                </div>}
             </div>
             
             <div className="border rounded-md p-3">
               <div className="flex items-center gap-2 mb-2">
-                <Checkbox 
-                  id="docRulesProc"
-                  checked={documentUploads.rulesAndProcedures.selected}
-                  onCheckedChange={(checked) => handleDocumentSelect("rulesAndProcedures", checked === true)}
-                />
+                <Checkbox id="docRulesProc" checked={documentUploads.rulesAndProcedures.selected} onCheckedChange={checked => handleDocumentSelect("rulesAndProcedures", checked === true)} />
                 <Label htmlFor="docRulesProc" className="flex items-center">
                   <BookOpen className="h-4 w-4 text-purple-500 mr-2" />
                   Rules and Procedures
                 </Label>
               </div>
               
-              {documentUploads.rulesAndProcedures.selected && (
-                <div className="ml-6 mt-2 flex gap-2 items-center">
-                  <Input 
-                    type="file" 
-                    id="rulesProcFile"
-                    onChange={(e) => handleFileUpload("rulesAndProcedures", e.target.files?.[0] || null)}
-                    className="flex-1 text-xs"
-                  />
+              {documentUploads.rulesAndProcedures.selected && <div className="ml-6 mt-2 flex gap-2 items-center">
+                  <Input type="file" id="rulesProcFile" onChange={e => handleFileUpload("rulesAndProcedures", e.target.files?.[0] || null)} className="flex-1 text-xs" />
                   <Upload size={16} className="text-muted-foreground" />
-                </div>
-              )}
+                </div>}
             </div>
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
-          <Checkbox
-            id="isCustomerRelated"
-            checked={isCustomerRelated}
-            onCheckedChange={(checked) => setIsCustomerRelated(checked === true)}
-          />
+          <Checkbox id="isCustomerRelated" checked={isCustomerRelated} onCheckedChange={checked => setIsCustomerRelated(checked === true)} />
           <label htmlFor="isCustomerRelated" className="text-sm">
             Customer Related Task
           </label>
         </div>
 
-        {isCustomerRelated && (
-          <div>
+        {isCustomerRelated && <div>
             <label htmlFor="customerName" className="block text-sm font-medium mb-1">
               Customer Name <span className="text-destructive">*</span>
             </label>
-            <Input
-              id="customerName"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              required={isCustomerRelated}
-              placeholder="Enter customer name"
-            />
-          </div>
-        )}
+            <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} required={isCustomerRelated} placeholder="Enter customer name" />
+          </div>}
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
@@ -457,8 +357,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, initialData = {} }) => {
           {initialData.id ? "Update Task" : "Create Task"}
         </Button>
       </div>
-    </form>
-  );
+    </form>;
 };
-
 export default TaskForm;
