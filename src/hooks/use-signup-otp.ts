@@ -35,15 +35,18 @@ export const useSignupOTP = (email: string) => {
 
       if (otpError) throw otpError;
 
-      toast.success("Verification code sent to your email");
+      // Show the OTP in a toast for testing purposes
+      toast.success("Verification code: " + otp);
       setLatestOtp(otp);
       setShowOtpInput(true);
       setCountdown(30);
       
+      // Try to send email, but don't fail the process if it doesn't work
       try {
         await sendOTPEmail(email, otp);
       } catch (emailError) {
         console.error("Email sending failed:", emailError);
+        toast.warning("Could not send email, but you can use the code shown in the notification above.");
       }
     } catch (error) {
       console.error("Error during OTP generation:", error);
