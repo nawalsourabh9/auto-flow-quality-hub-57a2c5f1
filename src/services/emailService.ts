@@ -85,33 +85,33 @@ export const sendOTPEmail = async (to: string, otp: string) => {
   try {
     console.log(`Sending OTP email to ${to} with code ${otp}`);
     
-    // For development purposes, we'll log the OTP to console and simulate email sending
-    console.log("Development mode: OTP code for testing:", otp);
+    const requestBody = {
+      type: 'otp',
+      to,
+      otp
+    };
     
-    // Fall back to just returning success if the email sending fails
-    try {
-      // Try to send actual email using the edge function
-      await supabase.functions.invoke('send-email', {
-        body: {
-          type: 'otp',
-          to,
-          otp
-        }
-      });
-      console.log("OTP email sent successfully via edge function");
-    } catch (error) {
-      console.error("OTP email service error (non-critical):", error);
-      console.log("Email sending failed, but proceeding with OTP verification flow");
-      // We'll just continue without failing the whole signup process
-      // This allows users to still use the OTP that's displayed in the console/UI
+    console.log("Sending with request body:", requestBody);
+    
+    const response = await Promise.race([
+      supabase.functions.invoke('send-email', {
+        body: requestBody
+      }),
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error("Request timeout")), 20000)
+      )
+    ]);
+    
+    if (response.error) {
+      console.error("OTP email error response:", response.error);
+      throw response.error;
     }
     
-    // Always return success so the signup process can continue
-    return { success: true, otp };
+    console.log("OTP email sent successfully:", response.data);
+    return response.data;
   } catch (error) {
     console.error("OTP email service error:", error);
     console.error("Error details:", error instanceof Error ? error.message : String(error));
-    // Still return success to allow the flow to continue
-    return { success: true, otp };
+    throw error;
   }
 };
