@@ -7,7 +7,7 @@ import { OTPInput } from "./OTPInput";
 import { VerificationActions } from "./VerificationActions";
 import { sendOTPEmail } from "@/services/emailService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { InfoCircle } from "lucide-react";
 
 interface OTPVerificationProps {
   email: string;
@@ -71,7 +71,7 @@ export const OTPVerification = ({ email, onVerificationComplete }: OTPVerificati
     <div className="space-y-6">
       {latestOtp && (
         <Alert className="bg-amber-50 border-amber-200">
-          <Info className="h-4 w-4 text-amber-700" />
+          <InfoCircle className="h-4 w-4 text-amber-700" />
           <AlertDescription className="text-amber-700">
             <strong>Development mode:</strong> Use this OTP for testing: <code className="bg-amber-100 px-2 py-1 rounded font-mono">{latestOtp}</code>
           </AlertDescription>

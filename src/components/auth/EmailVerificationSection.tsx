@@ -1,10 +1,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, Loader2, Info } from "lucide-react";
+import { Mail, Loader2 } from "lucide-react";
 import { OTPInput } from "./OTPInput";
 import { VerificationActions } from "./VerificationActions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoCircle } from "lucide-react";
 
 interface EmailVerificationSectionProps {
   email: string;
@@ -96,7 +97,7 @@ export const EmailVerificationSection = ({
         <div className="flex flex-col space-y-4">
           {latestOtp && (
             <Alert className="bg-amber-50 border-amber-200">
-              <Info className="h-4 w-4 text-amber-700" />
+              <InfoCircle className="h-4 w-4 text-amber-700" />
               <AlertDescription className="text-amber-700">
                 <strong>Development mode:</strong> Use this OTP for testing: <code className="bg-amber-100 px-2 py-1 rounded font-mono">{latestOtp}</code>
               </AlertDescription>
