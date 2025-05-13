@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+
 interface Employee {
   id: string;
   name: string;
@@ -20,10 +21,12 @@ interface Employee {
   position: string;
   employee_id: string;
 }
+
 interface TaskFormProps {
   onSubmit: (task: Task) => void;
   initialData?: Partial<Task>;
 }
+
 const TaskForm: React.FC<TaskFormProps> = ({
   onSubmit,
   initialData = {}
@@ -58,6 +61,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       file: null as File | null
     }
   });
+
   useEffect(() => {
     const fetchEmployees = async () => {
       setIsLoading(true);
@@ -76,6 +80,14 @@ const TaskForm: React.FC<TaskFormProps> = ({
     };
     fetchEmployees();
   }, []);
+
+  useEffect(() => {
+    // Set assignee from initialData if it exists
+    if (initialData.assignee) {
+      setAssignee(initialData.assignee);
+    }
+  }, [initialData]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const selectedEmployee = employees.find(emp => emp.id === assignee);
@@ -85,6 +97,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       department: department,
       position: ""
     };
+    
     if (selectedEmployee) {
       // Get initials from name (e.g., "John Doe" -> "JD")
       const initials = selectedEmployee.name.split(' ').map(name => name[0]).join('').toUpperCase();
@@ -95,6 +108,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
         position: selectedEmployee.position
       };
     }
+
     const documents: TaskDocument[] = [];
     if (documentUploads.sop.selected) {
       documents.push({
@@ -104,9 +118,11 @@ const TaskForm: React.FC<TaskFormProps> = ({
         documentType: "sop",
         version: "1.0",
         uploadDate: new Date().toISOString(),
-        uploadedBy: assigneeDetails.name
+        uploadedBy: assigneeDetails.name,
+        file: documentUploads.sop.file // Add the actual file to upload
       });
     }
+    
     if (documentUploads.dataFormat.selected) {
       documents.push({
         id: `doc-df-${Math.random().toString(36).substring(2, 9)}`,
@@ -115,9 +131,11 @@ const TaskForm: React.FC<TaskFormProps> = ({
         documentType: "dataFormat",
         version: "1.0",
         uploadDate: new Date().toISOString(),
-        uploadedBy: assigneeDetails.name
+        uploadedBy: assigneeDetails.name,
+        file: documentUploads.dataFormat.file // Add the actual file to upload
       });
     }
+    
     if (documentUploads.reportFormat.selected) {
       documents.push({
         id: `doc-rf-${Math.random().toString(36).substring(2, 9)}`,
@@ -126,9 +144,11 @@ const TaskForm: React.FC<TaskFormProps> = ({
         documentType: "reportFormat",
         version: "1.0",
         uploadDate: new Date().toISOString(),
-        uploadedBy: assigneeDetails.name
+        uploadedBy: assigneeDetails.name,
+        file: documentUploads.reportFormat.file // Add the actual file to upload
       });
     }
+    
     if (documentUploads.rulesAndProcedures.selected) {
       documents.push({
         id: `doc-rp-${Math.random().toString(36).substring(2, 9)}`,
@@ -137,9 +157,11 @@ const TaskForm: React.FC<TaskFormProps> = ({
         documentType: "rulesAndProcedures",
         version: "1.0",
         uploadDate: new Date().toISOString(),
-        uploadedBy: assigneeDetails.name
+        uploadedBy: assigneeDetails.name,
+        file: documentUploads.rulesAndProcedures.file // Add the actual file to upload
       });
     }
+
     const newTask: Task = {
       id: initialData.id || "",
       title,
@@ -157,8 +179,10 @@ const TaskForm: React.FC<TaskFormProps> = ({
       assigneeDetails,
       documents: documents.length > 0 ? documents : undefined
     };
+
     onSubmit(newTask);
   };
+
   const handleDocumentSelect = (docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", selected: boolean) => {
     setDocumentUploads(prev => ({
       ...prev,
@@ -168,6 +192,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       }
     }));
   };
+
   const handleFileUpload = (docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", file: File | null) => {
     setDocumentUploads(prev => ({
       ...prev,
@@ -177,7 +202,9 @@ const TaskForm: React.FC<TaskFormProps> = ({
       }
     }));
   };
-  return <form onSubmit={handleSubmit} className="space-y-4 max-h-[65vh] overflow-y-auto pr-2">
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[65vh] overflow-y-auto pr-2">
       <div className="grid grid-cols-1 gap-4">
         <div>
           <label htmlFor="title" className="block text-sm font-medium mb-1">
@@ -246,9 +273,12 @@ const TaskForm: React.FC<TaskFormProps> = ({
                 <SelectValue placeholder={isLoading ? "Loading employees..." : "Select assignee"} />
               </SelectTrigger>
               <SelectContent>
-                {employees.map(employee => <SelectItem key={employee.id} value={employee.id}>
+                <SelectItem value="">No assignee</SelectItem>
+                {employees.map(employee => (
+                  <SelectItem key={employee.id} value={employee.id}>
                     {employee.name} ({employee.employee_id})
-                  </SelectItem>)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -358,6 +388,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
           {initialData.id ? "Update Task" : "Create Task"}
         </Button>
       </div>
-    </form>;
+    </form>
+  );
 };
+
 export default TaskForm;

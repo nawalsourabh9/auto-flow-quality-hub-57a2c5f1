@@ -11,6 +11,7 @@ export interface TaskDocument {
   currentRevisionId?: string;
   approvalHierarchy?: ApprovalHierarchy;
   revisions?: DocumentRevision[];
+  file?: File; // Added to support file uploads
 }
 
 export interface DocumentRevision {

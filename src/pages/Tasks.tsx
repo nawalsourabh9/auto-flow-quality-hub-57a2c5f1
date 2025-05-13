@@ -24,6 +24,8 @@ const Tasks = () => {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentEditTask, setCurrentEditTask] = useState<Task | null>(null);
   const [activeTab, setActiveTab] = useState("all-tasks");
 
   // Remove all role and permission checks - all users can see and create tasks
@@ -58,6 +60,11 @@ const Tasks = () => {
       title: "Task Selected",
       description: `Viewing task: ${task.title}`
     });
+  };
+
+  const handleEditTask = (task: Task) => {
+    setCurrentEditTask(task);
+    setIsEditDialogOpen(true);
   };
 
   const handleApproveTask = async (task: Task) => {
@@ -120,6 +127,49 @@ const Tasks = () => {
     }
   };
 
+  const handleUpdateTask = async (updatedTask: Task) => {
+    try {
+      console.log("Updating task:", updatedTask);
+      
+      // Update the task
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          title: updatedTask.title,
+          description: updatedTask.description,
+          department: updatedTask.department,
+          priority: updatedTask.priority,
+          due_date: updatedTask.dueDate,
+          is_recurring: updatedTask.isRecurring || false,
+          is_customer_related: updatedTask.isCustomerRelated || false,
+          customer_name: updatedTask.customerName,
+          recurring_frequency: updatedTask.recurringFrequency,
+          attachments_required: updatedTask.attachmentsRequired,
+          assignee: updatedTask.assignee || null
+        })
+        .eq('id', updatedTask.id);
+
+      if (error) throw error;
+
+      // Invalidate the tasks query to refetch data
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+
+      toast({
+        title: "Task Updated",
+        description: `Task "${updatedTask.title}" has been updated successfully.`
+      });
+
+      setIsEditDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Error",
+        description: `Failed to update task: ${error.message || 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleCreateTask = async (newTask: Task) => {
     try {
       console.log("Creating task:", newTask);
@@ -131,7 +181,7 @@ const Tasks = () => {
           title: newTask.title,
           description: newTask.description,
           department: newTask.department,
-          assignee: null, // Important: Set to null to avoid foreign key constraint error
+          assignee: newTask.assignee || null, // Important: Set to null or assigned value
           priority: newTask.priority,
           due_date: newTask.dueDate,
           is_recurring: newTask.isRecurring || false,
@@ -148,6 +198,11 @@ const Tasks = () => {
       if (error) {
         console.error('Error creating task:', error);
         throw error;
+      }
+      
+      // If documents were uploaded, store them
+      if (newTask.documents && newTask.documents.length > 0) {
+        await processTaskDocuments(data.id, newTask.documents);
       }
 
       // Invalidate the tasks query to refetch data after successful creation
@@ -166,6 +221,46 @@ const Tasks = () => {
         description: `Failed to create task: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
+    }
+  };
+  
+  // Helper function to process and store documents
+  const processTaskDocuments = async (taskId: string, documents: any[]) => {
+    try {
+      // For each document, create an entry in the documents table
+      for (const document of documents) {
+        if (!document.file) continue;
+        
+        // Store the file in Supabase Storage
+        const fileName = `${Date.now()}-${document.fileName}`;
+        const { data: fileData, error: fileError } = await supabase.storage
+          .from('task-documents')
+          .upload(`tasks/${taskId}/${fileName}`, document.file);
+          
+        if (fileError) {
+          console.error('Error uploading file:', fileError);
+          continue;
+        }
+        
+        // Create document record in the database
+        const { error: docError } = await supabase
+          .from('documents')
+          .insert({
+            task_id: taskId,
+            file_name: document.fileName,
+            file_type: document.fileType,
+            document_type: document.documentType,
+            version: document.version || '1.0',
+            uploaded_by: (await supabase.auth.getUser()).data.user?.id || '00000000-0000-0000-0000-000000000000',
+            notes: document.notes
+          });
+          
+        if (docError) {
+          console.error('Error creating document record:', docError);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing documents:', error);
     }
   };
 
@@ -224,7 +319,11 @@ const Tasks = () => {
           </TabsList>
           
           <TabsContent value="all-tasks" className="pt-4">
-            <TasksTable tasks={filteredTasks} onViewTask={handleViewTask} />
+            <TasksTable 
+              tasks={filteredTasks} 
+              onViewTask={handleViewTask} 
+              onEditTask={handleEditTask}
+            />
           </TabsContent>
           
           <TabsContent value="pending-approval" className="pt-4">
@@ -236,9 +335,14 @@ const Tasks = () => {
           </TabsContent>
         </Tabs>
       ) : (
-        <TasksTable tasks={filteredTasks} onViewTask={handleViewTask} />
+        <TasksTable 
+          tasks={filteredTasks} 
+          onViewTask={handleViewTask}
+          onEditTask={handleEditTask}
+        />
       )}
 
+      {/* Create Task Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -248,6 +352,21 @@ const Tasks = () => {
             </DialogDescription>
           </DialogHeader>
           <TaskForm onSubmit={handleCreateTask} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Task Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>
+              Update the task details below
+            </DialogDescription>
+          </DialogHeader>
+          {currentEditTask && (
+            <TaskForm onSubmit={handleUpdateTask} initialData={currentEditTask} />
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart, User, ExternalLink, BookOpen } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart, User, ExternalLink, BookOpen, Edit } from "lucide-react";
 import { TaskDocument } from "@/types/document";
 import { Task } from "@/types/task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +14,7 @@ import { DocumentPermissions } from "@/types/document";
 interface TasksTableProps {
   tasks: Task[];
   onViewTask: (task: Task) => void;
+  onEditTask?: (task: Task) => void;
   currentUserId?: string;
   currentUserPermissions?: DocumentPermissions;
   teamMembers?: Array<{
@@ -28,6 +28,7 @@ interface TasksTableProps {
 const TasksTable: React.FC<TasksTableProps> = ({ 
   tasks, 
   onViewTask,
+  onEditTask,
   currentUserId = "1", // Default to John Doe for demo
   currentUserPermissions,
   teamMembers = []
@@ -266,10 +267,10 @@ const TasksTable: React.FC<TasksTableProps> = ({
                           <Avatar className="h-6 w-6">
                             <AvatarImage src={task.assigneeDetails?.avatar} />
                             <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                              {task.assigneeDetails?.initials || "??"}
+                              {task.assigneeDetails?.initials || "UN"}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm">{task.assigneeDetails?.name}</span>
+                          <span className="text-sm">{task.assigneeDetails?.name || "Unassigned"}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm border-r">{task.dueDate}</td>
@@ -282,9 +283,17 @@ const TasksTable: React.FC<TasksTableProps> = ({
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <Button size="sm" variant="outline" onClick={() => onViewTask(task)}>
-                          View
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" onClick={() => onViewTask(task)}>
+                            View
+                          </Button>
+                          {onEditTask && (
+                            <Button size="sm" variant="outline" onClick={() => onEditTask(task)}>
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
