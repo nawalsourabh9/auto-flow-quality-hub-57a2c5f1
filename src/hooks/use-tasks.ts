@@ -18,8 +18,10 @@ export const useTasks = () => {
         throw tasksError;
       }
 
-      // Get unique employee IDs from tasks
-      const employeeIds = [...new Set(tasksData.map(task => task.assignee).filter(id => id))];
+      // Get unique employee IDs from tasks, filtering out null or empty values
+      const employeeIds = tasksData
+        .map(task => task.assignee)
+        .filter(id => id && typeof id === 'string');
       
       // Fetch employee details if there are assignees
       let employeesData = [];

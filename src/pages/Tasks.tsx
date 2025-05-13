@@ -24,10 +24,8 @@ const Tasks = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all-tasks");
 
-  // All users have department head privileges now
-  const isDepartmentHead = () => {
-    return true;
-  };
+  // Remove all role and permission checks - all users can see and create tasks
+  const isDepartmentHead = () => true;
 
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = 
@@ -118,13 +116,16 @@ const Tasks = () => {
     try {
       console.log("Creating task:", newTask);
       
+      // Don't pass assignee if it's an empty string to avoid UUID conversion error
+      const assignee = newTask.assignee && newTask.assignee.trim() ? newTask.assignee : null;
+      
       const { data, error } = await supabase
         .from('tasks')
         .insert({
           title: newTask.title,
           description: newTask.description,
           department: newTask.department,
-          assignee: newTask.assignee,
+          assignee: assignee,
           priority: newTask.priority,
           due_date: newTask.dueDate,
           is_recurring: newTask.isRecurring || false,
