@@ -90,7 +90,7 @@ export const useTaskOperations = () => {
     try {
       console.log("Updating task:", updatedTask);
       
-      // Update the task
+      // Update the task, ensuring we handle "unassigned" assignee properly
       const { error } = await supabase
         .from('tasks')
         .update({
@@ -104,6 +104,7 @@ export const useTaskOperations = () => {
           customer_name: updatedTask.customerName,
           recurring_frequency: updatedTask.recurringFrequency,
           attachments_required: updatedTask.attachmentsRequired,
+          // Fixed: Set assignee to null if it's "unassigned", to avoid FK constraints
           assignee: updatedTask.assignee === "unassigned" ? null : updatedTask.assignee
         })
         .eq('id', updatedTask.id);
