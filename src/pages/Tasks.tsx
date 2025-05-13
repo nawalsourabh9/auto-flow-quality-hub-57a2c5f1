@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,8 +15,10 @@ import { supabase } from "@/integrations/supabase/client";
 import TaskFilters from "@/components/tasks/TaskFilters";
 import PendingTasksAlert from "@/components/tasks/PendingTasksAlert";
 import TaskApprovalSection from "@/components/tasks/TaskApprovalSection";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Tasks = () => {
+  const queryClient = useQueryClient();
   const { data: tasks = [], isLoading } = useTasks();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -70,6 +73,9 @@ const Tasks = () => {
 
       if (error) throw error;
 
+      // Invalidate the tasks query to refetch data
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+
       toast({
         title: "Task Approved",
         description: `Task "${task.title}" has been approved`
@@ -97,6 +103,9 @@ const Tasks = () => {
 
       if (error) throw error;
 
+      // Invalidate the tasks query to refetch data
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+
       toast({
         title: "Task Rejected",
         description: `Task "${task.title}" has been rejected`
@@ -115,8 +124,7 @@ const Tasks = () => {
     try {
       console.log("Creating task:", newTask);
       
-      // We need to set assignee to null to avoid foreign key constraint issues
-      // The assignee info will be stored separately in a custom field
+      // Set assignee to null - this is important to fix the foreign key constraint error
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -141,6 +149,9 @@ const Tasks = () => {
         console.error('Error creating task:', error);
         throw error;
       }
+
+      // Invalidate the tasks query to refetch data after successful creation
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
 
       toast({
         title: "Task Created",
