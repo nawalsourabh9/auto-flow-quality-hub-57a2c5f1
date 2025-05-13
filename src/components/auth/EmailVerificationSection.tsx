@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail, Loader2, Info } from "lucide-react";
@@ -116,4 +115,3 @@ export const EmailVerificationSection = ({
     </div>
   );
 };
-

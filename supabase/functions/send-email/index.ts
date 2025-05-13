@@ -28,8 +28,11 @@ const getSmtpClient = async () => {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests - this is critical
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders 
+    });
   }
 
   let client;
