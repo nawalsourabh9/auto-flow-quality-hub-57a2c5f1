@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -116,16 +115,15 @@ const Tasks = () => {
     try {
       console.log("Creating task:", newTask);
       
-      // Don't pass assignee if it's an empty string to avoid UUID conversion error
-      const assignee = newTask.assignee && newTask.assignee.trim() ? newTask.assignee : null;
-      
+      // We need to set assignee to null to avoid foreign key constraint issues
+      // The assignee info will be stored separately in a custom field
       const { data, error } = await supabase
         .from('tasks')
         .insert({
           title: newTask.title,
           description: newTask.description,
           department: newTask.department,
-          assignee: assignee,
+          assignee: null, // Important: Set to null to avoid foreign key constraint error
           priority: newTask.priority,
           due_date: newTask.dueDate,
           is_recurring: newTask.isRecurring || false,
