@@ -273,7 +273,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
                 <SelectValue placeholder={isLoading ? "Loading employees..." : "Select assignee"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No assignee</SelectItem>
+                <SelectItem value="unassigned">No assignee</SelectItem>
                 {employees.map(employee => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {employee.name} ({employee.employee_id})

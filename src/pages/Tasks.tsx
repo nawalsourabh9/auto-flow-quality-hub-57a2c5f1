@@ -145,7 +145,7 @@ const Tasks = () => {
           customer_name: updatedTask.customerName,
           recurring_frequency: updatedTask.recurringFrequency,
           attachments_required: updatedTask.attachmentsRequired,
-          assignee: updatedTask.assignee || null
+          assignee: updatedTask.assignee === "unassigned" ? null : updatedTask.assignee
         })
         .eq('id', updatedTask.id);
 
@@ -181,7 +181,7 @@ const Tasks = () => {
           title: newTask.title,
           description: newTask.description,
           department: newTask.department,
-          assignee: newTask.assignee || null, // Important: Set to null or assigned value
+          assignee: newTask.assignee === "unassigned" ? null : newTask.assignee, // Important: Set to null or assigned value
           priority: newTask.priority,
           due_date: newTask.dueDate,
           is_recurring: newTask.isRecurring || false,

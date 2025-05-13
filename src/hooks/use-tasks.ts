@@ -59,6 +59,14 @@ export const useTasks = () => {
             department: employee.department,
             position: employee.position
           };
+        } else if (item.assignee === null) {
+          // Handle unassigned tasks
+          assigneeDetails = {
+            name: "Unassigned",
+            initials: "UN",
+            department: item.department,
+            position: ""
+          };
         }
 
         return {
@@ -66,7 +74,7 @@ export const useTasks = () => {
           title: item.title,
           description: item.description || "",
           department: item.department,
-          assignee: item.assignee || "",
+          assignee: item.assignee || "unassigned",
           priority: item.priority as 'low' | 'medium' | 'high',
           dueDate: item.due_date || "",
           status: item.status as 'completed' | 'in-progress' | 'overdue' | 'not-started',
