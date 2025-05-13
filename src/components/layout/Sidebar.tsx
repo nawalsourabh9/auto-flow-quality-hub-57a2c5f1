@@ -15,12 +15,9 @@ import {
   ClipboardList,
   FileText, 
   AlertTriangle, 
-  Settings,
   Users,
   BarChart2,
-  FolderTree,
   CalendarCheck,
-  ShieldCheck
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -56,24 +53,9 @@ const menuItems = [
     path: "/analytics"
   },
   {
-    title: "Organization",
-    icon: FolderTree,
-    path: "/organization"
-  },
-  {
     title: "Users",
     icon: Users,
     path: "/users"
-  },
-  {
-    title: "Admin",
-    icon: ShieldCheck,
-    path: "/admin"
-  },
-  {
-    title: "Settings",
-    icon: Settings,
-    path: "/settings"
   }
 ];
 

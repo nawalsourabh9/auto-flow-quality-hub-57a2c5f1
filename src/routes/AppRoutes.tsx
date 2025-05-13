@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -18,12 +17,9 @@ import NonConformances from "@/pages/NonConformances";
 import Audits from "@/pages/Audits";
 import Analytics from "@/pages/Analytics";
 import Users from "@/pages/Users";
-import Settings from "@/pages/Settings";
 import Profile from "@/pages/Profile";
 import Help from "@/pages/Help";
-import Organization from "@/pages/Organization";
 import EmailTest from "@/pages/EmailTest";
-import Admin from "@/pages/Admin/index"; // Making sure we're using the correct Admin component
 import InviteUser from "@/pages/InviteUser";
 import NotFound from "@/pages/NotFound";
 import ChangePassword from "@/pages/ChangePassword";
@@ -127,9 +123,7 @@ export const AppRoutes = () => {
         { path: "/non-conformances", element: <NonConformances /> },
         { path: "/audits", element: <Audits /> },
         { path: "/analytics", element: <Analytics /> },
-        { path: "/organization", element: <Organization /> },
         { path: "/users", element: <Users /> },
-        { path: "/settings", element: <Settings /> },
         { path: "/profile", element: <Profile /> },
         { path: "/help", element: <Help /> },
         { path: "/email-test", element: <EmailTest /> }
@@ -140,14 +134,6 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         } />
       ))}
-      
-      <Route path="/admin" element={
-        <AdminRoute>
-          <MainLayout>
-            <Admin />
-          </MainLayout>
-        </AdminRoute>
-      } />
       
       <Route path="/invite-user" element={
         <SuperAdminRoute>
