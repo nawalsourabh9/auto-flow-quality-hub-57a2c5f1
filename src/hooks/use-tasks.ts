@@ -74,7 +74,7 @@ export const useTasks = () => {
           title: item.title,
           description: item.description || "",
           department: item.department,
-          assignee: item.assignee || "unassigned",
+          assignee: item.assignee || "unassigned", // Use "unassigned" for null values
           priority: item.priority as 'low' | 'medium' | 'high',
           dueDate: item.due_date || "",
           status: item.status as 'completed' | 'in-progress' | 'overdue' | 'not-started',
