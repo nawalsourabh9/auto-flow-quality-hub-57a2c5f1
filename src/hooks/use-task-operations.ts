@@ -104,7 +104,7 @@ export const useTaskOperations = () => {
           customer_name: updatedTask.customerName,
           recurring_frequency: updatedTask.recurringFrequency,
           attachments_required: updatedTask.attachmentsRequired,
-          // Fixed: Set assignee to null if it's "unassigned", to avoid FK constraints
+          // Important: Set assignee to null if it's "unassigned", otherwise use the employee ID
           assignee: updatedTask.assignee === "unassigned" ? null : updatedTask.assignee
         })
         .eq('id', updatedTask.id);
