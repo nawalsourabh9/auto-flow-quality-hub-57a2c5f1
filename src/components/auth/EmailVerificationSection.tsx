@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2, Info } from "lucide-react";
 import { OTPInput } from "./OTPInput";
 import { VerificationActions } from "./VerificationActions";
 
