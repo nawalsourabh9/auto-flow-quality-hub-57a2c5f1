@@ -35,7 +35,13 @@ export const useEmployeeData = () => {
         
         console.log("Successfully fetched employee data:", data?.length || 0, "records");
         console.log("Employee data sample:", data?.[0]);
-        setEmployees(data || []);
+        
+        // Filter out any potential null values just to be safe
+        const validEmployees = (data || []).filter(emp => emp && emp.id);
+        setEmployees(validEmployees);
+        
+        // Log all employee IDs for debugging
+        console.log("All employee IDs:", validEmployees.map(emp => emp.id));
       } catch (error) {
         console.error("Error in useEmployeeData hook:", error);
       } finally {

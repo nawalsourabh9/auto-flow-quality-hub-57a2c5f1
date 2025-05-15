@@ -33,6 +33,16 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       console.log("Creating task with data:", newTask);
       console.log("Assignee value:", newTask.assignee, typeof newTask.assignee);
       
+      // Determine the actual assignee value to store in database
+      let assigneeValue: string | null = null;
+      
+      if (newTask.assignee && newTask.assignee !== "unassigned") {
+        assigneeValue = newTask.assignee;
+        console.log("Setting assignee to:", assigneeValue);
+      } else {
+        console.log("Setting assignee to null");
+      }
+      
       // Create the typed payload object for inserting into database
       const taskPayload: TaskPayload = {
         title: newTask.title,
@@ -47,7 +57,7 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         attachments_required: newTask.attachmentsRequired,
         approval_status: 'approved', // All tasks are automatically approved
         status: 'not-started',
-        assignee: newTask.assignee === "unassigned" ? null : newTask.assignee
+        assignee: assigneeValue
       };
       
       console.log("Final task payload with proper typing:", taskPayload);
@@ -63,6 +73,8 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         console.error('Error creating task:', error);
         throw error;
       }
+      
+      console.log("Task created successfully:", data);
       
       // If documents were uploaded, store them
       if (newTask.documents && newTask.documents.length > 0) {

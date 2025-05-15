@@ -30,7 +30,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const [department, setDepartment] = useState(initialData.department || "");
   const [priority, setPriority] = useState<"low" | "medium" | "high">(initialData.priority || "medium");
   const [dueDate, setDueDate] = useState(initialData.dueDate || "");
-  const [assignee, setAssignee] = useState(initialData.assignee || "unassigned");
+  const [assignee, setAssignee] = useState(initialData.assignee ? initialData.assignee : "unassigned");
   const [attachmentsRequired, setAttachmentsRequired] = useState<"none" | "optional" | "required">(
     initialData.attachmentsRequired || "optional"
   );
@@ -50,14 +50,21 @@ const TaskForm: React.FC<TaskFormProps> = ({
   } = useDocumentUploads(initialData.documents);
 
   useEffect(() => {
+    console.log("Initial data in TaskForm:", initialData);
     // Set assignee from initialData if it exists
     if (initialData.assignee) {
+      console.log("Setting initial assignee from props:", initialData.assignee);
       setAssignee(initialData.assignee);
+    } else {
+      console.log("No initial assignee provided, using unassigned");
+      setAssignee("unassigned");
     }
   }, [initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log("Form submitted with assignee:", assignee);
     
     // Find the selected employee details
     const selectedEmployee = employees.find(emp => emp.id === assignee);
@@ -81,6 +88,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
         department: selectedEmployee.department,
         position: selectedEmployee.position
       };
+      
+      console.log("Found assignee details:", assigneeDetails);
     }
 
     // Prepare documents array
@@ -157,6 +166,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       documents: documents.length > 0 ? documents : undefined
     };
 
+    console.log("Submitting task with assignee:", newTask.assignee);
     onSubmit(newTask);
   };
 

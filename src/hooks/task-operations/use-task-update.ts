@@ -29,6 +29,16 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       console.log("Updating task:", updatedTask);
       console.log("Assignee value:", updatedTask.assignee, typeof updatedTask.assignee);
       
+      // Determine the actual assignee value to store in database
+      let assigneeValue: string | null = null;
+      
+      if (updatedTask.assignee && updatedTask.assignee !== "unassigned") {
+        assigneeValue = updatedTask.assignee;
+        console.log("Setting assignee to:", assigneeValue);
+      } else {
+        console.log("Setting assignee to null");
+      }
+      
       // Create the update payload with proper typing
       const updatePayload: TaskUpdatePayload = {
         title: updatedTask.title,
@@ -41,21 +51,24 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         customer_name: updatedTask.customerName || null,
         recurring_frequency: updatedTask.recurringFrequency || null,
         attachments_required: updatedTask.attachmentsRequired,
-        assignee: updatedTask.assignee === "unassigned" ? null : updatedTask.assignee
+        assignee: assigneeValue
       };
       
       console.log("Final update payload:", updatePayload);
 
       // Update the task with the properly constructed payload
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .update(updatePayload)
-        .eq('id', updatedTask.id);
+        .eq('id', updatedTask.id)
+        .select();
 
       if (error) {
         console.error("Update error:", error);
         throw error;
       }
+
+      console.log("Task updated successfully:", data);
 
       // Invalidate the tasks query to refetch data
       queryClient.invalidateQueries({ queryKey: ['tasks'] });

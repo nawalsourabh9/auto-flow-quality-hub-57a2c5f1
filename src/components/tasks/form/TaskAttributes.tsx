@@ -2,15 +2,7 @@
 import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-
-interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  department: string;
-  position: string;
-  employee_id: string;
-}
+import { Employee } from "./useEmployeeData";
 
 interface TaskAttributesProps {
   department: string;
@@ -43,6 +35,7 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
 }) => {
   console.log("Available employees:", employees);
   console.log("Current assignee value:", assignee);
+  console.log("Employee IDs in dropdown:", employees.map(e => e.id));
   
   return (
     <>
@@ -104,7 +97,13 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
           <label htmlFor="assignee" className="block text-sm font-medium mb-1">
             Assignee
           </label>
-          <Select value={assignee} onValueChange={setAssignee}>
+          <Select 
+            value={assignee} 
+            onValueChange={(value) => {
+              console.log("Selected assignee:", value);
+              setAssignee(value);
+            }}
+          >
             <SelectTrigger className="border border-input rounded-md">
               <SelectValue placeholder={isLoading ? "Loading employees..." : "Select assignee"} />
             </SelectTrigger>
@@ -117,6 +116,9 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
               ))}
             </SelectContent>
           </Select>
+          <div className="text-xs text-muted-foreground mt-1">
+            {assignee !== "unassigned" ? `Selected ID: ${assignee}` : "No assignee selected"}
+          </div>
         </div>
       </div>
 
