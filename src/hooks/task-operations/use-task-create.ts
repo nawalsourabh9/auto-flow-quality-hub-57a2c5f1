@@ -17,7 +17,7 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       console.log("Creating task:", newTask);
       
       // Create the payload object for inserting into database
-      const taskPayload = {
+      const taskPayload: any = {
         title: newTask.title,
         description: newTask.description,
         department: newTask.department,
@@ -32,14 +32,11 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         status: 'not-started'
       };
       
-      // Handle the assignee field separately to deal with "unassigned"
-      if (newTask.assignee && newTask.assignee !== "unassigned") {
-        // @ts-ignore - Need to add to the payload object
-        taskPayload.assignee = newTask.assignee;
-      } else {
-        // @ts-ignore - If "unassigned" or empty, set to null explicitly
-        taskPayload.assignee = null;
-      }
+      // Handle the assignee field
+      // CRITICAL: Set to null explicitly if "unassigned" to avoid foreign key constraint error
+      taskPayload.assignee = newTask.assignee === "unassigned" ? null : newTask.assignee;
+      
+      console.log("Final task payload:", taskPayload);
       
       // Create the task with the properly constructed payload
       const { data, error } = await supabase

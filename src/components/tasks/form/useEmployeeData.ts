@@ -19,6 +19,15 @@ export const useEmployeeData = () => {
     const fetchEmployees = async () => {
       setIsLoading(true);
       try {
+        // Check the foreign key constraint on tasks table
+        const { data: tableInfo, error: tableError } = await supabase
+          .rpc('exec_sql', {
+            sql_query: "SELECT pg_get_constraintdef(c.oid) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE conname = 'tasks_assignee_fkey'"
+          });
+          
+        console.log("Foreign key constraint definition:", tableInfo);
+        
+        // Fetch employees data
         const { data, error } = await supabase
           .from('employees')
           .select('id, name, email, department, position, employee_id')
