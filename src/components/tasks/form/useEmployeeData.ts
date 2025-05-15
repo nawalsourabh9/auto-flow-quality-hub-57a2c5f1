@@ -19,24 +19,23 @@ export const useEmployeeData = () => {
     const fetchEmployees = async () => {
       setIsLoading(true);
       try {
-        // Check the foreign key constraint on tasks table
-        const { data: tableInfo, error: tableError } = await supabase
-          .rpc('exec_sql', {
-            sql_query: "SELECT pg_get_constraintdef(c.oid) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE conname = 'tasks_assignee_fkey'"
-          });
-          
-        console.log("Foreign key constraint definition:", tableInfo);
+        console.log("Fetching employee data for task assignment...");
         
-        // Fetch employees data
+        // Fetch employees data directly without attempting to check constraint definition
         const { data, error } = await supabase
           .from('employees')
           .select('id, name, email, department, position, employee_id')
           .order('name');
           
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching employees:", error);
+          throw error;
+        }
+        
+        console.log("Successfully fetched employee data:", data?.length || 0, "records");
         setEmployees(data || []);
       } catch (error) {
-        console.error("Error fetching employees:", error);
+        console.error("Error in useEmployeeData hook:", error);
       } finally {
         setIsLoading(false);
       }

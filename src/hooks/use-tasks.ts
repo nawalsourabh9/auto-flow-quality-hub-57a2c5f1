@@ -7,6 +7,8 @@ export const useTasks = () => {
   return useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
+      console.log("Fetching tasks from database...");
+      
       // Fetch tasks
       const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
@@ -18,10 +20,14 @@ export const useTasks = () => {
         throw tasksError;
       }
 
+      console.log(`Retrieved ${tasksData.length} tasks`);
+
       // Get unique employee IDs from tasks, filtering out null or empty values
       const employeeIds = tasksData
         .map(task => task.assignee)
         .filter(id => id && typeof id === 'string');
+      
+      console.log(`Found ${employeeIds.length} unique assignees`);
       
       // Fetch employee details if there are assignees
       let employeesData = [];
@@ -35,6 +41,7 @@ export const useTasks = () => {
           console.error("Error fetching employees:", empError);
         } else {
           employeesData = empData || [];
+          console.log(`Retrieved ${employeesData.length} employee records`);
         }
       }
 
@@ -95,6 +102,7 @@ export const useTasks = () => {
         };
       });
 
+      console.log("Tasks processed successfully");
       return tasks;
     }
   });

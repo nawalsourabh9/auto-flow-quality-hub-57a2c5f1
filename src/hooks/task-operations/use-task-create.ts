@@ -14,10 +14,10 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
 
   const handleCreateTask = async (newTask: Task) => {
     try {
-      console.log("Creating task:", newTask);
+      console.log("Creating task with data:", newTask);
       
       // Create the payload object for inserting into database
-      const taskPayload: any = {
+      const taskPayload: Record<string, any> = {
         title: newTask.title,
         description: newTask.description,
         department: newTask.department,
@@ -34,7 +34,12 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       
       // Handle the assignee field
       // CRITICAL: Set to null explicitly if "unassigned" to avoid foreign key constraint error
-      taskPayload.assignee = newTask.assignee === "unassigned" ? null : newTask.assignee;
+      if (newTask.assignee === "unassigned") {
+        taskPayload.assignee = null;
+      } else {
+        console.log("Setting assignee ID:", newTask.assignee);
+        taskPayload.assignee = newTask.assignee;
+      }
       
       console.log("Final task payload:", taskPayload);
       

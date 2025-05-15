@@ -15,7 +15,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       console.log("Updating task:", updatedTask);
       
       // Create the update payload
-      const updatePayload = {
+      const updatePayload: Record<string, any> = {
         title: updatedTask.title,
         description: updatedTask.description,
         department: updatedTask.department,
@@ -25,14 +25,16 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         is_customer_related: updatedTask.isCustomerRelated || false,
         customer_name: updatedTask.customerName,
         recurring_frequency: updatedTask.recurringFrequency,
-        attachments_required: updatedTask.attachmentsRequired,
+        attachments_required: updatedTask.attachmentsRequired
       };
       
-      // Important: Set assignee separately to handle "unassigned" case
+      // Important: Handle assignee field carefully
       if (updatedTask.assignee === "unassigned") {
-        updatePayload['assignee'] = null; // This ensures NULL is stored in the database
+        updatePayload.assignee = null; // This ensures NULL is stored in the database
+        console.log("Setting assignee to NULL (unassigned)");
       } else {
-        updatePayload['assignee'] = updatedTask.assignee; // Store the employee ID
+        updatePayload.assignee = updatedTask.assignee; // Store the employee ID
+        console.log("Setting assignee to:", updatedTask.assignee);
       }
 
       // Update the task with the properly constructed payload
@@ -41,7 +43,10 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         .update(updatePayload)
         .eq('id', updatedTask.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Update error:", error);
+        throw error;
+      }
 
       // Invalidate the tasks query to refetch data
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
