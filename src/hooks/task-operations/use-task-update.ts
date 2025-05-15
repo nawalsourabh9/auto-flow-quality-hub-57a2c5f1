@@ -27,7 +27,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
       console.log("Updating task:", updatedTask);
-      console.log("Assignee value:", updatedTask.assignee, typeof updatedTask.assignee);
+      console.log("Assignee value from form:", updatedTask.assignee, typeof updatedTask.assignee);
       
       // Determine the actual assignee value to store in database
       let assigneeValue: string | null = null;
@@ -54,7 +54,11 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         assignee: assigneeValue
       };
       
-      console.log("Final update payload:", updatePayload);
+      console.log("Final update payload before sending to database:", updatePayload);
+      console.log("Assignee type:", typeof updatePayload.assignee);
+
+      // Log the actual query that will be executed
+      console.log("Executing update query with assignee:", updatePayload.assignee);
 
       // Update the task with the properly constructed payload
       const { data, error } = await supabase

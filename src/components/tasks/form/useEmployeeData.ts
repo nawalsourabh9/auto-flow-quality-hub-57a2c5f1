@@ -24,7 +24,7 @@ export const useEmployeeData = () => {
         // Make sure we get all necessary fields and fetch only active employees
         const { data, error } = await supabase
           .from('employees')
-          .select('id, name, email, department, position, employee_id, status')
+          .select('*')  // Select all fields to ensure we have complete data
           .eq('status', 'Active') // Only fetch active employees
           .order('name');
           
@@ -34,7 +34,7 @@ export const useEmployeeData = () => {
         }
         
         console.log("Successfully fetched employee data:", data?.length || 0, "records");
-        console.log("Employee data sample:", data?.[0]);
+        console.log("First employee record:", data?.[0]);
         
         // Filter out any potential null values just to be safe
         const validEmployees = (data || []).filter(emp => emp && emp.id);

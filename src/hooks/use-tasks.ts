@@ -21,6 +21,7 @@ export const useTasks = () => {
       }
 
       console.log(`Retrieved ${tasksData.length} tasks`);
+      console.log("Task assignee data:", tasksData.map(task => ({ id: task.id, assignee: task.assignee })));
 
       // Get unique employee IDs from tasks, filtering out null or empty values
       const employeeIds = tasksData
@@ -34,14 +35,14 @@ export const useTasks = () => {
       if (employeeIds.length > 0) {
         const { data: empData, error: empError } = await supabase
           .from("employees")
-          .select("id, name, department, position, employee_id")
+          .select("*")  // Fetch all fields to ensure we have complete data
           .in("id", employeeIds);
           
         if (empError) {
           console.error("Error fetching employees:", empError);
         } else {
           employeesData = empData || [];
-          console.log(`Retrieved ${employeesData.length} employee records:`, employeesData);
+          console.log(`Retrieved ${employeesData.length} employee records:`, employeesData.map(emp => ({ id: emp.id, name: emp.name })));
         }
       }
 
@@ -49,6 +50,7 @@ export const useTasks = () => {
       const tasks: Task[] = tasksData.map(item => {
         // Find employee details
         const employee = employeesData.find(emp => emp.id === item.assignee);
+        console.log(`For task ${item.id}, assignee ${item.assignee}, found employee:`, employee || "Not found");
         
         // Generate assignee details
         let assigneeDetails = undefined;

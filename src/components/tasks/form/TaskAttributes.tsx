@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Employee } from "./useEmployeeData";
@@ -33,9 +33,24 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
   attachmentsRequired,
   setAttachmentsRequired
 }) => {
-  console.log("Available employees:", employees);
-  console.log("Current assignee value:", assignee);
-  console.log("Employee IDs in dropdown:", employees.map(e => e.id));
+  // Log employee data when component renders
+  useEffect(() => {
+    console.log("TaskAttributes received employees:", employees);
+    console.log("Current assignee value:", assignee);
+    console.log("Employee IDs available:", employees.map(e => e.id));
+  }, [employees, assignee]);
+
+  // Validate that the assignee value exists in the employees array if it's not "unassigned"
+  useEffect(() => {
+    if (assignee && assignee !== "unassigned" && employees.length > 0) {
+      const employeeExists = employees.some(emp => emp.id === assignee);
+      if (!employeeExists) {
+        console.warn(`Selected assignee ID ${assignee} does not exist in employees list!`);
+      } else {
+        console.log(`Assignee ID ${assignee} validated as existing in employees list.`);
+      }
+    }
+  }, [assignee, employees]);
   
   return (
     <>
@@ -100,7 +115,7 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
           <Select 
             value={assignee} 
             onValueChange={(value) => {
-              console.log("Selected assignee:", value);
+              console.log("Assignee selected:", value);
               setAssignee(value);
             }}
           >
@@ -117,7 +132,11 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
             </SelectContent>
           </Select>
           <div className="text-xs text-muted-foreground mt-1">
-            {assignee !== "unassigned" ? `Selected ID: ${assignee}` : "No assignee selected"}
+            {assignee !== "unassigned" ? 
+              (employees.find(e => e.id === assignee) ? 
+                `Selected: ${employees.find(e => e.id === assignee)?.name} (ID: ${assignee})` : 
+                `ID: ${assignee} (Employee not found in list)`) : 
+              "No assignee selected"}
           </div>
         </div>
       </div>

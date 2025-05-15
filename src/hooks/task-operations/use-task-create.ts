@@ -31,19 +31,19 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
   const handleCreateTask = async (newTask: Task) => {
     try {
       console.log("Creating task with data:", newTask);
-      console.log("Assignee value:", newTask.assignee, typeof newTask.assignee);
+      console.log("Assignee value received from form:", newTask.assignee);
       
-      // Determine the actual assignee value to store in database
+      // Handle the assignee value properly
       let assigneeValue: string | null = null;
       
       if (newTask.assignee && newTask.assignee !== "unassigned") {
         assigneeValue = newTask.assignee;
-        console.log("Setting assignee to:", assigneeValue);
+        console.log("Setting assignee value to:", assigneeValue);
       } else {
-        console.log("Setting assignee to null");
+        console.log("Setting assignee to null (unassigned)");
       }
       
-      // Create the typed payload object for inserting into database
+      // Create the properly typed payload for database insertion
       const taskPayload: TaskPayload = {
         title: newTask.title,
         description: newTask.description || "",
@@ -57,10 +57,14 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         attachments_required: newTask.attachmentsRequired,
         approval_status: 'approved', // All tasks are automatically approved
         status: 'not-started',
-        assignee: assigneeValue
+        assignee: assigneeValue  // Use the properly processed assignee value
       };
       
-      console.log("Final task payload with proper typing:", taskPayload);
+      console.log("Final task payload before database insertion:", taskPayload);
+      console.log("Assignee type:", typeof taskPayload.assignee);
+      
+      // Log the actual query that will be executed
+      console.log("Executing insert query with assignee:", taskPayload.assignee);
       
       // Create the task with the properly typed payload
       const { data, error } = await supabase
@@ -74,7 +78,7 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         throw error;
       }
       
-      console.log("Task created successfully:", data);
+      console.log("Task created successfully, returned data:", data);
       
       // If documents were uploaded, store them
       if (newTask.documents && newTask.documents.length > 0) {
