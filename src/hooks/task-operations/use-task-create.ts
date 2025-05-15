@@ -16,24 +16,35 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
     try {
       console.log("Creating task:", newTask);
       
-      // Set assignee to null - this is important to fix the foreign key constraint error
+      // Create the payload object for inserting into database
+      const taskPayload = {
+        title: newTask.title,
+        description: newTask.description,
+        department: newTask.department,
+        priority: newTask.priority,
+        due_date: newTask.dueDate,
+        is_recurring: newTask.isRecurring || false,
+        is_customer_related: newTask.isCustomerRelated || false,
+        customer_name: newTask.customerName,
+        recurring_frequency: newTask.recurringFrequency,
+        attachments_required: newTask.attachmentsRequired,
+        approval_status: 'approved', // All tasks are automatically approved
+        status: 'not-started'
+      };
+      
+      // Handle the assignee field separately to deal with "unassigned"
+      if (newTask.assignee && newTask.assignee !== "unassigned") {
+        // @ts-ignore - Need to add to the payload object
+        taskPayload.assignee = newTask.assignee;
+      } else {
+        // @ts-ignore - If "unassigned" or empty, set to null explicitly
+        taskPayload.assignee = null;
+      }
+      
+      // Create the task with the properly constructed payload
       const { data, error } = await supabase
         .from('tasks')
-        .insert({
-          title: newTask.title,
-          description: newTask.description,
-          department: newTask.department,
-          assignee: newTask.assignee === "unassigned" ? null : newTask.assignee, // Important: Set to null or assigned value
-          priority: newTask.priority,
-          due_date: newTask.dueDate,
-          is_recurring: newTask.isRecurring || false,
-          is_customer_related: newTask.isCustomerRelated || false,
-          customer_name: newTask.customerName,
-          recurring_frequency: newTask.recurringFrequency,
-          attachments_required: newTask.attachmentsRequired,
-          approval_status: 'approved', // All tasks are automatically approved
-          status: 'not-started'
-        })
+        .insert(taskPayload)
         .select()
         .single();
 
