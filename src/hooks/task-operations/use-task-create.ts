@@ -5,6 +5,22 @@ import { Task } from "@/types/task";
 import { toast } from "@/hooks/use-toast";
 import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
 
+interface TaskPayload {
+  title: string;
+  description: string;
+  department: string;
+  priority: 'low' | 'medium' | 'high';
+  due_date: string;
+  is_recurring: boolean;
+  is_customer_related: boolean;
+  customer_name?: string;
+  recurring_frequency?: string;
+  attachments_required: 'none' | 'optional' | 'required';
+  approval_status: 'pending' | 'approved' | 'rejected';
+  status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
+  assignee: string | null;
+}
+
 /**
  * Hook for task creation operations
  */
@@ -16,10 +32,10 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
     try {
       console.log("Creating task with data:", newTask);
       
-      // Create the payload object for inserting into database
-      const taskPayload: Record<string, any> = {
+      // Create the typed payload object for inserting into database
+      const taskPayload: TaskPayload = {
         title: newTask.title,
-        description: newTask.description,
+        description: newTask.description || "",
         department: newTask.department,
         priority: newTask.priority,
         due_date: newTask.dueDate,
@@ -29,21 +45,13 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         recurring_frequency: newTask.recurringFrequency,
         attachments_required: newTask.attachmentsRequired,
         approval_status: 'approved', // All tasks are automatically approved
-        status: 'not-started'
+        status: 'not-started',
+        assignee: newTask.assignee === "unassigned" ? null : newTask.assignee
       };
       
-      // Handle the assignee field
-      // CRITICAL: Set to null explicitly if "unassigned" to avoid foreign key constraint error
-      if (newTask.assignee === "unassigned") {
-        taskPayload.assignee = null;
-      } else {
-        console.log("Setting assignee ID:", newTask.assignee);
-        taskPayload.assignee = newTask.assignee;
-      }
+      console.log("Final task payload with proper typing:", taskPayload);
       
-      console.log("Final task payload:", taskPayload);
-      
-      // Create the task with the properly constructed payload
+      // Create the task with the properly typed payload
       const { data, error } = await supabase
         .from('tasks')
         .insert(taskPayload)
