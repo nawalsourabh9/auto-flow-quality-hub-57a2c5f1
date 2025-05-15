@@ -13,8 +13,8 @@ interface TaskPayload {
   due_date: string;
   is_recurring: boolean;
   is_customer_related: boolean;
-  customer_name?: string;
-  recurring_frequency?: string;
+  customer_name?: string | null;
+  recurring_frequency?: string | null;
   attachments_required: 'none' | 'optional' | 'required';
   approval_status: 'pending' | 'approved' | 'rejected';
   status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
@@ -31,6 +31,7 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
   const handleCreateTask = async (newTask: Task) => {
     try {
       console.log("Creating task with data:", newTask);
+      console.log("Assignee value:", newTask.assignee, typeof newTask.assignee);
       
       // Create the typed payload object for inserting into database
       const taskPayload: TaskPayload = {
@@ -41,8 +42,8 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         due_date: newTask.dueDate,
         is_recurring: newTask.isRecurring || false,
         is_customer_related: newTask.isCustomerRelated || false,
-        customer_name: newTask.customerName,
-        recurring_frequency: newTask.recurringFrequency,
+        customer_name: newTask.customerName || null,
+        recurring_frequency: newTask.recurringFrequency || null,
         attachments_required: newTask.attachmentsRequired,
         approval_status: 'approved', // All tasks are automatically approved
         status: 'not-started',

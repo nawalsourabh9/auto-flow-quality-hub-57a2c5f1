@@ -4,6 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types/task";
 import { toast } from "@/hooks/use-toast";
 
+interface TaskUpdatePayload {
+  title: string;
+  description: string | null;
+  department: string;
+  priority: 'low' | 'medium' | 'high';
+  due_date: string | null;
+  is_recurring: boolean;
+  is_customer_related: boolean;
+  customer_name?: string | null;
+  recurring_frequency?: string | null;
+  attachments_required: 'none' | 'optional' | 'required';
+  assignee: string | null;
+}
+
 /**
  * Hook for task update operations
  */
@@ -13,29 +27,24 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
       console.log("Updating task:", updatedTask);
+      console.log("Assignee value:", updatedTask.assignee, typeof updatedTask.assignee);
       
-      // Create the update payload
-      const updatePayload: Record<string, any> = {
+      // Create the update payload with proper typing
+      const updatePayload: TaskUpdatePayload = {
         title: updatedTask.title,
-        description: updatedTask.description,
+        description: updatedTask.description || null,
         department: updatedTask.department,
         priority: updatedTask.priority,
-        due_date: updatedTask.dueDate,
+        due_date: updatedTask.dueDate || null,
         is_recurring: updatedTask.isRecurring || false,
         is_customer_related: updatedTask.isCustomerRelated || false,
-        customer_name: updatedTask.customerName,
-        recurring_frequency: updatedTask.recurringFrequency,
-        attachments_required: updatedTask.attachmentsRequired
+        customer_name: updatedTask.customerName || null,
+        recurring_frequency: updatedTask.recurringFrequency || null,
+        attachments_required: updatedTask.attachmentsRequired,
+        assignee: updatedTask.assignee === "unassigned" ? null : updatedTask.assignee
       };
       
-      // Important: Handle assignee field carefully
-      if (updatedTask.assignee === "unassigned") {
-        updatePayload.assignee = null; // This ensures NULL is stored in the database
-        console.log("Setting assignee to NULL (unassigned)");
-      } else {
-        updatePayload.assignee = updatedTask.assignee; // Store the employee ID
-        console.log("Setting assignee to:", updatedTask.assignee);
-      }
+      console.log("Final update payload:", updatePayload);
 
       // Update the task with the properly constructed payload
       const { error } = await supabase

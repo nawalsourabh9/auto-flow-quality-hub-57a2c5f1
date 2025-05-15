@@ -21,10 +21,11 @@ export const useEmployeeData = () => {
       try {
         console.log("Fetching employee data for task assignment...");
         
-        // Fetch employees data directly without attempting to check constraint definition
+        // Make sure we get all necessary fields and fetch only active employees
         const { data, error } = await supabase
           .from('employees')
-          .select('id, name, email, department, position, employee_id')
+          .select('id, name, email, department, position, employee_id, status')
+          .eq('status', 'Active') // Only fetch active employees
           .order('name');
           
         if (error) {
@@ -33,6 +34,7 @@ export const useEmployeeData = () => {
         }
         
         console.log("Successfully fetched employee data:", data?.length || 0, "records");
+        console.log("Employee data sample:", data?.[0]);
         setEmployees(data || []);
       } catch (error) {
         console.error("Error in useEmployeeData hook:", error);

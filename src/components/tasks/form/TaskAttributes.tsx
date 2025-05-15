@@ -41,6 +41,9 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
   attachmentsRequired,
   setAttachmentsRequired
 }) => {
+  console.log("Available employees:", employees);
+  console.log("Current assignee value:", assignee);
+  
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

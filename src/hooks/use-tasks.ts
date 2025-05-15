@@ -27,7 +27,7 @@ export const useTasks = () => {
         .map(task => task.assignee)
         .filter(id => id && typeof id === 'string');
       
-      console.log(`Found ${employeeIds.length} unique assignees`);
+      console.log(`Found ${employeeIds.length} unique assignees:`, employeeIds);
       
       // Fetch employee details if there are assignees
       let employeesData = [];
@@ -41,7 +41,7 @@ export const useTasks = () => {
           console.error("Error fetching employees:", empError);
         } else {
           employeesData = empData || [];
-          console.log(`Retrieved ${employeesData.length} employee records`);
+          console.log(`Retrieved ${employeesData.length} employee records:`, employeesData);
         }
       }
 
