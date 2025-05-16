@@ -27,18 +27,13 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
       console.log("Updating task:", updatedTask);
-      console.log("Assignee value from form:", updatedTask.assignee, typeof updatedTask.assignee);
+      console.log("Assignee type:", typeof updatedTask.assignee);
+      console.log("Assignee value from form:", updatedTask.assignee);
       
-      // Determine the actual assignee value to store in database
-      // Now explicitly convert "unassigned" to null
-      let assigneeValue: string | null = null;
-      
-      if (updatedTask.assignee && updatedTask.assignee !== "unassigned") {
-        assigneeValue = updatedTask.assignee;
-        console.log("Setting assignee to:", assigneeValue);
-      } else {
-        console.log("Setting assignee to null");
-      }
+      // assignee is already properly converted at the form level
+      // but let's double check here
+      const assigneeValue = updatedTask.assignee === "unassigned" ? null : updatedTask.assignee;
+      console.log("Final assignee value for database:", assigneeValue);
       
       // Create the update payload with proper typing
       const updatePayload: TaskUpdatePayload = {
@@ -56,10 +51,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       };
       
       console.log("Final update payload before sending to database:", updatePayload);
-      console.log("Assignee type:", typeof updatePayload.assignee);
-
-      // Log the actual query that will be executed
-      console.log("Executing update query with assignee:", updatePayload.assignee);
+      console.log("Assignee type in payload:", typeof updatePayload.assignee);
 
       // Update the task with the properly constructed payload
       const { data, error } = await supabase

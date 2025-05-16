@@ -34,7 +34,9 @@ export const useEmployeeData = () => {
         }
         
         console.log("Successfully fetched employee data:", data?.length || 0, "records");
-        console.log("First employee record:", data?.[0]);
+        if (data && data.length > 0) {
+          console.log("First employee record:", data[0]);
+        }
         
         // Filter out any potential null values just to be safe
         const validEmployees = (data || []).filter(emp => emp && emp.id);

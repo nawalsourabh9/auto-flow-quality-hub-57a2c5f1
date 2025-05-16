@@ -49,17 +49,23 @@ const TaskForm: React.FC<TaskFormProps> = ({
     handleFileUpload 
   } = useDocumentUploads(initialData.documents);
 
-  // Set initial assignee from props when component mounts or initialData changes
+  // Set initial assignee from props
   useEffect(() => {
+    if (initialData.id) {
+      console.log("TaskForm is in EDIT mode with ID:", initialData.id);
+    } else {
+      console.log("TaskForm is in CREATE mode");
+    }
+    
     console.log("Initial data in TaskForm:", initialData);
+    
+    // Only log this message on mount, not when assignee changes
     if (initialData.assignee) {
       console.log("Setting initial assignee from props:", initialData.assignee);
-      setAssignee(initialData.assignee);
     } else {
-      console.log("No initial assignee provided, using unassigned");
-      setAssignee("unassigned");
+      console.log("No initial assignee in props, using unassigned");
     }
-  }, [initialData]);
+  }, [initialData.id]); // Only run once on mount or when ID changes
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -31,17 +31,13 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
   const handleCreateTask = async (newTask: Task) => {
     try {
       console.log("Creating task with data:", newTask);
+      console.log("Assignee type:", typeof newTask.assignee);
       console.log("Assignee value received from form:", newTask.assignee);
       
-      // Handle the assignee value properly - explicitly convert "unassigned" string to null
-      let assigneeValue: string | null = null;
-      
-      if (newTask.assignee && newTask.assignee !== "unassigned") {
-        assigneeValue = newTask.assignee;
-        console.log("Setting assignee value to:", assigneeValue);
-      } else {
-        console.log("Setting assignee to null (unassigned)");
-      }
+      // assignee is already properly converted at the form level
+      // but let's double check here
+      const assigneeValue = newTask.assignee === "unassigned" ? null : newTask.assignee;
+      console.log("Final assignee value for database:", assigneeValue);
       
       // Create the properly typed payload for database insertion
       const taskPayload: TaskPayload = {
@@ -61,10 +57,7 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       };
       
       console.log("Final task payload before database insertion:", taskPayload);
-      console.log("Assignee type:", typeof taskPayload.assignee);
-      
-      // Log the actual query that will be executed
-      console.log("Executing insert query with assignee:", taskPayload.assignee);
+      console.log("Assignee type in payload:", typeof taskPayload.assignee);
       
       // Create the task with the properly typed payload
       const { data, error } = await supabase

@@ -35,8 +35,8 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
 }) => {
   // Log employee data when component renders
   useEffect(() => {
+    console.log("TaskAttributes rendered with assignee:", assignee);
     console.log("TaskAttributes received employees:", employees);
-    console.log("Current assignee value:", assignee);
     console.log("Employee IDs available:", employees.map(e => e.id));
   }, [employees, assignee]);
 
