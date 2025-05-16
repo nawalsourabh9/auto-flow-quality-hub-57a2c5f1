@@ -33,7 +33,7 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       console.log("Creating task with data:", newTask);
       console.log("Assignee value received from form:", newTask.assignee);
       
-      // Handle the assignee value properly
+      // Handle the assignee value properly - explicitly convert "unassigned" string to null
       let assigneeValue: string | null = null;
       
       if (newTask.assignee && newTask.assignee !== "unassigned") {

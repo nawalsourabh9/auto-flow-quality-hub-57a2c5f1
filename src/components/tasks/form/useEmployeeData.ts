@@ -24,7 +24,7 @@ export const useEmployeeData = () => {
         // Make sure we get all necessary fields and fetch only active employees
         const { data, error } = await supabase
           .from('employees')
-          .select('*')  // Select all fields to ensure we have complete data
+          .select('id, name, email, department, position, employee_id')  
           .eq('status', 'Active') // Only fetch active employees
           .order('name');
           

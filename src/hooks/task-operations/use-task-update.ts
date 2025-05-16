@@ -30,6 +30,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       console.log("Assignee value from form:", updatedTask.assignee, typeof updatedTask.assignee);
       
       // Determine the actual assignee value to store in database
+      // Now explicitly convert "unassigned" to null
       let assigneeValue: string | null = null;
       
       if (updatedTask.assignee && updatedTask.assignee !== "unassigned") {

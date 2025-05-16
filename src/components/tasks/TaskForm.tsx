@@ -30,7 +30,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const [department, setDepartment] = useState(initialData.department || "");
   const [priority, setPriority] = useState<"low" | "medium" | "high">(initialData.priority || "medium");
   const [dueDate, setDueDate] = useState(initialData.dueDate || "");
-  const [assignee, setAssignee] = useState(initialData.assignee ? initialData.assignee : "unassigned");
+  const [assignee, setAssignee] = useState<string>(initialData.assignee || "unassigned");
   const [attachmentsRequired, setAttachmentsRequired] = useState<"none" | "optional" | "required">(
     initialData.attachmentsRequired || "optional"
   );
@@ -49,9 +49,9 @@ const TaskForm: React.FC<TaskFormProps> = ({
     handleFileUpload 
   } = useDocumentUploads(initialData.documents);
 
+  // Set initial assignee from props when component mounts or initialData changes
   useEffect(() => {
     console.log("Initial data in TaskForm:", initialData);
-    // Set assignee from initialData if it exists
     if (initialData.assignee) {
       console.log("Setting initial assignee from props:", initialData.assignee);
       setAssignee(initialData.assignee);
@@ -63,6 +63,19 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Log form values before submission
+    console.log("Form submitted with fields:", {
+      title,
+      description,
+      department,
+      priority,
+      dueDate,
+      assignee,
+      isCustomerRelated,
+      customerName,
+      attachmentsRequired
+    });
     
     console.log("Form submitted with assignee:", assignee);
     
@@ -147,13 +160,17 @@ const TaskForm: React.FC<TaskFormProps> = ({
       });
     }
 
+    // Create the task object with the proper assignee value
+    const finalAssignee = assignee === "unassigned" ? null : assignee;
+    console.log("Final assignee value for task object:", finalAssignee);
+
     // Create the task object
     const newTask: Task = {
       id: initialData.id || "",
       title,
       description,
       department,
-      assignee,
+      assignee: finalAssignee,
       priority,
       dueDate,
       status: initialData.status || "not-started",
@@ -166,7 +183,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       documents: documents.length > 0 ? documents : undefined
     };
 
-    console.log("Submitting task with assignee:", newTask.assignee);
+    console.log("Submitting task with final data:", newTask);
     onSubmit(newTask);
   };
 
