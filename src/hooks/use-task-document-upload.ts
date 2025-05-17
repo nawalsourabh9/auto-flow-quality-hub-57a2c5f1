@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export const useTaskDocumentUpload = () => {
   const processTaskDocuments = async (taskId: string, documents: any[]) => {
@@ -20,16 +21,8 @@ export const useTaskDocumentUpload = () => {
         
         console.log(`Processing document: ${document.fileName}, type: ${document.documentType}`);
         
-        // First check if the task-documents bucket exists, if not create it
-        const { data: buckets } = await supabase.storage.listBuckets();
-        const bucketExists = buckets?.some(bucket => bucket.name === 'task-documents');
-        
-        if (!bucketExists) {
-          console.log("Creating task-documents storage bucket");
-          await supabase.storage.createBucket('task-documents', { public: false });
-        }
-        
-        // Store the file in Supabase Storage with a unique name
+        // Upload file to the existing task-documents bucket
+        // No need to check/create bucket as it's now already created via SQL
         const fileName = `${Date.now()}-${document.fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
         const filePath = `tasks/${taskId}/${fileName}`;
         
@@ -41,10 +34,21 @@ export const useTaskDocumentUpload = () => {
           
         if (fileError) {
           console.error('Error uploading file:', fileError);
+          toast({
+            title: "Upload failed",
+            description: `Failed to upload file: ${fileError.message}`,
+            variant: "destructive"
+          });
           continue;
         }
         
         console.log('File uploaded successfully, path:', fileData?.path);
+        
+        // Show success toast
+        toast({
+          title: "File uploaded",
+          description: `${document.fileName} was successfully uploaded.`
+        });
         
         // Get the current user for uploaded_by field
         const { data: { user } } = await supabase.auth.getUser();
@@ -66,14 +70,24 @@ export const useTaskDocumentUpload = () => {
           
         if (docError) {
           console.error('Error creating document record:', docError);
+          toast({
+            title: "Error",
+            description: `Failed to save document reference: ${docError.message}`,
+            variant: "destructive"
+          });
         } else {
           console.log('Document record created successfully');
         }
       }
       
       console.log(`Completed processing ${documents.length} documents for task ${taskId}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing documents:', error);
+      toast({
+        title: "Error",
+        description: `Failed to process documents: ${error.message || 'Unknown error'}`,
+        variant: "destructive"
+      });
     }
   };
 

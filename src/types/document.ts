@@ -11,8 +11,8 @@ export interface TaskDocument {
   currentRevisionId?: string;
   approvalHierarchy?: ApprovalHierarchy;
   revisions?: DocumentRevision[];
-  file?: File; // Added to support file uploads
-  filePath?: string; // Added to store the path in Supabase storage
+  file?: File; // For file uploads
+  filePath?: string; // For storage path in Supabase
 }
 
 export interface DocumentRevision {
