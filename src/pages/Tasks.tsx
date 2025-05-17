@@ -1,18 +1,16 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useTasks } from "@/hooks/use-tasks";
 import { useTaskOperations } from "@/hooks/use-task-operations";
 import { useTaskFilters } from "@/hooks/use-task-filters";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskFilters from "@/components/tasks/TaskFilters";
-import PendingTasksAlert from "@/components/tasks/PendingTasksAlert";
 import TasksContent from "@/components/tasks/TasksContent";
 import TaskDialogs from "@/components/tasks/TaskDialogs";
 import { useAuth } from "@/hooks/use-auth";
 
 const Tasks = () => {
   const { data: tasks = [], isLoading } = useTasks();
-  const [activeTab, setActiveTab] = useState("all-tasks");
   const { employee } = useAuth();
   
   const {
@@ -22,9 +20,15 @@ const Tasks = () => {
     setStatusFilter,
     priorityFilter,
     setPriorityFilter,
+    departmentFilter,
+    setDepartmentFilter,
+    assigneeFilter,
+    setAssigneeFilter,
+    dueDateFilter,
+    setDueDateFilter,
     filteredTasks,
-    pendingTasks,
-    filteredPendingTasks
+    departments,
+    teamMembers
   } = useTaskFilters(tasks);
 
   const {
@@ -36,11 +40,8 @@ const Tasks = () => {
     setIsStatusUpdateDialogOpen,
     currentEditTask,
     currentStatusTask,
-    handleViewTask,
     handleEditTask,
     handleStatusUpdate,
-    handleApproveTask,
-    handleRejectTask,
     handleUpdateTask,
     handleCreateTask,
     deleteTask
@@ -48,9 +49,6 @@ const Tasks = () => {
 
   // Check if user is an admin
   const isAdmin = employee?.role === 'admin';
-
-  // Remove all role and permission checks for department head - all users can see and create tasks
-  const isDepartmentHead = () => true;
 
   if (isLoading) {
     return (
@@ -64,14 +62,6 @@ const Tasks = () => {
     <div className="space-y-6">
       <TasksHeader onCreateTask={() => setIsCreateDialogOpen(true)} />
 
-      {isDepartmentHead() && (
-        <PendingTasksAlert 
-          pendingTasks={pendingTasks}
-          activeTab={activeTab}
-          onViewPendingTasks={() => setActiveTab("pending-approval")}
-        />
-      )}
-
       <TaskFilters 
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -79,19 +69,20 @@ const Tasks = () => {
         setStatusFilter={setStatusFilter}
         priorityFilter={priorityFilter}
         setPriorityFilter={setPriorityFilter}
+        departmentFilter={departmentFilter}
+        setDepartmentFilter={setDepartmentFilter}
+        assigneeFilter={assigneeFilter}
+        setAssigneeFilter={setAssigneeFilter}
+        dueDateFilter={dueDateFilter}
+        setDueDateFilter={setDueDateFilter}
+        departments={departments}
+        teamMembers={teamMembers}
       />
 
       <TasksContent 
-        isDepartmentHead={isDepartmentHead}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        pendingTasks={pendingTasks}
         filteredTasks={filteredTasks}
-        filteredPendingTasks={filteredPendingTasks}
         onViewTask={handleStatusUpdate}
         onEditTask={handleEditTask}
-        onApproveTask={handleApproveTask}
-        onRejectTask={handleRejectTask}
         onDeleteTask={deleteTask}
         isAdmin={isAdmin}
       />
