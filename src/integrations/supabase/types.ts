@@ -652,6 +652,7 @@ export type Database = {
           approved_by: string | null
           assignee: string | null
           attachments_required: string
+          comments: string | null
           created_at: string
           customer_name: string | null
           department: string
@@ -675,6 +676,7 @@ export type Database = {
           approved_by?: string | null
           assignee?: string | null
           attachments_required: string
+          comments?: string | null
           created_at?: string
           customer_name?: string | null
           department: string
@@ -698,6 +700,7 @@ export type Database = {
           approved_by?: string | null
           assignee?: string | null
           attachments_required?: string
+          comments?: string | null
           created_at?: string
           customer_name?: string | null
           department?: string

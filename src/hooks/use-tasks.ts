@@ -100,7 +100,8 @@ export const useTasks = () => {
           rejectedBy: item.rejected_by,
           rejectedAt: item.rejected_at,
           rejectionReason: item.rejection_reason,
-          departmentHeadId: item.department_head_id
+          departmentHeadId: item.department_head_id,
+          comments: item.comments
         };
       });
 
