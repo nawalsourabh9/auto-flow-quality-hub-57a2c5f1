@@ -17,6 +17,7 @@ interface TaskUpdatePayload {
   recurring_frequency?: string | null;
   attachments_required: 'none' | 'optional' | 'required';
   assignee: string | null;
+  status?: 'not-started' | 'in-progress' | 'completed' | 'overdue';
 }
 
 /**
@@ -29,6 +30,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
       console.log("Updating task:", updatedTask);
+      console.log("Task status:", updatedTask.status);
       console.log("Assignee type:", typeof updatedTask.assignee);
       console.log("Assignee value from form:", updatedTask.assignee);
       
@@ -49,11 +51,11 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         customer_name: updatedTask.customerName || null,
         recurring_frequency: updatedTask.recurringFrequency || null,
         attachments_required: updatedTask.attachmentsRequired,
-        assignee: assigneeValue
+        assignee: assigneeValue,
+        status: updatedTask.status
       };
       
       console.log("Final update payload before sending to database:", updatePayload);
-      console.log("Assignee type in payload:", typeof updatePayload.assignee);
 
       // Update the task with the properly constructed payload
       const { data, error } = await supabase

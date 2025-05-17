@@ -41,12 +41,14 @@ const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
     e.preventDefault();
     if (!task) return;
     
+    // Create an updated task with the new status
     const updatedTask: Task = {
       ...task,
       status,
-      documents: task.documents || [] // Preserve existing documents
+      documents: documentUploads.length > 0 ? documentUploads : (task.documents || [])
     };
 
+    // Send the updated task to the parent component
     onUpdateTask(updatedTask);
     onClose();
   };
