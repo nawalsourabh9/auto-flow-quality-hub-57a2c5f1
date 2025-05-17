@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Trash2, RefreshCw, FileUp } from "lucide-react";
+import { Edit, Trash2, RefreshCw } from "lucide-react";
 import { Task } from "@/types/task";
 import { TaskStatusBadge } from "./TaskStatusBadge";
 import { TaskPriorityBadge } from "./TaskPriorityBadge";
@@ -78,10 +78,6 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
               Edit
             </Button>
           )}
-          <Button size="sm" variant="outline" onClick={() => onEditTask?.(task)}>
-            <FileUp className="h-4 w-4 mr-1" />
-            Upload Docs
-          </Button>
           {onDeleteTask && (
             <Button 
               size="sm" 

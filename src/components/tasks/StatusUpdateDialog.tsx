@@ -27,7 +27,10 @@ const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
   onClose, 
   onUpdateTask 
 }) => {
-  const [status, setStatus] = useState<string>(task?.status || "not-started");
+  const [status, setStatus] = useState<"not-started" | "in-progress" | "completed" | "overdue">(
+    task?.status || "not-started"
+  );
+  
   const { 
     documentUploads, 
     handleDocumentSelect, 
@@ -59,7 +62,7 @@ const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="status">Task Status</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status} onValueChange={(value: "not-started" | "in-progress" | "completed" | "overdue") => setStatus(value)}>
               <SelectTrigger id="status" className="w-full">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
