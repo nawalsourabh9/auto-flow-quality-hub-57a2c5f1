@@ -54,7 +54,7 @@ export const useTaskDocumentUpload = () => {
         const { data: { user } } = await supabase.auth.getUser();
         const uploaderId = user?.id || 'unknown';
         
-        // Create document record in the database
+        // Create document record in the database - removed file_path field which doesn't exist in the schema
         const { data: docData, error: docError } = await supabase
           .from('documents')
           .insert({
@@ -64,8 +64,8 @@ export const useTaskDocumentUpload = () => {
             document_type: document.documentType,
             version: document.version || '1.0',
             uploaded_by: uploaderId,
-            notes: document.notes || '',
-            file_path: filePath
+            notes: document.notes || ''
+            // Removed file_path field as it doesn't exist in the schema
           });
           
         if (docError) {
@@ -77,6 +77,41 @@ export const useTaskDocumentUpload = () => {
           });
         } else {
           console.log('Document record created successfully');
+          
+          // Now create an entry in document_revisions table with the file path
+          const { data: revisionData, error: revisionError } = await supabase
+            .from('document_revisions')
+            .insert({
+              document_id: docData?.[0]?.id,
+              file_name: document.fileName,
+              file_path: filePath,
+              version: document.version || '1.0',
+              uploaded_by: uploaderId,
+              notes: document.notes || ''
+            });
+            
+          if (revisionError) {
+            console.error('Error creating document revision record:', revisionError);
+            toast({
+              title: "Warning",
+              description: `Document saved but revision tracking failed: ${revisionError.message}`,
+              variant: "destructive"
+            });
+          } else {
+            console.log('Document revision record created successfully');
+            
+            // Update the document with the current revision ID
+            const { error: updateError } = await supabase
+              .from('documents')
+              .update({ current_revision_id: revisionData?.[0]?.id })
+              .eq('id', docData?.[0]?.id);
+              
+            if (updateError) {
+              console.error('Error updating document with revision ID:', updateError);
+            } else {
+              console.log('Document updated with current revision ID');
+            }
+          }
         }
       }
       
