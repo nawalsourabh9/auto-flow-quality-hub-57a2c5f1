@@ -6,6 +6,7 @@ import { useTaskApproval } from "./task-operations/use-task-approval";
 import { useTaskUpdate } from "./task-operations/use-task-update";
 import { useTaskCreate } from "./task-operations/use-task-create";
 import { useTaskDelete } from "./task-operations/use-task-delete";
+import { Task } from "@/types/task";
 
 /**
  * Main hook for task operations that combines smaller specialized hooks
@@ -16,8 +17,12 @@ export const useTaskOperations = () => {
     setIsCreateDialogOpen,
     isEditDialogOpen,
     setIsEditDialogOpen,
+    isStatusUpdateDialogOpen,
+    setIsStatusUpdateDialogOpen,
     currentEditTask,
-    setCurrentEditTask
+    setCurrentEditTask,
+    currentStatusTask,
+    setCurrentStatusTask
   } = useTaskState();
 
   const { handleViewTask } = useTaskView();
@@ -27,14 +32,23 @@ export const useTaskOperations = () => {
   const { handleCreateTask } = useTaskCreate(setIsCreateDialogOpen);
   const { deleteTask } = useTaskDelete();
 
+  const handleStatusUpdate = (task: Task) => {
+    setCurrentStatusTask(task);
+    setIsStatusUpdateDialogOpen(true);
+  };
+
   return {
     isCreateDialogOpen,
     setIsCreateDialogOpen,
     isEditDialogOpen,
     setIsEditDialogOpen,
+    isStatusUpdateDialogOpen,
+    setIsStatusUpdateDialogOpen,
     currentEditTask,
+    currentStatusTask,
     handleViewTask,
     handleEditTask,
+    handleStatusUpdate,
     handleApproveTask,
     handleRejectTask,
     handleUpdateTask,

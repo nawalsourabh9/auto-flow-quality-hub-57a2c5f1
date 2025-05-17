@@ -32,9 +32,13 @@ const Tasks = () => {
     setIsCreateDialogOpen,
     isEditDialogOpen,
     setIsEditDialogOpen,
+    isStatusUpdateDialogOpen,
+    setIsStatusUpdateDialogOpen,
     currentEditTask,
+    currentStatusTask,
     handleViewTask,
     handleEditTask,
+    handleStatusUpdate,
     handleApproveTask,
     handleRejectTask,
     handleUpdateTask,
@@ -84,7 +88,7 @@ const Tasks = () => {
         pendingTasks={pendingTasks}
         filteredTasks={filteredTasks}
         filteredPendingTasks={filteredPendingTasks}
-        onViewTask={handleViewTask}
+        onViewTask={handleStatusUpdate}
         onEditTask={handleEditTask}
         onApproveTask={handleApproveTask}
         onRejectTask={handleRejectTask}
@@ -97,7 +101,10 @@ const Tasks = () => {
         setIsCreateDialogOpen={setIsCreateDialogOpen}
         isEditDialogOpen={isEditDialogOpen}
         setIsEditDialogOpen={setIsEditDialogOpen}
+        isStatusUpdateDialogOpen={isStatusUpdateDialogOpen}
+        setIsStatusUpdateDialogOpen={setIsStatusUpdateDialogOpen}
         currentEditTask={currentEditTask}
+        currentStatusTask={currentStatusTask}
         onCreateTask={handleCreateTask}
         onUpdateTask={handleUpdateTask}
       />

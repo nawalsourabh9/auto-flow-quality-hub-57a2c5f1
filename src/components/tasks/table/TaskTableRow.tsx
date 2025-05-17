@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, RefreshCw, FileUp } from "lucide-react";
 import { Task } from "@/types/task";
 import { TaskStatusBadge } from "./TaskStatusBadge";
 import { TaskPriorityBadge } from "./TaskPriorityBadge";
@@ -69,7 +69,8 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => onViewTask(task)}>
-            View
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Update Status
           </Button>
           {onEditTask && (
             <Button size="sm" variant="outline" onClick={() => onEditTask(task)}>
@@ -77,6 +78,10 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
               Edit
             </Button>
           )}
+          <Button size="sm" variant="outline" onClick={() => onEditTask?.(task)}>
+            <FileUp className="h-4 w-4 mr-1" />
+            Upload Docs
+          </Button>
           {onDeleteTask && (
             <Button 
               size="sm" 
