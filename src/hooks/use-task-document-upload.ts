@@ -67,7 +67,7 @@ export const useTaskDocumentUpload = () => {
         const uploaderId = user.id;
         
         // Create document record in the database
-        const { data, error: docError } = await supabase
+        const { data: docData, error: docError } = await supabase
           .from('documents')
           .insert({
             task_id: taskId,
@@ -87,14 +87,14 @@ export const useTaskDocumentUpload = () => {
             description: `Failed to save document reference: ${docError.message}`,
             variant: "destructive"
           });
-        } else if (data && data.length > 0) {
+        } else if (docData && docData.length > 0) {
           console.log('Document record created successfully');
           
           // Now create an entry in document_revisions table with the file path
-          const { data: revData, error: revisionError } = await supabase
+          const { data: revisionData, error: revisionError } = await supabase
             .from('document_revisions')
             .insert({
-              document_id: data[0].id,
+              document_id: docData[0].id,
               file_name: document.fileName,
               file_path: filePath,
               version: document.version || '1.0',
@@ -110,14 +110,14 @@ export const useTaskDocumentUpload = () => {
               description: `Document saved but revision tracking failed: ${revisionError.message}`,
               variant: "destructive"
             });
-          } else if (revData && revData.length > 0) {
+          } else if (revisionData && revisionData.length > 0) {
             console.log('Document revision record created successfully');
             
             // Update the document with the current revision ID
             const { error: updateError } = await supabase
               .from('documents')
-              .update({ current_revision_id: revData[0].id })
-              .eq('id', data[0].id);
+              .update({ current_revision_id: revisionData[0].id })
+              .eq('id', docData[0].id);
               
             if (updateError) {
               console.error('Error updating document with revision ID:', updateError);
