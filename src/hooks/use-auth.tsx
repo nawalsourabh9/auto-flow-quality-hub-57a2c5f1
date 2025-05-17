@@ -11,9 +11,9 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   
-  // Ensure we're properly checking if the user has admin role
+  // Ensure we're properly checking if the user has admin role - using case insensitive comparison
   const employee = context.user as EmployeeData | null;
-  const isAdmin = employee?.role === 'admin';
+  const isAdmin = employee?.role?.toLowerCase() === 'admin';
   
   console.log("useAuth hook - employee:", employee);
   console.log("useAuth hook - role:", employee?.role);

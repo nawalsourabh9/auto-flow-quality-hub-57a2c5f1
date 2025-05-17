@@ -11,10 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 const Tasks = () => {
   const { data: tasks = [], isLoading } = useTasks();
-  const { employee } = useAuth();
-  
-  // Check if user is an admin
-  const isAdmin = employee?.role === 'admin';
+  const { employee, isAdmin } = useAuth();
   
   console.log("Current user role:", employee?.role);
   console.log("Is admin?", isAdmin);
