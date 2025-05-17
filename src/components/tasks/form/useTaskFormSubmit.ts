@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { Task } from "@/types/task";
 import { TaskDocument } from "@/types/document";
 import { Employee } from "./useEmployeeData";
@@ -11,7 +10,7 @@ export const useTaskFormSubmit = (
 ) => {
   // Find the selected employee details
   const getAssigneeDetails = (assigneeId: string | null) => {
-    if (!assigneeId) {
+    if (!assigneeId || assigneeId === "unassigned") {
       return {
         name: "",
         initials: "",
@@ -51,6 +50,7 @@ export const useTaskFormSubmit = (
     assigneeDetails: { name: string }
   ): TaskDocument[] => {
     const documents: TaskDocument[] = [];
+    const timestamp = new Date().toISOString();
     
     if (documentUploads.sop.selected) {
       documents.push({
@@ -59,7 +59,7 @@ export const useTaskFormSubmit = (
         fileType: documentUploads.sop.file?.type || "pdf",
         documentType: "sop",
         version: "1.0",
-        uploadDate: new Date().toISOString(),
+        uploadDate: timestamp,
         uploadedBy: assigneeDetails.name,
         file: documentUploads.sop.file // Add the actual file to upload
       });
@@ -72,7 +72,7 @@ export const useTaskFormSubmit = (
         fileType: documentUploads.dataFormat.file?.type || "xlsx",
         documentType: "dataFormat",
         version: "1.0",
-        uploadDate: new Date().toISOString(),
+        uploadDate: timestamp,
         uploadedBy: assigneeDetails.name,
         file: documentUploads.dataFormat.file
       });
@@ -85,7 +85,7 @@ export const useTaskFormSubmit = (
         fileType: documentUploads.reportFormat.file?.type || "docx",
         documentType: "reportFormat",
         version: "1.0",
-        uploadDate: new Date().toISOString(),
+        uploadDate: timestamp,
         uploadedBy: assigneeDetails.name,
         file: documentUploads.reportFormat.file
       });
@@ -98,12 +98,13 @@ export const useTaskFormSubmit = (
         fileType: documentUploads.rulesAndProcedures.file?.type || "pdf",
         documentType: "rulesAndProcedures",
         version: "1.0",
-        uploadDate: new Date().toISOString(),
+        uploadDate: timestamp,
         uploadedBy: assigneeDetails.name,
         file: documentUploads.rulesAndProcedures.file
       });
     }
-    
+
+    console.log("Prepared documents for submission:", documents);
     return documents;
   };
 
@@ -126,6 +127,7 @@ export const useTaskFormSubmit = (
     
     // Log form values before submission
     console.log("Form submitted with fields:", formData);
+    console.log("Form submitted with dueDate:", formData.dueDate);
     console.log("Form submitted with assignee:", formData.assignee);
     
     // Find the selected employee details

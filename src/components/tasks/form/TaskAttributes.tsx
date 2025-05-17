@@ -1,7 +1,24 @@
 
 import React, { useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
+import { format, parse } from "date-fns";
+import { cn } from "@/lib/utils";
 import { Employee } from "./useEmployeeData";
 
 interface TaskAttributesProps {
@@ -31,57 +48,64 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
   employees,
   isLoading,
   attachmentsRequired,
-  setAttachmentsRequired
+  setAttachmentsRequired,
 }) => {
-  // Log employee data when component renders
+  // Log the initial value of assignee on render
   useEffect(() => {
     console.log("TaskAttributes rendered with assignee:", assignee);
     console.log("TaskAttributes received employees:", employees);
-    console.log("Employee IDs available:", employees.map(e => e.id));
-  }, [employees, assignee]);
-
-  // Validate that the assignee value exists in the employees array if it's not "unassigned"
-  useEffect(() => {
-    if (assignee && assignee !== "unassigned" && employees.length > 0) {
-      const employeeExists = employees.some(emp => emp.id === assignee);
-      if (!employeeExists) {
-        console.warn(`Selected assignee ID ${assignee} does not exist in employees list!`);
-      } else {
-        console.log(`Assignee ID ${assignee} validated as existing in employees list.`);
+    if (employees.length > 0) {
+      console.log("Employee IDs available:", employees.map(emp => emp.id));
+      if (assignee && assignee !== "unassigned") {
+        const validEmployee = employees.some(emp => emp.id === assignee);
+        console.log(`Assignee ID ${assignee} validated as ${validEmployee ? 'existing' : 'NOT FOUND'} in employees list.`);
       }
     }
   }, [assignee, employees]);
-  
+
+  // Convert string date to Date object for the calendar
+  const dateValue = dueDate ? parse(dueDate, "yyyy-MM-dd", new Date()) : undefined;
+
+  // Handle date selection from calendar
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      const formattedDate = format(date, "yyyy-MM-dd");
+      console.log("Selected date:", formattedDate);
+      setDueDate(formattedDate);
+    } else {
+      setDueDate("");
+    }
+  };
+
   return (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="department" className="block text-sm font-medium mb-1">
-            Department <span className="text-destructive">*</span>
-          </label>
-          <Select value={department} onValueChange={setDepartment} required>
-            <SelectTrigger className="border border-input rounded-md">
+    <div className="space-y-4">
+      <h3 className="text-sm font-medium">Task Attributes</h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Department */}
+        <div className="space-y-2">
+          <Label htmlFor="department">Department</Label>
+          <Select value={department} onValueChange={setDepartment}>
+            <SelectTrigger>
               <SelectValue placeholder="Select department" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Engineering">Engineering</SelectItem>
               <SelectItem value="Quality">Quality</SelectItem>
+              <SelectItem value="Engineering">Engineering</SelectItem>
               <SelectItem value="Production">Production</SelectItem>
-              <SelectItem value="Regulatory">Regulatory</SelectItem>
-              <SelectItem value="EHS">EHS</SelectItem>
+              <SelectItem value="HR">Human Resources</SelectItem>
+              <SelectItem value="Finance">Finance</SelectItem>
+              <SelectItem value="IT">Information Technology</SelectItem>
+              <SelectItem value="Executive">Executive</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div>
-          <label htmlFor="priority" className="block text-sm font-medium mb-1">
-            Priority <span className="text-destructive">*</span>
-          </label>
-          <Select 
-            value={priority} 
-            onValueChange={(value: "low" | "medium" | "high") => setPriority(value)}
-          >
-            <SelectTrigger className="border border-input rounded-md">
+        {/* Priority */}
+        <div className="space-y-2">
+          <Label htmlFor="priority">Priority</Label>
+          <Select value={priority} onValueChange={setPriority}>
+            <SelectTrigger>
               <SelectValue placeholder="Select priority" />
             </SelectTrigger>
             <SelectContent>
@@ -91,74 +115,68 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
             </SelectContent>
           </Select>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="dueDate" className="block text-sm font-medium mb-1">
-            Due Date <span className="text-destructive">*</span>
-          </label>
-          <Input 
-            id="dueDate" 
-            type="date" 
-            value={dueDate} 
-            onChange={e => setDueDate(e.target.value)} 
-            required 
-            className="border border-input rounded-md" 
-          />
+        {/* Due Date */}
+        <div className="space-y-2">
+          <Label htmlFor="dueDate">Due Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !dueDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dueDate ? format(parse(dueDate, "yyyy-MM-dd", new Date()), "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateValue}
+                onSelect={handleDateSelect}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
-        <div>
-          <label htmlFor="assignee" className="block text-sm font-medium mb-1">
-            Assignee
-          </label>
-          <Select 
-            value={assignee} 
-            onValueChange={(value) => {
-              console.log("Assignee selected:", value);
-              setAssignee(value);
-            }}
-          >
-            <SelectTrigger className="border border-input rounded-md">
-              <SelectValue placeholder={isLoading ? "Loading employees..." : "Select assignee"} />
+        {/* Assignee */}
+        <div className="space-y-2">
+          <Label htmlFor="assignee">Assignee</Label>
+          <Select value={assignee} onValueChange={setAssignee}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select assignee" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="unassigned">No assignee</SelectItem>
-              {employees.map(employee => (
+            <SelectContent className="max-h-[200px]">
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {employees.map((employee) => (
                 <SelectItem key={employee.id} value={employee.id}>
-                  {employee.name} ({employee.employee_id})
+                  {employee.name} ({employee.department})
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <div className="text-xs text-muted-foreground mt-1">
-            {assignee !== "unassigned" ? 
-              (employees.find(e => e.id === assignee) ? 
-                `Selected: ${employees.find(e => e.id === assignee)?.name} (ID: ${assignee})` : 
-                `ID: ${assignee} (Employee not found in list)`) : 
-              "No assignee selected"}
-          </div>
+        </div>
+
+        {/* Attachments Required */}
+        <div className="space-y-2">
+          <Label htmlFor="attachmentsRequired">Attachments</Label>
+          <Select value={attachmentsRequired} onValueChange={setAttachmentsRequired}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select attachment requirement" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="optional">Optional</SelectItem>
+              <SelectItem value="required">Required</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
-
-      <div>
-        <label htmlFor="attachments" className="block text-sm font-medium mb-1">
-          Attachments
-        </label>
-        <Select 
-          value={attachmentsRequired} 
-          onValueChange={(value: "none" | "optional" | "required") => setAttachmentsRequired(value)}
-        >
-          <SelectTrigger className="border border-input rounded-md">
-            <SelectValue placeholder="Attachment requirements" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            <SelectItem value="optional">Optional</SelectItem>
-            <SelectItem value="required">Required</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </>
+    </div>
   );
 };

@@ -1,10 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Task } from "@/types/task";
 import { useEmployeeData } from "./useEmployeeData";
 import { useDocumentUploads } from "./useDocumentUploads";
 
 export const useTaskFormState = (initialData: Partial<Task> = {}) => {
+  console.log("Initialize TaskFormState with:", initialData);
+  
   // Basic task information
   const [title, setTitle] = useState(initialData.title || "");
   const [description, setDescription] = useState(initialData.description || "");
@@ -21,6 +23,16 @@ export const useTaskFormState = (initialData: Partial<Task> = {}) => {
   // Customer related fields
   const [isCustomerRelated, setIsCustomerRelated] = useState(initialData.isCustomerRelated || false);
   const [customerName, setCustomerName] = useState(initialData.customerName || "");
+  
+  // Log when the due date changes
+  useEffect(() => {
+    console.log("Due date set to:", dueDate);
+  }, [dueDate]);
+  
+  // Log when assignee changes
+  useEffect(() => {
+    console.log("Assignee set to:", assignee);
+  }, [assignee]);
   
   // Fetch employees
   const { employees, isLoading } = useEmployeeData();

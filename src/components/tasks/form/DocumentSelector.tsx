@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,35 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
   onDocumentSelect,
   onFileUpload
 }) => {
+  const fileInputRefs = {
+    sop: useRef<HTMLInputElement>(null),
+    dataFormat: useRef<HTMLInputElement>(null),
+    reportFormat: useRef<HTMLInputElement>(null),
+    rulesAndProcedures: useRef<HTMLInputElement>(null)
+  };
+
+  const handleFileChange = (
+    docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", 
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0] || null;
+    console.log(`File selected for ${docType}:`, file?.name || "No file");
+    onFileUpload(docType, file);
+  };
+
+  const handleCheckboxChange = (
+    docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures",
+    checked: boolean
+  ) => {
+    onDocumentSelect(docType, checked);
+    
+    // If unchecked, clear the file input
+    if (!checked && fileInputRefs[docType].current) {
+      fileInputRefs[docType].current.value = "";
+      onFileUpload(docType, null);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div className="border border-input rounded-md p-3">
@@ -42,7 +71,7 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
           <Checkbox 
             id="docSOP" 
             checked={documentUploads.sop.selected} 
-            onCheckedChange={checked => onDocumentSelect("sop", checked === true)} 
+            onCheckedChange={checked => handleCheckboxChange("sop", checked === true)} 
           />
           <Label htmlFor="docSOP" className="flex items-center">
             <FileText className="h-4 w-4 text-green-500 mr-2" />
@@ -54,8 +83,9 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
           <div className="ml-6 mt-2 flex gap-2 items-center">
             <Input 
               type="file" 
-              id="sopFile" 
-              onChange={e => onFileUpload("sop", e.target.files?.[0] || null)} 
+              id="sopFile"
+              ref={fileInputRefs.sop}
+              onChange={e => handleFileChange("sop", e)} 
               className="flex-1 text-xs" 
             />
             <Upload size={16} className="text-muted-foreground" />
@@ -68,7 +98,7 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
           <Checkbox 
             id="docDataFormat" 
             checked={documentUploads.dataFormat.selected} 
-            onCheckedChange={checked => onDocumentSelect("dataFormat", checked === true)} 
+            onCheckedChange={checked => handleCheckboxChange("dataFormat", checked === true)} 
           />
           <Label htmlFor="docDataFormat" className="flex items-center">
             <Database className="h-4 w-4 text-blue-500 mr-2" />
@@ -80,8 +110,9 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
           <div className="ml-6 mt-2 flex gap-2 items-center">
             <Input 
               type="file" 
-              id="dataFormatFile" 
-              onChange={e => onFileUpload("dataFormat", e.target.files?.[0] || null)} 
+              id="dataFormatFile"
+              ref={fileInputRefs.dataFormat}
+              onChange={e => handleFileChange("dataFormat", e)} 
               className="flex-1 text-xs" 
             />
             <Upload size={16} className="text-muted-foreground" />
@@ -94,7 +125,7 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
           <Checkbox 
             id="docReportFormat" 
             checked={documentUploads.reportFormat.selected} 
-            onCheckedChange={checked => onDocumentSelect("reportFormat", checked === true)} 
+            onCheckedChange={checked => handleCheckboxChange("reportFormat", checked === true)} 
           />
           <Label htmlFor="docReportFormat" className="flex items-center">
             <PieChart className="h-4 w-4 text-amber-500 mr-2" />
@@ -106,8 +137,9 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
           <div className="ml-6 mt-2 flex gap-2 items-center">
             <Input 
               type="file" 
-              id="reportFormatFile" 
-              onChange={e => onFileUpload("reportFormat", e.target.files?.[0] || null)} 
+              id="reportFormatFile"
+              ref={fileInputRefs.reportFormat}
+              onChange={e => handleFileChange("reportFormat", e)} 
               className="flex-1 text-xs" 
             />
             <Upload size={16} className="text-muted-foreground" />
@@ -120,7 +152,7 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
           <Checkbox 
             id="docRulesProc" 
             checked={documentUploads.rulesAndProcedures.selected} 
-            onCheckedChange={checked => onDocumentSelect("rulesAndProcedures", checked === true)} 
+            onCheckedChange={checked => handleCheckboxChange("rulesAndProcedures", checked === true)} 
           />
           <Label htmlFor="docRulesProc" className="flex items-center">
             <BookOpen className="h-4 w-4 text-purple-500 mr-2" />
@@ -132,8 +164,9 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
           <div className="ml-6 mt-2 flex gap-2 items-center">
             <Input 
               type="file" 
-              id="rulesProcFile" 
-              onChange={e => onFileUpload("rulesAndProcedures", e.target.files?.[0] || null)} 
+              id="rulesProcFile"
+              ref={fileInputRefs.rulesAndProcedures}
+              onChange={e => handleFileChange("rulesAndProcedures", e)} 
               className="flex-1 text-xs" 
             />
             <Upload size={16} className="text-muted-foreground" />

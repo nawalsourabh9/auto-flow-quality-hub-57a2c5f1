@@ -37,6 +37,8 @@ export const useDocumentUploads = (initialDocuments?: TaskDocument[]) => {
   // Initialize from existing documents if provided
   useEffect(() => {
     if (initialDocuments && initialDocuments.length > 0) {
+      console.log("Initializing document uploads from:", initialDocuments);
+      
       const newDocumentUploads = { ...documentUploads };
       
       initialDocuments.forEach(doc => {
@@ -52,6 +54,7 @@ export const useDocumentUploads = (initialDocuments?: TaskDocument[]) => {
       });
       
       setDocumentUploads(newDocumentUploads);
+      console.log("Document uploads initialized:", newDocumentUploads);
     }
   }, [initialDocuments]);
 
@@ -59,6 +62,7 @@ export const useDocumentUploads = (initialDocuments?: TaskDocument[]) => {
     docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", 
     selected: boolean
   ) => {
+    console.log(`Document ${docType} selected: ${selected}`);
     setDocumentUploads(prev => ({
       ...prev,
       [docType]: {
@@ -72,6 +76,7 @@ export const useDocumentUploads = (initialDocuments?: TaskDocument[]) => {
     docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", 
     file: File | null
   ) => {
+    console.log(`File uploaded for ${docType}:`, file?.name || "No file selected");
     setDocumentUploads(prev => ({
       ...prev,
       [docType]: {
