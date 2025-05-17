@@ -22,6 +22,7 @@ export const useTasks = () => {
 
       console.log(`Retrieved ${tasksData.length} tasks`);
       console.log("Task assignee data:", tasksData.map(task => ({ id: task.id, assignee: task.assignee })));
+      console.log("Task comments data:", tasksData.map(task => ({ id: task.id, comments: task.comments })));
 
       // Get unique employee IDs from tasks, filtering out null or empty values
       const employeeIds = tasksData

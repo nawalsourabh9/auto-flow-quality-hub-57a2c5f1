@@ -31,6 +31,9 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
   // Format the due date to DD-MM-YYYY if it exists
   const formattedDueDate = task.dueDate ? 
     format(new Date(task.dueDate), 'dd-MM-yyyy') : '';
+  
+  // Debug log to check if comments are available
+  console.log(`Task ${task.id} comments:`, task.comments);
 
   return (
     <tr className={`border-b hover:bg-muted/50 ${task.isCustomerRelated ? 'bg-green-50/50' : ''}`}>
@@ -62,7 +65,9 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
       <td className="px-4 py-3 text-sm border-r">{task.department}</td>
       <td className="px-4 py-3 text-sm border-r whitespace-nowrap">{formattedDueDate}</td>
       <td className="px-4 py-3 border-r"><TaskPriorityBadge priority={task.priority} /></td>
-      <td className="px-4 py-3 border-r"><TaskStatusBadge status={task.status} comments={task.comments} /></td>
+      <td className="px-4 py-3 border-r">
+        <TaskStatusBadge status={task.status} comments={task.comments} />
+      </td>
       <td className="px-4 py-3 border-r">
         <div className="flex flex-wrap gap-1">
           <TaskAttachmentBadge attachmentsRequired={task.attachmentsRequired} />

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, HelpCircle } from "lucide-react";
 import { 
   Tooltip,
   TooltipContent,
@@ -18,20 +18,36 @@ export const TaskStatusBadge: React.FC<TaskStatusBadgeProps> = ({ status, commen
   const getStatusBadge = () => {
     switch (status) {
       case 'completed':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Completed</Badge>;
+        return (
+          <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1">
+            <CheckCircle className="h-3 w-3" /> Completed
+          </Badge>
+        );
       case 'in-progress':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 flex items-center gap-1"><Clock className="h-3 w-3" /> In Progress</Badge>;
+        return (
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 flex items-center gap-1">
+            <Clock className="h-3 w-3" /> In Progress
+          </Badge>
+        );
       case 'overdue':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Overdue</Badge>;
+        return (
+          <Badge variant="outline" className="bg-red-50 text-red-700 flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" /> Overdue
+          </Badge>
+        );
       case 'not-started':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 flex items-center gap-1">Not Started</Badge>;
+        return (
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 flex items-center gap-1">
+            <HelpCircle className="h-3 w-3" /> Not Started
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   // If there are no comments, just return the badge
-  if (!comments) {
+  if (!comments || comments.trim() === '') {
     return getStatusBadge();
   }
 
@@ -40,11 +56,13 @@ export const TaskStatusBadge: React.FC<TaskStatusBadgeProps> = ({ status, commen
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          {getStatusBadge()}
+          <div className="flex items-center cursor-help">
+            {getStatusBadge()}
+          </div>
         </TooltipTrigger>
-        <TooltipContent className="max-w-[300px] whitespace-normal text-sm">
-          <div className="font-semibold">Comments:</div>
-          <div>{comments}</div>
+        <TooltipContent side="top" className="max-w-[300px] p-3 bg-white border shadow-lg rounded-md">
+          <p className="font-semibold mb-1">Status Comments:</p>
+          <p className="text-sm">{comments}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
