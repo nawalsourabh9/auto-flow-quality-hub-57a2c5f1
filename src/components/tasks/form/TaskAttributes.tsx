@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
-import { format, parse } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Employee } from "./useEmployeeData";
 
@@ -64,7 +64,28 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
   }, [assignee, employees]);
 
   // Convert string date to Date object for the calendar
-  const dateValue = dueDate ? parse(dueDate, "yyyy-MM-dd", new Date()) : undefined;
+  // Safely parse the date and ensure it's valid
+  const parseDateSafely = (dateStr: string): Date | undefined => {
+    if (!dateStr) return undefined;
+    
+    // Check if the date is in ISO format (yyyy-MM-ddTHH:mm:ss)
+    if (dateStr.includes('T')) {
+      const date = new Date(dateStr);
+      return isValid(date) ? date : undefined;
+    }
+    
+    // Try to parse as yyyy-MM-dd
+    try {
+      const parsedDate = parse(dateStr, "yyyy-MM-dd", new Date());
+      return isValid(parsedDate) ? parsedDate : undefined;
+    } catch (error) {
+      console.error("Error parsing date:", error);
+      return undefined;
+    }
+  };
+  
+  const dateValue = parseDateSafely(dueDate);
+  console.log("Parsed date value:", dateValue, "from dueDate:", dueDate);
 
   // Handle date selection from calendar
   const handleDateSelect = (date: Date | undefined) => {
@@ -129,7 +150,7 @@ export const TaskAttributes: React.FC<TaskAttributesProps> = ({
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dueDate ? format(parse(dueDate, "yyyy-MM-dd", new Date()), "PPP") : <span>Pick a date</span>}
+                {dateValue ? format(dateValue, "PPP") : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">

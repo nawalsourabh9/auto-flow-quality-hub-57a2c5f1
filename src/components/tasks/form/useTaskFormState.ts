@@ -14,7 +14,35 @@ export const useTaskFormState = (initialData: Partial<Task> = {}) => {
   // Task attributes
   const [department, setDepartment] = useState(initialData.department || "");
   const [priority, setPriority] = useState<"low" | "medium" | "high">(initialData.priority || "medium");
-  const [dueDate, setDueDate] = useState(initialData.dueDate || "");
+  
+  // Properly format the date if it exists
+  const formatInitialDate = (dateValue: string | undefined): string => {
+    if (!dateValue) return "";
+    
+    // If the date is already in yyyy-MM-dd format, return it
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+      return dateValue;
+    }
+    
+    // If it's an ISO date string with time (yyyy-MM-ddTHH:mm:ss)
+    if (dateValue.includes('T')) {
+      try {
+        const date = new Date(dateValue);
+        if (isNaN(date.getTime())) {
+          console.error("Invalid date:", dateValue);
+          return "";
+        }
+        return date.toISOString().split('T')[0];
+      } catch (error) {
+        console.error("Error parsing date:", error);
+        return "";
+      }
+    }
+    
+    return dateValue;
+  };
+  
+  const [dueDate, setDueDate] = useState(formatInitialDate(initialData.dueDate));
   const [assignee, setAssignee] = useState<string>(initialData.assignee || "unassigned");
   const [attachmentsRequired, setAttachmentsRequired] = useState<"none" | "optional" | "required">(
     initialData.attachmentsRequired || "optional"
