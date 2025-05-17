@@ -13,6 +13,12 @@ const Tasks = () => {
   const { data: tasks = [], isLoading } = useTasks();
   const { employee } = useAuth();
   
+  // Check if user is an admin
+  const isAdmin = employee?.role === 'admin';
+  
+  console.log("Current user role:", employee?.role);
+  console.log("Is admin?", isAdmin);
+
   const {
     searchTerm,
     setSearchTerm,
@@ -46,9 +52,6 @@ const Tasks = () => {
     handleCreateTask,
     deleteTask
   } = useTaskOperations();
-
-  // Check if user is an admin
-  const isAdmin = employee?.role === 'admin';
 
   if (isLoading) {
     return (

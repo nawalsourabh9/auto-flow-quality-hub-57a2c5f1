@@ -49,6 +49,8 @@ const TasksTable: React.FC<TasksTableProps> = ({
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  console.log("TasksTable isAdmin:", isAdmin);
+
   const handleDeleteTask = async () => {
     if (taskToDelete && onDeleteTask) {
       setIsDeleting(true);

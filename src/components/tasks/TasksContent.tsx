@@ -18,6 +18,8 @@ const TasksContent = ({
   onDeleteTask,
   isAdmin
 }: TasksContentProps) => {
+  console.log("TasksContent isAdmin:", isAdmin);
+  
   return (
     <TasksTable 
       tasks={filteredTasks} 
