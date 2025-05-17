@@ -12,6 +12,22 @@ export const useTaskDocumentUpload = () => {
     try {
       console.log(`Processing ${documents.length} documents for task ${taskId}`);
       
+      // First get the authenticated user before starting document processing
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !authData.user || !authData.user.id) {
+        console.error('Unable to determine user for document upload', authError);
+        toast({
+          title: "Authentication Error",
+          description: "Unable to determine current user for document upload. Please make sure you're logged in.",
+          variant: "destructive"
+        });
+        return; // Exit early if we can't identify the user
+      }
+      
+      const uploaderId = authData.user.id;
+      console.log('Authenticated user ID for document upload:', uploaderId);
+      
       // For each document, create an entry in the documents table
       for (const document of documents) {
         if (!document.file) {
@@ -49,22 +65,6 @@ export const useTaskDocumentUpload = () => {
           title: "File uploaded",
           description: `${document.fileName} was successfully uploaded.`
         });
-        
-        // Get the current user for uploaded_by field
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        // Check if user exists and has a valid ID
-        if (!user || !user.id) {
-          console.error('Unable to determine user for document upload');
-          toast({
-            title: "Error",
-            description: "Unable to determine current user for document upload",
-            variant: "destructive"
-          });
-          continue;
-        }
-        
-        const uploaderId = user.id;
         
         // Create document record in the database
         const { data: docData, error: docError } = await supabase
