@@ -1,9 +1,19 @@
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart, User, ExternalLink, BookOpen, Edit } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, Paperclip, FileText, Database, PieChart, User, ExternalLink, BookOpen, Edit, Trash2 } from "lucide-react";
 import { TaskDocument } from "@/types/document";
 import { Task } from "@/types/task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +25,8 @@ interface TasksTableProps {
   tasks: Task[];
   onViewTask: (task: Task) => void;
   onEditTask?: (task: Task) => void;
+  onDeleteTask?: (taskId: string) => Promise<boolean>;
+  isAdmin?: boolean;
   currentUserId?: string;
   currentUserPermissions?: DocumentPermissions;
   teamMembers?: Array<{
@@ -29,7 +41,9 @@ const TasksTable: React.FC<TasksTableProps> = ({
   tasks, 
   onViewTask,
   onEditTask,
-  currentUserId = "1", // Default to John Doe for demo
+  onDeleteTask,
+  isAdmin = false,
+  currentUserId = "1", 
   currentUserPermissions,
   teamMembers = []
 }) => {
@@ -37,6 +51,20 @@ const TasksTable: React.FC<TasksTableProps> = ({
     task: Task,
     document: TaskDocument
   } | null>(null);
+  
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteTask = async () => {
+    if (taskToDelete && onDeleteTask) {
+      setIsDeleting(true);
+      const success = await onDeleteTask(taskToDelete);
+      setIsDeleting(false);
+      if (success) {
+        setTaskToDelete(null);
+      }
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -293,6 +321,17 @@ const TasksTable: React.FC<TasksTableProps> = ({
                               Edit
                             </Button>
                           )}
+                          {isAdmin && onDeleteTask && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-red-600 hover:bg-red-50"
+                              onClick={() => setTaskToDelete(task.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -334,6 +373,35 @@ const TasksTable: React.FC<TasksTableProps> = ({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={!!taskToDelete}
+        onOpenChange={(open) => !open && setTaskToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the task
+              and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteTask();
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

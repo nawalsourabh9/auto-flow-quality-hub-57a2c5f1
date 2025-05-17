@@ -17,6 +17,8 @@ interface TasksContentProps {
   onEditTask: (task: Task) => void;
   onApproveTask: (task: Task) => void;
   onRejectTask: (task: Task) => void;
+  onDeleteTask?: (taskId: string) => Promise<boolean>;
+  isAdmin?: boolean;
 }
 
 const TasksContent = ({
@@ -29,7 +31,9 @@ const TasksContent = ({
   onViewTask,
   onEditTask,
   onApproveTask,
-  onRejectTask
+  onRejectTask,
+  onDeleteTask,
+  isAdmin
 }: TasksContentProps) => {
   if (isDepartmentHead()) {
     return (
@@ -54,6 +58,8 @@ const TasksContent = ({
             tasks={filteredTasks} 
             onViewTask={onViewTask} 
             onEditTask={onEditTask}
+            onDeleteTask={onDeleteTask}
+            isAdmin={isAdmin}
           />
         </TabsContent>
         
@@ -73,6 +79,8 @@ const TasksContent = ({
       tasks={filteredTasks} 
       onViewTask={onViewTask}
       onEditTask={onEditTask}
+      onDeleteTask={onDeleteTask}
+      isAdmin={isAdmin}
     />
   );
 };

@@ -8,10 +8,12 @@ import TaskFilters from "@/components/tasks/TaskFilters";
 import PendingTasksAlert from "@/components/tasks/PendingTasksAlert";
 import TasksContent from "@/components/tasks/TasksContent";
 import TaskDialogs from "@/components/tasks/TaskDialogs";
+import { useAuth } from "@/hooks/use-auth";
 
 const Tasks = () => {
   const { data: tasks = [], isLoading } = useTasks();
   const [activeTab, setActiveTab] = useState("all-tasks");
+  const { employee } = useAuth();
   
   const {
     searchTerm,
@@ -36,10 +38,14 @@ const Tasks = () => {
     handleApproveTask,
     handleRejectTask,
     handleUpdateTask,
-    handleCreateTask
+    handleCreateTask,
+    deleteTask
   } = useTaskOperations();
 
-  // Remove all role and permission checks - all users can see and create tasks
+  // Check if user is an admin
+  const isAdmin = employee?.role === 'admin';
+
+  // Remove all role and permission checks for department head - all users can see and create tasks
   const isDepartmentHead = () => true;
 
   if (isLoading) {
@@ -82,6 +88,8 @@ const Tasks = () => {
         onEditTask={handleEditTask}
         onApproveTask={handleApproveTask}
         onRejectTask={handleRejectTask}
+        onDeleteTask={isAdmin ? deleteTask : undefined}
+        isAdmin={isAdmin}
       />
 
       <TaskDialogs 
