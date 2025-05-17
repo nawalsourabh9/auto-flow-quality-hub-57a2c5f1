@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Task } from "@/types/task";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DocumentSelector } from "./form/DocumentSelector";
 import { useDocumentUploads } from "./form/useDocumentUploads";
@@ -31,6 +32,8 @@ const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
   const [status, setStatus] = useState<"not-started" | "in-progress" | "completed" | "overdue">(
     task?.status || "not-started"
   );
+  
+  const [comments, setComments] = useState<string>(task?.comments || "");
   
   const { 
     documentUploads, 
@@ -110,10 +113,11 @@ const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
       }
     }
     
-    // Create an updated task with the new status and documents
+    // Create an updated task with the new status, comments, and documents
     const updatedTask: Task = {
       ...task,
       status,
+      comments,
       documents: updatedDocuments.length > 0 ? 
         [...updatedDocuments, ...(task.documents || [])] : 
         (task.documents || [])
@@ -146,6 +150,17 @@ const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
                 <SelectItem value="overdue">Overdue</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="comments">Comments</Label>
+            <Textarea 
+              id="comments"
+              placeholder="Add your comments here..." 
+              value={comments} 
+              onChange={(e) => setComments(e.target.value)}
+              className="min-h-[100px]"
+            />
           </div>
 
           <div className="space-y-2">

@@ -62,7 +62,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
       <td className="px-4 py-3 text-sm border-r">{task.department}</td>
       <td className="px-4 py-3 text-sm border-r whitespace-nowrap">{formattedDueDate}</td>
       <td className="px-4 py-3 border-r"><TaskPriorityBadge priority={task.priority} /></td>
-      <td className="px-4 py-3 border-r"><TaskStatusBadge status={task.status} /></td>
+      <td className="px-4 py-3 border-r"><TaskStatusBadge status={task.status} comments={task.comments} /></td>
       <td className="px-4 py-3 border-r">
         <div className="flex flex-wrap gap-1">
           <TaskAttachmentBadge attachmentsRequired={task.attachmentsRequired} />

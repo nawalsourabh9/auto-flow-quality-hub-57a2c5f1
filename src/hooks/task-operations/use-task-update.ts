@@ -18,6 +18,7 @@ interface TaskUpdatePayload {
   attachments_required: 'none' | 'optional' | 'required';
   assignee: string | null;
   status?: 'not-started' | 'in-progress' | 'completed' | 'overdue';
+  comments?: string | null;
 }
 
 /**
@@ -52,7 +53,8 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         recurring_frequency: updatedTask.recurringFrequency || null,
         attachments_required: updatedTask.attachmentsRequired,
         assignee: assigneeValue,
-        status: updatedTask.status
+        status: updatedTask.status,
+        comments: updatedTask.comments || null
       };
       
       console.log("Final update payload before sending to database:", updatePayload);

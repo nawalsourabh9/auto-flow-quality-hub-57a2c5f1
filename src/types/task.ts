@@ -1,4 +1,3 @@
-
 import { TaskDocument } from "@/types/document";
 
 export interface Task {
@@ -39,6 +38,7 @@ export interface Task {
   rejectedAt?: string;
   rejectionReason?: string;
   departmentHeadId?: string;
+  comments?: string; // Added field for status comments
 }
 
 // Team member interface for organization management
