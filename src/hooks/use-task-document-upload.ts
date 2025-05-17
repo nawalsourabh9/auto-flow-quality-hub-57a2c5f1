@@ -52,9 +52,21 @@ export const useTaskDocumentUpload = () => {
         
         // Get the current user for uploaded_by field
         const { data: { user } } = await supabase.auth.getUser();
-        const uploaderId = user?.id || 'unknown';
         
-        // Create document record in the database - removed file_path field which doesn't exist in the schema
+        // Check if user exists and has a valid ID
+        if (!user || !user.id) {
+          console.error('Unable to determine user for document upload');
+          toast({
+            title: "Error",
+            description: "Unable to determine current user for document upload",
+            variant: "destructive"
+          });
+          continue;
+        }
+        
+        const uploaderId = user.id;
+        
+        // Create document record in the database
         const { data, error: docError } = await supabase
           .from('documents')
           .insert({
