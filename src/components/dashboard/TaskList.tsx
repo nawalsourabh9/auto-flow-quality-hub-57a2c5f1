@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ApprovalHierarchy, TaskDocument } from "@/types/document";
+import { format } from "date-fns";
 
 interface TaskListProps {
   tasks: {
@@ -22,6 +22,18 @@ interface TaskListProps {
 }
 
 const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
+  // Format due date to DD-MM-YYYY
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    try {
+      // Try to parse the date and format it
+      return format(new Date(dateString), 'dd-MM-yyyy');
+    } catch (error) {
+      // If parsing fails, return the original string
+      return dateString;
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -59,7 +71,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-sm text-muted-foreground">
-                  {task.dueDate}
+                  {formatDate(task.dueDate)}
                 </div>
                 <Avatar className="h-8 w-8">
                   <AvatarFallback>{task.assignee.initials}</AvatarFallback>

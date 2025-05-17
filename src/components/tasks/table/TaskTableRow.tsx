@@ -9,6 +9,7 @@ import { TaskPriorityBadge } from "./TaskPriorityBadge";
 import { TaskAttachmentBadge } from "./TaskAttachmentBadge";
 import { TaskCustomerBadge } from "./TaskCustomerBadge";
 import { TaskDocumentBadges } from "./TaskDocumentBadges";
+import { format } from "date-fns";
 
 interface TaskTableRowProps {
   task: Task;
@@ -27,6 +28,10 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
   isAdmin,
   setViewingDocument
 }) => {
+  // Format the due date to DD-MM-YYYY if it exists
+  const formattedDueDate = task.dueDate ? 
+    format(new Date(task.dueDate), 'dd-MM-yyyy') : '';
+
   return (
     <tr className={`border-b hover:bg-muted/50 ${task.isCustomerRelated ? 'bg-green-50/50' : ''}`}>
       <td className="px-4 py-3 border-r">
@@ -54,7 +59,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
           <span className="text-sm">{task.assigneeDetails?.name || "Unassigned"}</span>
         </div>
       </td>
-      <td className="px-4 py-3 text-sm border-r">{task.dueDate}</td>
+      <td className="px-4 py-3 text-sm border-r">{formattedDueDate}</td>
       <td className="px-4 py-3 border-r"><TaskPriorityBadge priority={task.priority} /></td>
       <td className="px-4 py-3 border-r"><TaskStatusBadge status={task.status} /></td>
       <td className="px-4 py-3 border-r">
