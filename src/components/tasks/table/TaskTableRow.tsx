@@ -73,14 +73,14 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
         </div>
       </td>
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => onViewTask(task)}>
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Update Status
+        <div className="flex items-center gap-1">
+          <Button size="sm" variant="outline" onClick={() => onViewTask(task)} className="text-xs py-1 h-7">
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Update
           </Button>
           {onEditTask && (
-            <Button size="sm" variant="outline" onClick={() => onEditTask(task)}>
-              <Edit className="h-4 w-4 mr-1" />
+            <Button size="sm" variant="outline" onClick={() => onEditTask(task)} className="text-xs py-1 h-7">
+              <Edit className="h-3 w-3 mr-1" />
               Edit
             </Button>
           )}
@@ -88,10 +88,10 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             <Button 
               size="sm" 
               variant="outline" 
-              className="text-red-600 hover:bg-red-50"
+              className="text-red-600 hover:bg-red-50 text-xs py-1 h-7"
               onClick={() => onDeleteTask(task.id)}
             >
-              <Trash2 className="h-4 w-4 mr-1" />
+              <Trash2 className="h-3 w-3 mr-1" />
               Delete
             </Button>
           )}
