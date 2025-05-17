@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DocumentSelector } from "./form/DocumentSelector";
 import { useDocumentUploads } from "./form/useDocumentUploads";
+import { TaskDocument } from "@/types/document";
 
 interface StatusUpdateDialogProps {
   task: Task | null;
@@ -41,11 +42,81 @@ const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
     e.preventDefault();
     if (!task) return;
     
-    // Create an updated task with the new status
+    // Process document uploads
+    const updatedDocuments: TaskDocument[] = [];
+    
+    // Convert document uploads to the correct format for TaskDocument[]
+    if (documentUploads.sop.selected) {
+      const file = documentUploads.sop.file;
+      if (file) {
+        updatedDocuments.push({
+          id: `temp-${Date.now()}-sop`,
+          fileName: file.name,
+          fileType: file.type,
+          version: "1.0",
+          documentType: "sop",
+          uploadDate: new Date().toISOString(),
+          uploadedBy: "current-user", // This will be replaced on the server
+          file
+        });
+      }
+    }
+    
+    if (documentUploads.dataFormat.selected) {
+      const file = documentUploads.dataFormat.file;
+      if (file) {
+        updatedDocuments.push({
+          id: `temp-${Date.now()}-dataFormat`,
+          fileName: file.name,
+          fileType: file.type,
+          version: "1.0",
+          documentType: "dataFormat",
+          uploadDate: new Date().toISOString(),
+          uploadedBy: "current-user", // This will be replaced on the server
+          file
+        });
+      }
+    }
+    
+    if (documentUploads.reportFormat.selected) {
+      const file = documentUploads.reportFormat.file;
+      if (file) {
+        updatedDocuments.push({
+          id: `temp-${Date.now()}-reportFormat`,
+          fileName: file.name,
+          fileType: file.type,
+          version: "1.0",
+          documentType: "reportFormat",
+          uploadDate: new Date().toISOString(),
+          uploadedBy: "current-user", // This will be replaced on the server
+          file
+        });
+      }
+    }
+    
+    if (documentUploads.rulesAndProcedures.selected) {
+      const file = documentUploads.rulesAndProcedures.file;
+      if (file) {
+        updatedDocuments.push({
+          id: `temp-${Date.now()}-rulesAndProcedures`,
+          fileName: file.name,
+          fileType: file.type,
+          version: "1.0",
+          documentType: "rulesAndProcedures",
+          uploadDate: new Date().toISOString(),
+          uploadedBy: "current-user", // This will be replaced on the server
+          file
+        });
+      }
+    }
+    
+    // Create an updated task with the new status and documents
     const updatedTask: Task = {
       ...task,
       status,
-      documents: documentUploads.length > 0 ? documentUploads : (task.documents || [])
+      documents: updatedDocuments.length > 0 ? 
+        [...updatedDocuments, ...(task.documents || [])] : 
+        (task.documents || [])
     };
 
     // Send the updated task to the parent component
