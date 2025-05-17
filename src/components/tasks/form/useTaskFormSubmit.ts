@@ -2,12 +2,15 @@
 import { Task } from "@/types/task";
 import { TaskDocument } from "@/types/document";
 import { Employee } from "./useEmployeeData";
+import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
 
 export const useTaskFormSubmit = (
   onSubmit: (task: Task) => void,
   initialData: Partial<Task> = {},
   employees: Employee[]
 ) => {
+  const { processTaskDocuments } = useTaskDocumentUpload();
+
   // Find the selected employee details
   const getAssigneeDetails = (assigneeId: string | null) => {
     if (!assigneeId || assigneeId === "unassigned") {
@@ -108,7 +111,7 @@ export const useTaskFormSubmit = (
     return documents;
   };
 
-  const handleSubmit = (
+  const handleSubmit = async (
     e: React.FormEvent,
     formData: {
       title: string;
@@ -129,6 +132,7 @@ export const useTaskFormSubmit = (
     console.log("Form submitted with fields:", formData);
     console.log("Form submitted with dueDate:", formData.dueDate);
     console.log("Form submitted with assignee:", formData.assignee);
+    console.log("Form submitted with document uploads:", formData.documentUploads);
     
     // Find the selected employee details
     const assigneeDetails = getAssigneeDetails(
@@ -162,7 +166,15 @@ export const useTaskFormSubmit = (
     };
 
     console.log("Submitting task with final data:", newTask);
+    
+    // Submit the task first
     onSubmit(newTask);
+    
+    // If there are documents and the task has an ID, process them
+    if (documents.length > 0 && newTask.id) {
+      console.log(`Processing ${documents.length} documents for task ${newTask.id}`);
+      await processTaskDocuments(newTask.id, documents);
+    }
   };
 
   return {

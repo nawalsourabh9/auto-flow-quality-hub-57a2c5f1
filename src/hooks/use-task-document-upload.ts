@@ -3,6 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const useTaskDocumentUpload = () => {
   const processTaskDocuments = async (taskId: string, documents: any[]) => {
+    if (!documents || documents.length === 0) {
+      console.log("No documents to process for task", taskId);
+      return;
+    }
+
     try {
       console.log(`Processing ${documents.length} documents for task ${taskId}`);
       
@@ -55,7 +60,8 @@ export const useTaskDocumentUpload = () => {
             document_type: document.documentType,
             version: document.version || '1.0',
             uploaded_by: uploaderId,
-            notes: document.notes || ''
+            notes: document.notes || '',
+            file_path: filePath
           });
           
         if (docError) {

@@ -1,9 +1,10 @@
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { FileText, Database, PieChart, BookOpen, Upload } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface DocumentUploads {
   sop: {
@@ -42,12 +43,52 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
     rulesAndProcedures: useRef<HTMLInputElement>(null)
   };
 
+  // For tracking if files are selected
+  const [fileStatuses, setFileStatuses] = useState({
+    sop: !!documentUploads.sop.file,
+    dataFormat: !!documentUploads.dataFormat.file,
+    reportFormat: !!documentUploads.reportFormat.file,
+    rulesAndProcedures: !!documentUploads.rulesAndProcedures.file
+  });
+
+  // Update file statuses when documentUploads changes
+  useEffect(() => {
+    setFileStatuses({
+      sop: !!documentUploads.sop.file,
+      dataFormat: !!documentUploads.dataFormat.file,
+      reportFormat: !!documentUploads.reportFormat.file,
+      rulesAndProcedures: !!documentUploads.rulesAndProcedures.file
+    });
+  }, [documentUploads]);
+
   const handleFileChange = (
     docType: "sop" | "dataFormat" | "reportFormat" | "rulesAndProcedures", 
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0] || null;
-    console.log(`File selected for ${docType}:`, file?.name || "No file");
+    
+    if (file) {
+      console.log(`File selected for ${docType}:`, file.name);
+      toast({
+        title: "File selected",
+        description: `${file.name} successfully selected for upload.`
+      });
+      
+      // Update the file status
+      setFileStatuses(prev => ({
+        ...prev,
+        [docType]: true
+      }));
+    } else {
+      console.log(`No file selected for ${docType}`);
+      
+      // Update the file status
+      setFileStatuses(prev => ({
+        ...prev,
+        [docType]: false
+      }));
+    }
+    
     onFileUpload(docType, file);
   };
 
@@ -61,6 +102,12 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
     if (!checked && fileInputRefs[docType].current) {
       fileInputRefs[docType].current.value = "";
       onFileUpload(docType, null);
+      
+      // Update the file status
+      setFileStatuses(prev => ({
+        ...prev,
+        [docType]: false
+      }));
     }
   };
 
@@ -88,7 +135,11 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
               onChange={e => handleFileChange("sop", e)} 
               className="flex-1 text-xs" 
             />
-            <Upload size={16} className="text-muted-foreground" />
+            {fileStatuses.sop ? (
+              <Upload size={16} className="text-green-500" />
+            ) : (
+              <Upload size={16} className="text-muted-foreground" />
+            )}
           </div>
         )}
       </div>
@@ -115,7 +166,11 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
               onChange={e => handleFileChange("dataFormat", e)} 
               className="flex-1 text-xs" 
             />
-            <Upload size={16} className="text-muted-foreground" />
+            {fileStatuses.dataFormat ? (
+              <Upload size={16} className="text-green-500" />
+            ) : (
+              <Upload size={16} className="text-muted-foreground" />
+            )}
           </div>
         )}
       </div>
@@ -142,7 +197,11 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
               onChange={e => handleFileChange("reportFormat", e)} 
               className="flex-1 text-xs" 
             />
-            <Upload size={16} className="text-muted-foreground" />
+            {fileStatuses.reportFormat ? (
+              <Upload size={16} className="text-green-500" />
+            ) : (
+              <Upload size={16} className="text-muted-foreground" />
+            )}
           </div>
         )}
       </div>
@@ -169,7 +228,11 @@ export const DocumentSelector: React.FC<DocumentSelectorProps> = ({
               onChange={e => handleFileChange("rulesAndProcedures", e)} 
               className="flex-1 text-xs" 
             />
-            <Upload size={16} className="text-muted-foreground" />
+            {fileStatuses.rulesAndProcedures ? (
+              <Upload size={16} className="text-green-500" />
+            ) : (
+              <Upload size={16} className="text-muted-foreground" />
+            )}
           </div>
         )}
       </div>

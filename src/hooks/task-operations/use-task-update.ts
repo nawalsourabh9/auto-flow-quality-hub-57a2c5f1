@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types/task";
 import { toast } from "@/hooks/use-toast";
+import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
 
 interface TaskUpdatePayload {
   title: string;
@@ -23,6 +24,7 @@ interface TaskUpdatePayload {
  */
 export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) => {
   const queryClient = useQueryClient();
+  const { processTaskDocuments } = useTaskDocumentUpload();
 
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
@@ -66,6 +68,14 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       }
 
       console.log("Task updated successfully:", data);
+      
+      // Process document uploads if any
+      if (updatedTask.documents && updatedTask.documents.length > 0) {
+        console.log("Processing document uploads for updated task");
+        await processTaskDocuments(updatedTask.id, updatedTask.documents);
+      } else {
+        console.log("No documents to process for updated task");
+      }
 
       // Invalidate the tasks query to refetch data
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
