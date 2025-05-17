@@ -18,6 +18,7 @@ interface TaskListProps {
     };
     isCustomerRelated?: boolean;
     customerName?: string;
+    department?: string;
   }[];
 }
 
@@ -67,6 +68,11 @@ const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
                   >
                     {task.status}
                   </Badge>
+                  {task.department && (
+                    <Badge variant="outline" className="ml-2 bg-gray-50">
+                      {task.department}
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4">

@@ -125,6 +125,7 @@ const TasksTable: React.FC<TasksTableProps> = ({
                 <TableRow>
                   <TableHead className="border-r">Task</TableHead>
                   <TableHead className="border-r">Assignee</TableHead>
+                  <TableHead className="border-r">Department</TableHead>
                   <TableHead className="border-r">Due Date</TableHead>
                   <TableHead className="border-r">Priority</TableHead>
                   <TableHead className="border-r">Status</TableHead>
@@ -135,7 +136,7 @@ const TasksTable: React.FC<TasksTableProps> = ({
               <TableBody>
                 {tasks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">
                       No tasks found
                     </TableCell>
                   </TableRow>

@@ -59,6 +59,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
           <span className="text-sm">{task.assigneeDetails?.name || "Unassigned"}</span>
         </div>
       </td>
+      <td className="px-4 py-3 text-sm border-r">{task.department}</td>
       <td className="px-4 py-3 text-sm border-r">{formattedDueDate}</td>
       <td className="px-4 py-3 border-r"><TaskPriorityBadge priority={task.priority} /></td>
       <td className="px-4 py-3 border-r"><TaskStatusBadge status={task.status} /></td>

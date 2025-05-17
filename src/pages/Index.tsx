@@ -1,3 +1,4 @@
+
 import { CheckCircle2, AlertTriangle, ClipboardList, FileCheck, Gauge, BarChart2, CalendarCheck, UserCheck } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import TaskList from "@/components/dashboard/TaskList";
@@ -20,6 +21,7 @@ const tasks = [
       name: "John Doe",
       initials: "JD",
     },
+    department: "Quality",
   },
   {
     id: "2",
@@ -31,6 +33,7 @@ const tasks = [
       name: "Sarah Miller",
       initials: "SM",
     },
+    department: "Engineering",
   },
   {
     id: "3",
@@ -42,6 +45,7 @@ const tasks = [
       name: "Robert Johnson",
       initials: "RJ",
     },
+    department: "Quality",
   },
   {
     id: "4",
@@ -53,6 +57,7 @@ const tasks = [
       name: "Lisa Wang",
       initials: "LW",
     },
+    department: "Quality",
   },
   {
     id: "5",
@@ -65,7 +70,8 @@ const tasks = [
       initials: "MB",
     },
     isCustomerRelated: true,
-    customerName: "Acme Corp"
+    customerName: "Acme Corp",
+    department: "Production",
   },
 ];
 
