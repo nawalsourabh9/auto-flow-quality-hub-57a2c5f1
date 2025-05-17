@@ -83,13 +83,14 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             <RefreshCw className="h-3 w-3 mr-1" />
             Update
           </Button>
-          {onEditTask && (
+          {/* Only render Edit and Delete buttons for admin users */}
+          {isAdmin && onEditTask && (
             <Button size="sm" variant="outline" onClick={() => onEditTask(task)} className="text-xs py-1 h-7">
               <Edit className="h-3 w-3 mr-1" />
               Edit
             </Button>
           )}
-          {onDeleteTask && (
+          {isAdmin && onDeleteTask && (
             <Button 
               size="sm" 
               variant="outline" 
