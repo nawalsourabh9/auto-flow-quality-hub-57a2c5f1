@@ -12,11 +12,34 @@ export const useTaskDocumentUpload = () => {
     try {
       console.log(`Processing ${documents.length} documents for task ${taskId}`);
       
-      // First get the authenticated user before starting document processing
+      // Try to get user from Supabase auth
       const { data: authData, error: authError } = await supabase.auth.getUser();
       
-      if (authError || !authData.user || !authData.user.id) {
-        console.error('Unable to determine user for document upload', authError);
+      // Check if we have a valid user from Supabase auth
+      let uploaderId = authData?.user?.id;
+      
+      // If Supabase auth fails or has no user, check localStorage for employee data
+      if (!uploaderId && (authError || !authData.user)) {
+        console.log('Supabase auth session not found, checking localStorage for employee data');
+        
+        try {
+          // Try to get employee data from localStorage
+          const storedEmployee = localStorage.getItem('employee');
+          if (storedEmployee) {
+            const employee = JSON.parse(storedEmployee);
+            if (employee && employee.id) {
+              uploaderId = employee.id;
+              console.log('Using employee ID from localStorage:', uploaderId);
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing employee data from localStorage:", e);
+        }
+      }
+      
+      // If no valid user ID is found from any source, show error and exit
+      if (!uploaderId) {
+        console.error('Unable to determine user for document upload. AuthSessionMissingError: Auth session missing!');
         toast({
           title: "Authentication Error",
           description: "Unable to determine current user for document upload. Please make sure you're logged in.",
@@ -25,7 +48,6 @@ export const useTaskDocumentUpload = () => {
         return; // Exit early if we can't identify the user
       }
       
-      const uploaderId = authData.user.id;
       console.log('Authenticated user ID for document upload:', uploaderId);
       
       // For each document, create an entry in the documents table
