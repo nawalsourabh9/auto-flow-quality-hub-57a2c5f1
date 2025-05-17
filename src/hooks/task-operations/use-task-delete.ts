@@ -9,7 +9,7 @@ export const useTaskDelete = () => {
   const queryClient = useQueryClient();
 
   const deleteTask = async (taskId: string) => {
-    if (!taskId) return;
+    if (!taskId) return false;
     
     try {
       setIsDeleting(true);

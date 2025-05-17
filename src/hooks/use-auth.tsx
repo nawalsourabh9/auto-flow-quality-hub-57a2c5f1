@@ -1,6 +1,7 @@
 
 import { useContext } from 'react';
 import { AuthContext } from '@/providers/AuthProvider';
+import { EmployeeData } from '@/types/auth';
 
 export { AuthProvider } from '@/providers/AuthProvider';
 
@@ -9,5 +10,8 @@ export const useAuth = () => {
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context;
+  return {
+    ...context,
+    employee: context.user as EmployeeData | null
+  };
 };
