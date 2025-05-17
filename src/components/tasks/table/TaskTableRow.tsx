@@ -77,7 +77,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
               Edit
             </Button>
           )}
-          {isAdmin && onDeleteTask && (
+          {onDeleteTask && (
             <Button 
               size="sm" 
               variant="outline" 

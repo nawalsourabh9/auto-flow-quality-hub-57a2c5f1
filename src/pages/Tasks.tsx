@@ -88,7 +88,7 @@ const Tasks = () => {
         onEditTask={handleEditTask}
         onApproveTask={handleApproveTask}
         onRejectTask={handleRejectTask}
-        onDeleteTask={isAdmin ? deleteTask : undefined}
+        onDeleteTask={deleteTask}
         isAdmin={isAdmin}
       />
 
