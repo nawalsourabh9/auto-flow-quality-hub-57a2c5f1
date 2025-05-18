@@ -2,6 +2,7 @@
 import React from "react";
 import { Task } from "@/types/task";
 import TasksTable from "@/components/tasks/TaskTable";
+import { DocumentPermissions } from "@/types/document";
 
 interface TasksContentProps {
   filteredTasks: Task[];
@@ -9,6 +10,14 @@ interface TasksContentProps {
   onEditTask: (task: Task) => void;
   onDeleteTask?: (taskId: string) => Promise<boolean>;
   isAdmin?: boolean;
+  currentUserId?: string;
+  currentUserPermissions?: DocumentPermissions;
+  teamMembers?: Array<{
+    id: string;
+    name: string;
+    position: string;
+    initials: string;
+  }>;
 }
 
 const TasksContent = ({
@@ -16,7 +25,10 @@ const TasksContent = ({
   onViewTask,
   onEditTask,
   onDeleteTask,
-  isAdmin
+  isAdmin,
+  currentUserId,
+  currentUserPermissions,
+  teamMembers
 }: TasksContentProps) => {
   console.log("TasksContent isAdmin:", isAdmin);
   
@@ -27,6 +39,9 @@ const TasksContent = ({
       onEditTask={onEditTask}
       onDeleteTask={onDeleteTask}
       isAdmin={isAdmin}
+      currentUserId={currentUserId}
+      currentUserPermissions={currentUserPermissions}
+      teamMembers={teamMembers}
     />
   );
 };

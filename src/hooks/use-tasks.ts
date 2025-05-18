@@ -47,6 +47,58 @@ export const useTasks = () => {
         }
       }
 
+      // Fetch documents for all tasks
+      const taskIds = tasksData.map(task => task.id);
+      let documentsData = [];
+      let documentRevisions = [];
+      let approvalHierarchies = [];
+      
+      if (taskIds.length > 0) {
+        // Fetch documents
+        const { data: docs, error: docsError } = await supabase
+          .from("documents")
+          .select("*")
+          .in("task_id", taskIds);
+          
+        if (docsError) {
+          console.error("Error fetching documents:", docsError);
+        } else {
+          documentsData = docs || [];
+          console.log(`Retrieved ${documentsData.length} documents for tasks`);
+          
+          // Get all document IDs to fetch their revisions
+          const documentIds = documentsData.map(doc => doc.id);
+          
+          if (documentIds.length > 0) {
+            // Fetch document revisions
+            const { data: revisions, error: revisionsError } = await supabase
+              .from("document_revisions")
+              .select("*")
+              .in("document_id", documentIds);
+              
+            if (revisionsError) {
+              console.error("Error fetching document revisions:", revisionsError);
+            } else {
+              documentRevisions = revisions || [];
+              console.log(`Retrieved ${documentRevisions.length} document revisions`);
+            }
+            
+            // Fetch approval hierarchies
+            const { data: approvals, error: approvalsError } = await supabase
+              .from("approval_hierarchy")
+              .select("*")
+              .in("document_id", documentIds);
+              
+            if (approvalsError) {
+              console.error("Error fetching approval hierarchies:", approvalsError);
+            } else {
+              approvalHierarchies = approvals || [];
+              console.log(`Retrieved ${approvalHierarchies.length} approval hierarchies`);
+            }
+          }
+        }
+      }
+
       // Map the database fields to our Task interface
       const tasks: Task[] = tasksData.map(item => {
         // Find employee details
@@ -78,6 +130,54 @@ export const useTasks = () => {
             position: ""
           };
         }
+        
+        // Find documents for this task
+        const taskDocuments = documentsData
+          .filter(doc => doc.task_id === item.id)
+          .map(doc => {
+            // Find revisions for this document
+            const revisions = documentRevisions
+              .filter(rev => rev.document_id === doc.id)
+              .map(rev => ({
+                id: rev.id,
+                fileName: rev.file_name,
+                version: rev.version,
+                uploadDate: rev.upload_date,
+                uploadedBy: rev.uploaded_by,
+                notes: rev.notes || ''
+              }));
+              
+            // Find approval hierarchy for this document
+            const approvalHierarchy = approvalHierarchies.find(a => a.document_id === doc.id);
+            
+            return {
+              id: doc.id,
+              fileName: doc.file_name,
+              fileType: doc.file_type,
+              version: doc.version,
+              documentType: doc.document_type,
+              uploadDate: doc.upload_date,
+              uploadedBy: doc.uploaded_by,
+              notes: doc.notes || '',
+              currentRevisionId: doc.current_revision_id,
+              revisions: revisions,
+              approvalHierarchy: approvalHierarchy ? {
+                initiator: approvalHierarchy.initiator,
+                checker: approvalHierarchy.checker,
+                approver: approvalHierarchy.approver,
+                status: approvalHierarchy.status,
+                initiatorApproved: approvalHierarchy.initiator_approved,
+                checkerApproved: approvalHierarchy.checker_approved,
+                approverApproved: approvalHierarchy.approver_approved,
+                initiatedAt: approvalHierarchy.initiated_at,
+                checkedAt: approvalHierarchy.checked_at,
+                approvedAt: approvalHierarchy.approved_at,
+                rejectedAt: approvalHierarchy.rejected_at,
+                rejectedBy: approvalHierarchy.rejected_by,
+                rejectionReason: approvalHierarchy.rejection_reason
+              } : undefined
+            };
+          });
 
         return {
           id: item.id,
@@ -95,6 +195,7 @@ export const useTasks = () => {
           recurringFrequency: item.recurring_frequency || "",
           attachmentsRequired: item.attachments_required as 'none' | 'optional' | 'required',
           assigneeDetails,
+          documents: taskDocuments.length > 0 ? taskDocuments : undefined,
           approvalStatus: item.approval_status as 'pending' | 'approved' | 'rejected' | undefined,
           approvedBy: item.approved_by,
           approvedAt: item.approved_at,

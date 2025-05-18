@@ -159,6 +159,26 @@ export const useTaskDocumentUpload = () => {
             } else {
               console.log('Document updated with current revision ID');
             }
+            
+            // Create approval hierarchy record
+            const { data: approvalData, error: approvalError } = await supabase
+              .from('approval_hierarchy')
+              .insert({
+                document_id: docData[0].id,
+                initiator: uploaderId,
+                status: 'draft'
+              });
+              
+            if (approvalError) {
+              console.error('Error creating approval hierarchy record:', approvalError);
+              toast({
+                title: "Warning",
+                description: `Document saved but approval workflow setup failed: ${approvalError.message}`,
+                variant: "destructive"
+              });
+            } else {
+              console.log('Approval hierarchy record created successfully');
+            }
           }
         }
       }
