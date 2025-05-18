@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import DocumentViewer from "@/components/tasks/DocumentViewer";
+import DocumentViewer from "@/components/tasks/document-viewer/DocumentViewer";
 import { Task } from "@/types/task";
 import { TaskDocument, DocumentPermissions } from "@/types/document";
 
