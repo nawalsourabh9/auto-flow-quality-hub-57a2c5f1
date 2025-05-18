@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { TaskDocument, DocumentPermissions } from "@/types/document";
+import { TaskDocument } from "@/types/document";
 import { Task } from "@/types/task";
 import DocumentHeader from "./DocumentHeader";
 import ApprovalCard from "./ApprovalCard";
@@ -20,7 +20,6 @@ interface DocumentViewerProps {
   onUpdateRevision?: (documentType: string, revisionId: string) => void;
   onAddNewRevision?: (documentType: string, fileName: string, version: string) => void;
   currentUserId?: string;
-  currentUserPermissions?: DocumentPermissions;
   onUpdateApprovalStatus?: (action: 'initiate' | 'check' | 'approve' | 'reject', reason?: string) => void;
   teamMembers?: Array<{
     id: string;
@@ -36,7 +35,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   onUpdateRevision,
   onAddNewRevision,
   currentUserId,
-  currentUserPermissions,
   onUpdateApprovalStatus,
   teamMembers = []
 }) => {
@@ -87,20 +85,16 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   // Determine if current user can take action on this document
   const canTakeAction = () => {
-    if (!document.approvalHierarchy || !currentUserId || !currentUserPermissions) return false;
+    if (!document.approvalHierarchy || !currentUserId) return false;
     const hierarchy = document.approvalHierarchy;
     
     // Check if user can check the document
-    if (hierarchy.status === 'pending-checker' && 
-        hierarchy.checker === currentUserId && 
-        currentUserPermissions.canCheck) {
+    if (hierarchy.status === 'pending-checker' && hierarchy.checker === currentUserId) {
       return 'check';
     }
     
     // Check if user can approve the document
-    if (hierarchy.status === 'pending-approval' && 
-        hierarchy.approver === currentUserId && 
-        currentUserPermissions.canApprove) {
+    if (hierarchy.status === 'pending-approval' && hierarchy.approver === currentUserId) {
       return 'approve';
     }
     

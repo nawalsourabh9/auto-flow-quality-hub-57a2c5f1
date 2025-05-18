@@ -10,7 +10,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Task } from "@/types/task";
-import { TaskDocument, DocumentPermissions } from "@/types/document";
+import { TaskDocument } from "@/types/document";
 import TaskTableRow from "./table/TaskTableRow";
 import DeleteTaskDialog from "./table/DeleteTaskDialog";
 import DocumentViewerDialog from "./table/DocumentViewerDialog";
@@ -22,7 +22,7 @@ interface TasksTableProps {
   onDeleteTask?: (taskId: string) => Promise<boolean>;
   isAdmin?: boolean;
   currentUserId?: string;
-  currentUserPermissions?: DocumentPermissions;
+  currentUserPermissions?: any; // Simplified - accept any permissions
   teamMembers?: Array<{
     id: string;
     name: string;
@@ -36,7 +36,7 @@ const TasksTable: React.FC<TasksTableProps> = ({
   onViewTask,
   onEditTask,
   onDeleteTask,
-  isAdmin = false,
+  isAdmin = true, // Default to admin for all users
   currentUserId = "1", 
   currentUserPermissions,
   teamMembers = []
@@ -165,13 +165,17 @@ const TasksTable: React.FC<TasksTableProps> = ({
         viewingDocument={viewingDocument}
         onClose={() => setViewingDocument(null)}
         currentUserId={currentUserId}
-        currentUserPermissions={currentUserPermissions}
         teamMembers={teamMembers}
         onUpdateRevision={(documentType, revisionId) => 
           viewingDocument && handleUpdateRevision(viewingDocument.task, documentType, revisionId)
         }
         onUpdateApprovalStatus={(action, reason) => 
-          viewingDocument && handleUpdateApprovalStatus(viewingDocument.task, viewingDocument.document.documentType, action, reason)
+          viewingDocument && handleUpdateApprovalStatus(
+            viewingDocument.task, 
+            viewingDocument.document.documentType, 
+            action, 
+            reason
+          )
         }
       />
 

@@ -2,7 +2,6 @@
 import React from "react";
 import { Task } from "@/types/task";
 import TasksTable from "@/components/tasks/TaskTable";
-import { DocumentPermissions } from "@/types/document";
 
 interface TasksContentProps {
   filteredTasks: Task[];
@@ -11,7 +10,7 @@ interface TasksContentProps {
   onDeleteTask?: (taskId: string) => Promise<boolean>;
   isAdmin?: boolean;
   currentUserId?: string;
-  currentUserPermissions?: DocumentPermissions;
+  currentUserPermissions?: any; // Simplified - accept any permissions object
   teamMembers?: Array<{
     id: string;
     name: string;

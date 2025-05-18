@@ -5,13 +5,12 @@ import { ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DocumentViewer from "@/components/tasks/document-viewer/DocumentViewer";
 import { Task } from "@/types/task";
-import { TaskDocument, DocumentPermissions } from "@/types/document";
+import { TaskDocument } from "@/types/document";
 
 interface DocumentViewerDialogProps {
   viewingDocument: { task: Task, document: TaskDocument } | null;
   onClose: () => void;
   currentUserId?: string;
-  currentUserPermissions?: DocumentPermissions;
   teamMembers?: Array<{
     id: string;
     name: string;
@@ -26,7 +25,6 @@ const DocumentViewerDialog: React.FC<DocumentViewerDialogProps> = ({
   viewingDocument,
   onClose,
   currentUserId,
-  currentUserPermissions,
   teamMembers,
   onUpdateRevision,
   onUpdateApprovalStatus
@@ -46,7 +44,6 @@ const DocumentViewerDialog: React.FC<DocumentViewerDialogProps> = ({
                 onUpdateRevision(documentType, revisionId)
               }
               currentUserId={currentUserId}
-              currentUserPermissions={currentUserPermissions}
               teamMembers={teamMembers}
               onUpdateApprovalStatus={onUpdateApprovalStatus}
             />
