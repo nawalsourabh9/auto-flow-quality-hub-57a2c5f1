@@ -50,6 +50,37 @@ export const useTaskDocumentUpload = () => {
       
       console.log('Authenticated user ID for document upload:', uploaderId);
       
+      // Check if task-documents bucket exists
+      const { data: buckets, error: bucketsError } = await supabase
+        .storage
+        .listBuckets();
+        
+      if (bucketsError) {
+        console.error('Error checking buckets:', bucketsError);
+        toast({
+          title: "Storage Error",
+          description: `Error accessing storage: ${bucketsError.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Check if our bucket exists
+      const bucketExists = buckets.some(b => b.name === 'task-documents');
+      console.log('Bucket task-documents exists:', bucketExists);
+      
+      if (!bucketExists) {
+        // If bucket doesn't exist, we should create it, but this requires admin privileges
+        // So we'll inform the user instead
+        console.error('Storage bucket "task-documents" does not exist!');
+        toast({
+          title: "Storage Configuration Error",
+          description: 'The storage bucket "task-documents" does not exist. Please contact your administrator.',
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // For each document, create an entry in the documents table
       for (const document of documents) {
         if (!document.file) {
@@ -60,7 +91,6 @@ export const useTaskDocumentUpload = () => {
         console.log(`Processing document: ${document.fileName}, type: ${document.documentType}`);
         
         // Upload file to the existing task-documents bucket
-        // No need to check/create bucket as it's now already created via SQL
         const fileName = `${Date.now()}-${document.fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
         const filePath = `tasks/${taskId}/${fileName}`;
         
