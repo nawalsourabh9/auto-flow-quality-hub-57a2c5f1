@@ -50,36 +50,9 @@ export const useTaskDocumentUpload = () => {
       
       console.log('Authenticated user ID for document upload:', uploaderId);
       
-      // Check if task-documents bucket exists
-      const { data: buckets, error: bucketsError } = await supabase
-        .storage
-        .listBuckets();
-        
-      if (bucketsError) {
-        console.error('Error checking buckets:', bucketsError);
-        toast({
-          title: "Storage Error",
-          description: `Error accessing storage: ${bucketsError.message}`,
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Check if our bucket exists
-      const bucketExists = buckets.some(b => b.name === 'task-documents');
-      console.log('Bucket task-documents exists:', bucketExists);
-      
-      if (!bucketExists) {
-        // If bucket doesn't exist, we should create it, but this requires admin privileges
-        // So we'll inform the user instead
-        console.error('Storage bucket "task-documents" does not exist!');
-        toast({
-          title: "Storage Configuration Error",
-          description: 'The storage bucket "task-documents" does not exist. Please contact your administrator.',
-          variant: "destructive"
-        });
-        return;
-      }
+      // Simplified bucket check - just try to access the bucket directly
+      // instead of checking if it exists first
+      console.log('Attempting to use task-documents bucket directly');
       
       // For each document, create an entry in the documents table
       for (const document of documents) {
@@ -102,11 +75,21 @@ export const useTaskDocumentUpload = () => {
           
         if (fileError) {
           console.error('Error uploading file:', fileError);
-          toast({
-            title: "Upload failed",
-            description: `Failed to upload file: ${fileError.message}`,
-            variant: "destructive"
-          });
+          
+          // If this error is about the bucket not existing, provide clearer error
+          if (fileError.message && fileError.message.includes("bucket not found")) {
+            toast({
+              title: "Storage Configuration Error",
+              description: "The task-documents bucket doesn't exist or you don't have access to it. Please contact your administrator.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Upload failed",
+              description: `Failed to upload file: ${fileError.message}`,
+              variant: "destructive"
+            });
+          }
           continue;
         }
         
