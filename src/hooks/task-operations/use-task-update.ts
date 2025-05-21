@@ -34,6 +34,10 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       console.log("Task status:", updatedTask.status);
       console.log("Assignee type:", typeof updatedTask.assignee);
       console.log("Assignee value from form:", updatedTask.assignee);
+      console.log("Recurring task data:", {
+        isRecurring: updatedTask.isRecurring,
+        frequency: updatedTask.recurringFrequency
+      });
       
       // assignee is already properly converted at the form level
       // but let's double check here
@@ -50,7 +54,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         is_recurring: updatedTask.isRecurring || false,
         is_customer_related: updatedTask.isCustomerRelated || false,
         customer_name: updatedTask.customerName || null,
-        recurring_frequency: updatedTask.recurringFrequency || null,
+        recurring_frequency: updatedTask.isRecurring ? updatedTask.recurringFrequency || null : null,
         attachments_required: updatedTask.attachmentsRequired,
         assignee: assigneeValue,
         status: updatedTask.status,

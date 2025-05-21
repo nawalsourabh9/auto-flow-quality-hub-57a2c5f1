@@ -120,6 +120,8 @@ export const useTaskFormSubmit = (
       priority: "low" | "medium" | "high";
       dueDate: string;
       assignee: string;
+      isRecurring: boolean;
+      recurringFrequency?: string;
       isCustomerRelated: boolean;
       customerName: string;
       attachmentsRequired: "none" | "optional" | "required";
@@ -132,6 +134,10 @@ export const useTaskFormSubmit = (
     console.log("Form submitted with fields:", formData);
     console.log("Form submitted with dueDate:", formData.dueDate);
     console.log("Form submitted with assignee:", formData.assignee);
+    console.log("Form submitted with recurring options:", {
+      isRecurring: formData.isRecurring,
+      frequency: formData.recurringFrequency
+    });
     console.log("Form submitted with document uploads:", formData.documentUploads);
     
     // Find the selected employee details
@@ -157,7 +163,8 @@ export const useTaskFormSubmit = (
       dueDate: formData.dueDate,
       status: initialData.status || "not-started",
       createdAt: initialData.createdAt || new Date().toISOString().split("T")[0],
-      isRecurring: initialData.isRecurring || false,
+      isRecurring: formData.isRecurring,
+      recurringFrequency: formData.isRecurring ? formData.recurringFrequency : undefined,
       isCustomerRelated: formData.isCustomerRelated,
       customerName: formData.isCustomerRelated ? formData.customerName : undefined,
       attachmentsRequired: formData.attachmentsRequired,

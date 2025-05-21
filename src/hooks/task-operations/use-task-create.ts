@@ -33,6 +33,10 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       console.log("Creating task with data:", newTask);
       console.log("Assignee type:", typeof newTask.assignee);
       console.log("Assignee value received from form:", newTask.assignee);
+      console.log("Recurring task data:", {
+        isRecurring: newTask.isRecurring,
+        frequency: newTask.recurringFrequency
+      });
       
       // assignee is already properly converted at the form level
       // but let's double check here

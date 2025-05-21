@@ -48,6 +48,10 @@ export const useTaskFormState = (initialData: Partial<Task> = {}) => {
     initialData.attachmentsRequired || "optional"
   );
   
+  // Recurring task options
+  const [isRecurring, setIsRecurring] = useState(initialData.isRecurring || false);
+  const [recurringFrequency, setRecurringFrequency] = useState(initialData.recurringFrequency || "weekly");
+  
   // Customer related fields
   const [isCustomerRelated, setIsCustomerRelated] = useState(initialData.isCustomerRelated || false);
   const [customerName, setCustomerName] = useState(initialData.customerName || "");
@@ -88,6 +92,10 @@ export const useTaskFormState = (initialData: Partial<Task> = {}) => {
     setAssignee,
     attachmentsRequired,
     setAttachmentsRequired,
+    isRecurring,
+    setIsRecurring,
+    recurringFrequency,
+    setRecurringFrequency,
     isCustomerRelated,
     setIsCustomerRelated,
     customerName,

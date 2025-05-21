@@ -9,6 +9,7 @@ import { TaskBasicInfo } from "./form/TaskBasicInfo";
 import { TaskAttributes } from "./form/TaskAttributes";
 import { DocumentSelector } from "./form/DocumentSelector";
 import { CustomerRelatedSection } from "./form/CustomerRelatedSection";
+import { RecurringTaskSection } from "./form/RecurringTaskSection";
 
 // Import hooks
 import { useTaskFormState } from "./form/useTaskFormState";
@@ -55,6 +56,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
       priority: formState.priority,
       dueDate: formState.dueDate,
       assignee: formState.assignee,
+      isRecurring: formState.isRecurring,
+      recurringFrequency: formState.isRecurring ? formState.recurringFrequency : undefined,
       isCustomerRelated: formState.isCustomerRelated,
       customerName: formState.customerName,
       attachmentsRequired: formState.attachmentsRequired,
@@ -90,6 +93,17 @@ const TaskForm: React.FC<TaskFormProps> = ({
         />
         
         <Separator className="my-2" />
+        
+        {/* Recurring task section */}
+        <div>
+          <h3 className="text-sm font-medium mb-3">Recurring Options</h3>
+          <RecurringTaskSection 
+            isRecurring={formState.isRecurring}
+            setIsRecurring={formState.setIsRecurring}
+            recurringFrequency={formState.recurringFrequency}
+            setRecurringFrequency={formState.setRecurringFrequency}
+          />
+        </div>
         
         {/* Documents section */}
         <div>
