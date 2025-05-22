@@ -24,6 +24,11 @@ interface TaskPayload {
   assignee: string | null;
 }
 
+// Add this interface to properly type the recurring tasks
+interface RecurringTaskPayload extends TaskPayload {
+  recurring_parent_id?: string;
+}
+
 /**
  * Hook for task creation operations
  */
@@ -32,14 +37,14 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
   const { processTaskDocuments } = useTaskDocumentUpload();
 
   // Helper function to create recurring tasks
-  const createRecurringTasks = async (baseTask: TaskPayload, startDate: string, endDate: string, frequency: string) => {
+  const createRecurringTasks = async (baseTask: TaskPayload, parentTaskId: string, startDate: string, endDate: string, frequency: string) => {
     console.log(`Creating recurring tasks with frequency: ${frequency}, from ${startDate} to ${endDate}`);
     
     try {
       const start = parseISO(startDate);
       const end = parseISO(endDate);
       let currentDate = start;
-      const tasksToCreate: TaskPayload[] = [];
+      const tasksToCreate: RecurringTaskPayload[] = []; // Fix: Use the explicit interface
       
       while (currentDate <= end) {
         // Skip the first occurrence if it's the same as the base task's due date
@@ -50,10 +55,11 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         }
         
         // Create a new task for this date
-        const recurringTask = {
+        const recurringTask: RecurringTaskPayload = { // Fix: Use the explicit interface
           ...baseTask,
           due_date: format(currentDate, 'yyyy-MM-dd'),
           title: `${baseTask.title} (${format(currentDate, 'MMM dd, yyyy')})`,
+          recurring_parent_id: parentTaskId
         };
         
         tasksToCreate.push(recurringTask);
@@ -172,6 +178,7 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       if (newTask.isRecurring && newTask.startDate && newTask.endDate && newTask.recurringFrequency) {
         await createRecurringTasks(
           taskPayload, 
+          data.id, // Pass the task ID to identify the parent
           newTask.startDate, 
           newTask.endDate, 
           newTask.recurringFrequency

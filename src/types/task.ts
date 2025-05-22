@@ -18,6 +18,7 @@ export interface Task {
   startDate?: string; // Added field for recurring task start date
   endDate?: string; // Added field for recurring task end date
   attachmentsRequired: 'none' | 'optional' | 'required';
+  recurringParentId?: string; // Added field to track parent-child relationships
   assigneeDetails?: {
     name: string;
     avatar?: string;

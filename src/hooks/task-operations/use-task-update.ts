@@ -1,4 +1,3 @@
-
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types/task";
@@ -22,6 +21,11 @@ interface TaskUpdatePayload {
   assignee: string | null;
   status?: 'not-started' | 'in-progress' | 'completed' | 'overdue';
   comments?: string | null;
+}
+
+// Add this interface to properly type the recurring tasks
+interface RecurringTaskPayload extends TaskUpdatePayload {
+  recurring_parent_id: string;
 }
 
 /**
@@ -50,7 +54,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       const start = parseISO(startDate);
       const end = parseISO(endDate);
       let currentDate = start;
-      const tasksToCreate: any[] = [];
+      const tasksToCreate: RecurringTaskPayload[] = []; // Fix: Use the explicit interface
       
       while (currentDate <= end) {
         // Skip the first occurrence if it's the same as the base task's due date
@@ -61,7 +65,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         }
         
         // Create a new task for this date
-        const recurringTask = {
+        const recurringTask: RecurringTaskPayload = { // Fix: Use the explicit interface
           ...baseTask,
           due_date: format(currentDate, 'yyyy-MM-dd'),
           title: `${baseTask.title} (${format(currentDate, 'MMM dd, yyyy')})`,
