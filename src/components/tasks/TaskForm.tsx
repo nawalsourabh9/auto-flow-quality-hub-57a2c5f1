@@ -58,6 +58,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
       assignee: formState.assignee,
       isRecurring: formState.isRecurring,
       recurringFrequency: formState.isRecurring ? formState.recurringFrequency : undefined,
+      startDate: formState.isRecurring ? formState.startDate : undefined,
+      endDate: formState.isRecurring ? formState.endDate : undefined,
       isCustomerRelated: formState.isCustomerRelated,
       customerName: formState.customerName,
       attachmentsRequired: formState.attachmentsRequired,
@@ -102,6 +104,10 @@ const TaskForm: React.FC<TaskFormProps> = ({
             setIsRecurring={formState.setIsRecurring}
             recurringFrequency={formState.recurringFrequency}
             setRecurringFrequency={formState.setRecurringFrequency}
+            startDate={formState.startDate}
+            setStartDate={formState.setStartDate}
+            endDate={formState.endDate}
+            setEndDate={formState.setEndDate}
           />
         </div>
         

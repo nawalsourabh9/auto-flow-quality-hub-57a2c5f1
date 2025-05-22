@@ -1,3 +1,4 @@
+
 import { TaskDocument } from "@/types/document";
 
 export interface Task {
@@ -14,6 +15,8 @@ export interface Task {
   isCustomerRelated?: boolean; // Added field for customer tasks
   customerName?: string; // Optional customer name
   recurringFrequency?: string;
+  startDate?: string; // Added field for recurring task start date
+  endDate?: string; // Added field for recurring task end date
   attachmentsRequired: 'none' | 'optional' | 'required';
   assigneeDetails?: {
     name: string;

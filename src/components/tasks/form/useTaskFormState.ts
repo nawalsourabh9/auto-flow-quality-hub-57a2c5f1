@@ -51,15 +51,21 @@ export const useTaskFormState = (initialData: Partial<Task> = {}) => {
   // Recurring task options
   const [isRecurring, setIsRecurring] = useState(initialData.isRecurring || false);
   const [recurringFrequency, setRecurringFrequency] = useState(initialData.recurringFrequency || "weekly");
+  const [startDate, setStartDate] = useState(formatInitialDate(initialData.startDate) || formatInitialDate(new Date().toISOString()));
+  const [endDate, setEndDate] = useState(formatInitialDate(initialData.endDate) || "");
   
   // Customer related fields
   const [isCustomerRelated, setIsCustomerRelated] = useState(initialData.isCustomerRelated || false);
   const [customerName, setCustomerName] = useState(initialData.customerName || "");
   
-  // Log when the due date changes
+  // Log when date fields change
   useEffect(() => {
     console.log("Due date set to:", dueDate);
   }, [dueDate]);
+  
+  useEffect(() => {
+    console.log("Recurring dates set to - Start:", startDate, "End:", endDate);
+  }, [startDate, endDate]);
   
   // Log when assignee changes
   useEffect(() => {
@@ -96,6 +102,10 @@ export const useTaskFormState = (initialData: Partial<Task> = {}) => {
     setIsRecurring,
     recurringFrequency,
     setRecurringFrequency,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
     isCustomerRelated,
     setIsCustomerRelated,
     customerName,

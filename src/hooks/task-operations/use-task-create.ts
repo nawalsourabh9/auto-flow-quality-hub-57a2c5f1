@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types/task";
 import { toast } from "@/hooks/use-toast";
 import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
+import { addDays, addWeeks, addMonths, addYears, parseISO, format } from "date-fns";
 
 interface TaskPayload {
   title: string;
@@ -15,6 +16,8 @@ interface TaskPayload {
   is_customer_related: boolean;
   customer_name?: string | null;
   recurring_frequency?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
   attachments_required: 'none' | 'optional' | 'required';
   approval_status: 'pending' | 'approved' | 'rejected';
   status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
@@ -28,6 +31,85 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
   const queryClient = useQueryClient();
   const { processTaskDocuments } = useTaskDocumentUpload();
 
+  // Helper function to create recurring tasks
+  const createRecurringTasks = async (baseTask: TaskPayload, startDate: string, endDate: string, frequency: string) => {
+    console.log(`Creating recurring tasks with frequency: ${frequency}, from ${startDate} to ${endDate}`);
+    
+    try {
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
+      let currentDate = start;
+      const tasksToCreate: TaskPayload[] = [];
+      
+      while (currentDate <= end) {
+        // Skip the first occurrence if it's the same as the base task's due date
+        if (format(currentDate, 'yyyy-MM-dd') === baseTask.due_date) {
+          // Move to next occurrence
+          currentDate = getNextDate(currentDate, frequency);
+          continue;
+        }
+        
+        // Create a new task for this date
+        const recurringTask = {
+          ...baseTask,
+          due_date: format(currentDate, 'yyyy-MM-dd'),
+          title: `${baseTask.title} (${format(currentDate, 'MMM dd, yyyy')})`,
+        };
+        
+        tasksToCreate.push(recurringTask);
+        
+        // Move to next occurrence
+        currentDate = getNextDate(currentDate, frequency);
+      }
+      
+      if (tasksToCreate.length > 0) {
+        console.log(`Creating ${tasksToCreate.length} recurring tasks`);
+        const { data, error } = await supabase
+          .from('tasks')
+          .insert(tasksToCreate);
+          
+        if (error) {
+          console.error('Error creating recurring tasks:', error);
+          throw error;
+        }
+        
+        toast({
+          title: "Recurring Tasks Created",
+          description: `Created ${tasksToCreate.length} recurring tasks successfully.`
+        });
+      } else {
+        console.log('No recurring tasks to create');
+      }
+    } catch (error) {
+      console.error('Error in createRecurringTasks:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create recurring tasks.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Helper function to calculate the next date based on frequency
+  const getNextDate = (currentDate: Date, frequency: string): Date => {
+    switch (frequency) {
+      case 'daily':
+        return addDays(currentDate, 1);
+      case 'weekly':
+        return addDays(currentDate, 7);
+      case 'bi-weekly':
+        return addDays(currentDate, 14);
+      case 'monthly':
+        return addMonths(currentDate, 1);
+      case 'quarterly':
+        return addMonths(currentDate, 3);
+      case 'annually':
+        return addYears(currentDate, 1);
+      default:
+        return addDays(currentDate, 7); // default to weekly
+    }
+  };
+
   const handleCreateTask = async (newTask: Task) => {
     try {
       console.log("Creating task with data:", newTask);
@@ -35,7 +117,9 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       console.log("Assignee value received from form:", newTask.assignee);
       console.log("Recurring task data:", {
         isRecurring: newTask.isRecurring,
-        frequency: newTask.recurringFrequency
+        frequency: newTask.recurringFrequency,
+        startDate: newTask.startDate,
+        endDate: newTask.endDate
       });
       
       // assignee is already properly converted at the form level
@@ -54,6 +138,8 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         is_customer_related: newTask.isCustomerRelated || false,
         customer_name: newTask.customerName || null,
         recurring_frequency: newTask.recurringFrequency || null,
+        start_date: newTask.startDate || null,
+        end_date: newTask.endDate || null,
         attachments_required: newTask.attachmentsRequired,
         approval_status: 'approved', // All tasks are automatically approved
         status: 'not-started',
@@ -80,6 +166,16 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       // If documents were uploaded, store them
       if (newTask.documents && newTask.documents.length > 0) {
         await processTaskDocuments(data.id, newTask.documents);
+      }
+
+      // If this is a recurring task with start and end dates, create the future tasks
+      if (newTask.isRecurring && newTask.startDate && newTask.endDate && newTask.recurringFrequency) {
+        await createRecurringTasks(
+          taskPayload, 
+          newTask.startDate, 
+          newTask.endDate, 
+          newTask.recurringFrequency
+        );
       }
 
       // Invalidate the tasks query to refetch data after successful creation

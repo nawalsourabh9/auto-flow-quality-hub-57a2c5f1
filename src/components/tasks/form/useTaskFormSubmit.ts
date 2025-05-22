@@ -1,4 +1,3 @@
-
 import { Task } from "@/types/task";
 import { TaskDocument } from "@/types/document";
 import { Employee } from "./useEmployeeData";
@@ -122,6 +121,8 @@ export const useTaskFormSubmit = (
       assignee: string;
       isRecurring: boolean;
       recurringFrequency?: string;
+      startDate?: string;
+      endDate?: string;
       isCustomerRelated: boolean;
       customerName: string;
       attachmentsRequired: "none" | "optional" | "required";
@@ -136,7 +137,9 @@ export const useTaskFormSubmit = (
     console.log("Form submitted with assignee:", formData.assignee);
     console.log("Form submitted with recurring options:", {
       isRecurring: formData.isRecurring,
-      frequency: formData.recurringFrequency
+      frequency: formData.recurringFrequency,
+      startDate: formData.startDate,
+      endDate: formData.endDate
     });
     console.log("Form submitted with document uploads:", formData.documentUploads);
     
@@ -165,6 +168,8 @@ export const useTaskFormSubmit = (
       createdAt: initialData.createdAt || new Date().toISOString().split("T")[0],
       isRecurring: formData.isRecurring,
       recurringFrequency: formData.isRecurring ? formData.recurringFrequency : undefined,
+      startDate: formData.isRecurring ? formData.startDate : undefined,
+      endDate: formData.isRecurring ? formData.endDate : undefined,
       isCustomerRelated: formData.isCustomerRelated,
       customerName: formData.isCustomerRelated ? formData.customerName : undefined,
       attachmentsRequired: formData.attachmentsRequired,
