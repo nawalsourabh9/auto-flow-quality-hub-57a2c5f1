@@ -1,3 +1,4 @@
+
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types/task";
@@ -23,8 +24,23 @@ interface TaskUpdatePayload {
   comments?: string | null;
 }
 
-// Add this interface to properly type the recurring tasks
-interface RecurringTaskPayload extends TaskUpdatePayload {
+// Fixed interface for recurring tasks to match database schema
+interface RecurringTaskPayload {
+  title: string;
+  description: string | null;
+  department: string;
+  priority: 'low' | 'medium' | 'high';
+  due_date: string | null;
+  is_recurring: boolean;
+  is_customer_related: boolean;
+  customer_name?: string | null;
+  recurring_frequency?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  attachments_required: 'none' | 'optional' | 'required';
+  assignee: string | null;
+  status: 'not-started' | 'in-progress' | 'completed' | 'overdue';
+  comments?: string | null;
   recurring_parent_id: string;
 }
 
@@ -54,7 +70,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       const start = parseISO(startDate);
       const end = parseISO(endDate);
       let currentDate = start;
-      const tasksToCreate: RecurringTaskPayload[] = []; // Fix: Use the explicit interface
+      const tasksToCreate: RecurringTaskPayload[] = [];
       
       while (currentDate <= end) {
         // Skip the first occurrence if it's the same as the base task's due date
@@ -65,11 +81,12 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         }
         
         // Create a new task for this date
-        const recurringTask: RecurringTaskPayload = { // Fix: Use the explicit interface
+        const recurringTask: RecurringTaskPayload = {
           ...baseTask,
           due_date: format(currentDate, 'yyyy-MM-dd'),
           title: `${baseTask.title} (${format(currentDate, 'MMM dd, yyyy')})`,
-          recurring_parent_id: taskId
+          recurring_parent_id: taskId,
+          status: baseTask.status || 'not-started' // Ensure status is always set
         };
         
         tasksToCreate.push(recurringTask);
@@ -80,6 +97,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       
       if (tasksToCreate.length > 0) {
         console.log(`Creating ${tasksToCreate.length} recurring tasks`);
+        // Fixed: Insert array of tasks properly
         const { data, error } = await supabase
           .from('tasks')
           .insert(tasksToCreate);

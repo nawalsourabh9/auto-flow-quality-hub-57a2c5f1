@@ -24,9 +24,24 @@ interface TaskPayload {
   assignee: string | null;
 }
 
-// Add this interface to properly type the recurring tasks
-interface RecurringTaskPayload extends TaskPayload {
-  recurring_parent_id?: string;
+// Fixed interface for recurring tasks to match database schema
+interface RecurringTaskPayload {
+  title: string;
+  description: string;
+  department: string;
+  priority: 'low' | 'medium' | 'high';
+  due_date: string;
+  is_recurring: boolean;
+  is_customer_related: boolean;
+  customer_name?: string | null;
+  recurring_frequency?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  attachments_required: 'none' | 'optional' | 'required';
+  approval_status: 'pending' | 'approved' | 'rejected';
+  status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
+  assignee: string | null;
+  recurring_parent_id: string;
 }
 
 /**
@@ -44,7 +59,7 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       const start = parseISO(startDate);
       const end = parseISO(endDate);
       let currentDate = start;
-      const tasksToCreate: RecurringTaskPayload[] = []; // Fix: Use the explicit interface
+      const tasksToCreate: RecurringTaskPayload[] = [];
       
       while (currentDate <= end) {
         // Skip the first occurrence if it's the same as the base task's due date
@@ -55,7 +70,7 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         }
         
         // Create a new task for this date
-        const recurringTask: RecurringTaskPayload = { // Fix: Use the explicit interface
+        const recurringTask: RecurringTaskPayload = {
           ...baseTask,
           due_date: format(currentDate, 'yyyy-MM-dd'),
           title: `${baseTask.title} (${format(currentDate, 'MMM dd, yyyy')})`,
