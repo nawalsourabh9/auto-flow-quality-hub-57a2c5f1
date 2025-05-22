@@ -1,10 +1,10 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, AlertCircle } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { format, parse, isValid } from "date-fns";
+import { format, parse, isValid, addMonths, isBefore } from "date-fns";
 
 interface RecurringTaskSectionProps {
   isRecurring: boolean;
@@ -57,6 +57,28 @@ export const RecurringTaskSection: React.FC<RecurringTaskSectionProps> = ({
 
   const startDateValue = parseDateSafely(startDate);
   const endDateValue = parseDateSafely(endDate);
+  
+  // Calculate maximum allowed end date (6 months from start date)
+  const maxEndDate = startDateValue ? addMonths(startDateValue, 6) : undefined;
+  
+  // Check if end date is valid (within 6 months from start date)
+  const isEndDateValid = !endDateValue || !startDateValue || 
+    (isBefore(endDateValue, addMonths(startDateValue, 6)) && 
+     isBefore(startDateValue, endDateValue));
+
+  // When start date changes, adjust end date if needed
+  useEffect(() => {
+    if (startDateValue && endDateValue) {
+      // If end date is more than 6 months after start date, reset it
+      if (!isBefore(endDateValue, addMonths(startDateValue, 6))) {
+        setEndDate("");
+      }
+      // If end date is before start date, reset it
+      else if (isBefore(endDateValue, startDateValue)) {
+        setEndDate("");
+      }
+    }
+  }, [startDate, endDateValue, startDateValue, setEndDate]);
 
   // Handle date selection from calendar
   const handleDateSelect = (setter: (value: string) => void) => (date: Date | undefined) => {
@@ -136,9 +158,16 @@ export const RecurringTaskSection: React.FC<RecurringTaskSectionProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="endDate" className="text-sm font-medium">
-              End Date
-            </Label>
+            <div className="flex justify-between">
+              <Label htmlFor="endDate" className="text-sm font-medium">
+                End Date
+              </Label>
+              {startDateValue && (
+                <span className="text-xs text-muted-foreground">
+                  Max: {maxEndDate ? format(maxEndDate, "MMM dd, yyyy") : ""}
+                </span>
+              )}
+            </div>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -146,7 +175,8 @@ export const RecurringTaskSection: React.FC<RecurringTaskSectionProps> = ({
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
-                    !endDate && "text-muted-foreground"
+                    !endDate && "text-muted-foreground",
+                    !isEndDateValid && "border-destructive"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
@@ -158,12 +188,22 @@ export const RecurringTaskSection: React.FC<RecurringTaskSectionProps> = ({
                   mode="single"
                   selected={endDateValue}
                   onSelect={handleDateSelect(setEndDate)}
-                  disabled={(date) => startDate && date < new Date(startDate)}
+                  disabled={(date) => {
+                    // Disable dates before start date or more than 6 months after start date
+                    if (!startDateValue) return false;
+                    return date < startDateValue || date > addMonths(startDateValue, 6);
+                  }}
                   initialFocus
                   className="p-3 pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
+            {!isEndDateValid && endDateValue && (
+              <div className="flex items-center text-destructive text-xs mt-1">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                End date must be after start date and within 6 months
+              </div>
+            )}
           </div>
         </div>
       )}

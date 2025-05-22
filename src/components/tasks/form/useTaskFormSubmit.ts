@@ -2,6 +2,8 @@ import { Task } from "@/types/task";
 import { TaskDocument } from "@/types/document";
 import { Employee } from "./useEmployeeData";
 import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
+import { addMonths, parseISO, isAfter, isBefore } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 
 export const useTaskFormSubmit = (
   onSubmit: (task: Task) => void,
@@ -110,6 +112,30 @@ export const useTaskFormSubmit = (
     return documents;
   };
 
+  // Validate recurring task dates
+  const validateRecurringDates = (
+    isRecurring: boolean,
+    startDate: string | undefined,
+    endDate: string | undefined
+  ): boolean => {
+    if (!isRecurring) return true;
+    
+    // If recurring, both dates are required
+    if (!startDate || !endDate) return false;
+    
+    try {
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
+      const maxEndDate = addMonths(start, 6);
+      
+      // End date must be after start date and within 6 months
+      return isAfter(end, start) && isBefore(end, maxEndDate);
+    } catch (error) {
+      console.error("Date validation error:", error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (
     e: React.FormEvent,
     formData: {
@@ -130,6 +156,27 @@ export const useTaskFormSubmit = (
     }
   ) => {
     e.preventDefault();
+    
+    // Validate recurring task dates
+    if (formData.isRecurring) {
+      if (!formData.startDate || !formData.endDate) {
+        toast({
+          title: "Validation Error",
+          description: "Start date and end date are required for recurring tasks",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!validateRecurringDates(formData.isRecurring, formData.startDate, formData.endDate)) {
+        toast({
+          title: "Validation Error",
+          description: "End date must be after start date and within 6 months",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
     
     // Log form values before submission
     console.log("Form submitted with fields:", formData);
