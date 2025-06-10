@@ -666,14 +666,17 @@ export type Database = {
           department_head_id: string | null
           description: string | null
           due_date: string | null
+          end_date: string | null
           id: string
           is_customer_related: boolean | null
           is_recurring: boolean | null
           priority: string
           recurring_frequency: string | null
+          recurring_parent_id: string | null
           rejected_at: string | null
           rejected_by: string | null
           rejection_reason: string | null
+          start_date: string | null
           status: string
           title: string
         }
@@ -690,14 +693,17 @@ export type Database = {
           department_head_id?: string | null
           description?: string | null
           due_date?: string | null
+          end_date?: string | null
           id?: string
           is_customer_related?: boolean | null
           is_recurring?: boolean | null
           priority: string
           recurring_frequency?: string | null
+          recurring_parent_id?: string | null
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
+          start_date?: string | null
           status: string
           title: string
         }
@@ -714,14 +720,17 @@ export type Database = {
           department_head_id?: string | null
           description?: string | null
           due_date?: string | null
+          end_date?: string | null
           id?: string
           is_customer_related?: boolean | null
           is_recurring?: boolean | null
           priority?: string
           recurring_frequency?: string | null
+          recurring_parent_id?: string | null
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
+          start_date?: string | null
           status?: string
           title?: string
         }
@@ -731,6 +740,13 @@ export type Database = {
             columns: ["assignee"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_recurring_parent_id_fkey"
+            columns: ["recurring_parent_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]

@@ -24,7 +24,6 @@ interface TaskPayload {
   assignee: string | null;
 }
 
-// Fixed interface for recurring tasks to match database schema
 interface RecurringTaskPayload {
   title: string;
   description: string;

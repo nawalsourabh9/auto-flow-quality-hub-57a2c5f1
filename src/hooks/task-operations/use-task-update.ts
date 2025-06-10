@@ -24,7 +24,6 @@ interface TaskUpdatePayload {
   comments?: string | null;
 }
 
-// Fixed interface for recurring tasks to match database schema
 interface RecurringTaskPayload {
   title: string;
   description: string | null;
@@ -42,6 +41,7 @@ interface RecurringTaskPayload {
   status: 'not-started' | 'in-progress' | 'completed' | 'overdue';
   comments?: string | null;
   recurring_parent_id: string;
+  approval_status: 'pending' | 'approved' | 'rejected';
 }
 
 /**
@@ -86,7 +86,8 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
           due_date: format(currentDate, 'yyyy-MM-dd'),
           title: `${baseTask.title} (${format(currentDate, 'MMM dd, yyyy')})`,
           recurring_parent_id: taskId,
-          status: baseTask.status || 'not-started' // Ensure status is always set
+          status: baseTask.status || 'not-started',
+          approval_status: 'approved'
         };
         
         tasksToCreate.push(recurringTask);
@@ -97,7 +98,6 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       
       if (tasksToCreate.length > 0) {
         console.log(`Creating ${tasksToCreate.length} recurring tasks`);
-        // Fixed: Insert array of tasks properly
         const { data, error } = await supabase
           .from('tasks')
           .insert(tasksToCreate);
