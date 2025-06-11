@@ -4,6 +4,7 @@ import { Employee } from "./useEmployeeData";
 import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
 import { addMonths, parseISO, isAfter, isBefore } from "date-fns";
 import { toast } from "@/hooks/use-toast";
+import { formatDateForInput, parseInputDate, isValidDateString } from "@/utils/dateUtils";
 
 export const useTaskFormSubmit = (
   onSubmit: (task: Task) => void,
@@ -65,7 +66,7 @@ export const useTaskFormSubmit = (
         version: "1.0",
         uploadDate: timestamp,
         uploadedBy: assigneeDetails.name,
-        file: documentUploads.sop.file // Add the actual file to upload
+        file: documentUploads.sop.file
       });
     }
     
@@ -112,27 +113,66 @@ export const useTaskFormSubmit = (
     return documents;
   };
 
-  // Validate recurring task dates
+  // Enhanced date validation with better error messages
   const validateRecurringDates = (
     isRecurring: boolean,
     startDate: string | undefined,
     endDate: string | undefined
-  ): boolean => {
-    if (!isRecurring) return true;
+  ): { isValid: boolean; error?: string } => {
+    if (!isRecurring) return { isValid: true };
     
     // If recurring, both dates are required
-    if (!startDate || !endDate) return false;
+    if (!startDate || !endDate) {
+      return { 
+        isValid: false, 
+        error: "Start date and end date are required for recurring tasks" 
+      };
+    }
+    
+    // Validate date format
+    if (!isValidDateString(startDate) || !isValidDateString(endDate)) {
+      return { 
+        isValid: false, 
+        error: "Invalid date format provided" 
+      };
+    }
     
     try {
-      const start = parseISO(startDate);
-      const end = parseISO(endDate);
+      const start = parseInputDate(startDate);
+      const end = parseInputDate(endDate);
+      
+      if (!start || !end) {
+        return { 
+          isValid: false, 
+          error: "Unable to parse provided dates" 
+        };
+      }
+      
       const maxEndDate = addMonths(start, 6);
       
-      // End date must be after start date and within 6 months
-      return isAfter(end, start) && isBefore(end, maxEndDate);
+      // End date must be after start date
+      if (!isAfter(end, start)) {
+        return { 
+          isValid: false, 
+          error: "End date must be after start date" 
+        };
+      }
+      
+      // End date must be within 6 months
+      if (!isBefore(end, maxEndDate)) {
+        return { 
+          isValid: false, 
+          error: "End date must be within 6 months of start date" 
+        };
+      }
+      
+      return { isValid: true };
     } catch (error) {
       console.error("Date validation error:", error);
-      return false;
+      return { 
+        isValid: false, 
+        error: "Error validating dates" 
+      };
     }
   };
 
@@ -157,38 +197,42 @@ export const useTaskFormSubmit = (
   ) => {
     e.preventDefault();
     
-    // Validate recurring task dates
-    if (formData.isRecurring) {
-      if (!formData.startDate || !formData.endDate) {
-        toast({
-          title: "Validation Error",
-          description: "Start date and end date are required for recurring tasks",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      if (!validateRecurringDates(formData.isRecurring, formData.startDate, formData.endDate)) {
-        toast({
-          title: "Validation Error",
-          description: "End date must be after start date and within 6 months",
-          variant: "destructive"
-        });
-        return;
-      }
+    // Enhanced date validation
+    const dateValidation = validateRecurringDates(
+      formData.isRecurring, 
+      formData.startDate, 
+      formData.endDate
+    );
+    
+    if (!dateValidation.isValid) {
+      toast({
+        title: "Validation Error",
+        description: dateValidation.error,
+        variant: "destructive"
+      });
+      return;
     }
     
-    // Log form values before submission
-    console.log("Form submitted with fields:", formData);
-    console.log("Form submitted with dueDate:", formData.dueDate);
-    console.log("Form submitted with assignee:", formData.assignee);
-    console.log("Form submitted with recurring options:", {
-      isRecurring: formData.isRecurring,
-      frequency: formData.recurringFrequency,
-      startDate: formData.startDate,
-      endDate: formData.endDate
+    // Validate due date format
+    if (formData.dueDate && !isValidDateString(formData.dueDate)) {
+      toast({
+        title: "Validation Error",
+        description: "Invalid due date format",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Log form values before submission with enhanced date info
+    console.log("Form submitted with enhanced date handling:", {
+      ...formData,
+      dateValidation: dateValidation,
+      formattedDates: {
+        due: formatDateForInput(formData.dueDate),
+        start: formData.startDate ? formatDateForInput(formData.startDate) : undefined,
+        end: formData.endDate ? formatDateForInput(formData.endDate) : undefined
+      }
     });
-    console.log("Form submitted with document uploads:", formData.documentUploads);
     
     // Find the selected employee details
     const assigneeDetails = getAssigneeDetails(
@@ -198,11 +242,9 @@ export const useTaskFormSubmit = (
     // Prepare documents
     const documents = prepareDocuments(formData.documentUploads, assigneeDetails);
 
-    // Create the task object with the proper assignee value
+    // Create the task object with proper assignee value and formatted dates
     const finalAssignee = formData.assignee === "unassigned" ? null : formData.assignee;
-    console.log("Final assignee value for task object:", finalAssignee);
-
-    // Create the task object
+    
     const newTask: Task = {
       id: initialData.id || "",
       title: formData.title,
@@ -210,13 +252,13 @@ export const useTaskFormSubmit = (
       department: formData.department,
       assignee: finalAssignee,
       priority: formData.priority,
-      dueDate: formData.dueDate,
+      dueDate: formatDateForInput(formData.dueDate),
       status: initialData.status || "not-started",
       createdAt: initialData.createdAt || new Date().toISOString().split("T")[0],
       isRecurring: formData.isRecurring,
       recurringFrequency: formData.isRecurring ? formData.recurringFrequency : undefined,
-      startDate: formData.isRecurring ? formData.startDate : undefined,
-      endDate: formData.isRecurring ? formData.endDate : undefined,
+      startDate: formData.isRecurring ? formatDateForInput(formData.startDate) : undefined,
+      endDate: formData.isRecurring ? formatDateForInput(formData.endDate) : undefined,
       isCustomerRelated: formData.isCustomerRelated,
       customerName: formData.isCustomerRelated ? formData.customerName : undefined,
       attachmentsRequired: formData.attachmentsRequired,
@@ -224,7 +266,7 @@ export const useTaskFormSubmit = (
       documents: documents.length > 0 ? documents : undefined
     };
 
-    console.log("Submitting task with final data:", newTask);
+    console.log("Submitting task with standardized date formatting:", newTask);
     
     // Submit the task first
     onSubmit(newTask);

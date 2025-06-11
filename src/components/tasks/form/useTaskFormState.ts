@@ -3,18 +3,19 @@ import { useState, useEffect } from "react";
 import { Task } from "@/types/task";
 import { useEmployeeData } from "./useEmployeeData";
 import { useDocumentUploads } from "./useDocumentUploads";
+import { formatDateForInput } from "@/utils/dateUtils";
 
 export const useTaskFormState = (initialData: Partial<Task>) => {
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
   const [department, setDepartment] = useState(initialData?.department || "Quality");
   const [priority, setPriority] = useState<"low" | "medium" | "high">(initialData?.priority || "medium");
-  const [dueDate, setDueDate] = useState(initialData?.dueDate || "");
+  const [dueDate, setDueDate] = useState(formatDateForInput(initialData?.dueDate));
   const [assignee, setAssignee] = useState(initialData?.assignee || "unassigned");
   const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring || false);
   const [recurringFrequency, setRecurringFrequency] = useState(initialData?.recurringFrequency || "weekly");
-  const [startDate, setStartDate] = useState(initialData?.startDate || "");
-  const [endDate, setEndDate] = useState(initialData?.endDate || "");
+  const [startDate, setStartDate] = useState(formatDateForInput(initialData?.startDate));
+  const [endDate, setEndDate] = useState(formatDateForInput(initialData?.endDate));
   const [isCustomerRelated, setIsCustomerRelated] = useState(initialData?.isCustomerRelated || false);
   const [customerName, setCustomerName] = useState(initialData?.customerName || "");
   const [attachmentsRequired, setAttachmentsRequired] = useState<"none" | "optional" | "required">(
@@ -29,33 +30,45 @@ export const useTaskFormState = (initialData: Partial<Task>) => {
 
   // Update form state when initialData changes (for edit mode)
   useEffect(() => {
-    if (initialData?.id) {
-      console.log("Updating form state with initial data:", initialData);
+    console.log("useTaskFormState: Initial data changed:", {
+      id: initialData?.id,
+      hasData: !!Object.keys(initialData || {}).length,
+      dueDate: initialData?.dueDate,
+      startDate: initialData?.startDate,
+      endDate: initialData?.endDate,
+      isRecurring: initialData?.isRecurring
+    });
+
+    // Always update form state when initialData changes, regardless of ID
+    if (initialData && Object.keys(initialData).length > 0) {
+      console.log("Updating form state with initial data");
       
       setTitle(initialData.title || "");
       setDescription(initialData.description || "");
       setDepartment(initialData.department || "Quality");
       setPriority(initialData.priority || "medium");
-      setDueDate(initialData.dueDate || "");
       setAssignee(initialData.assignee || "unassigned");
       setIsRecurring(initialData.isRecurring || false);
       setRecurringFrequency(initialData.recurringFrequency || "weekly");
-      
-      // Fix: Properly handle start and end dates
-      if (initialData.startDate) {
-        console.log("Setting start date:", initialData.startDate);
-        setStartDate(initialData.startDate);
-      }
-      if (initialData.endDate) {
-        console.log("Setting end date:", initialData.endDate);
-        setEndDate(initialData.endDate);
-      }
-      
       setIsCustomerRelated(initialData.isCustomerRelated || false);
       setCustomerName(initialData.customerName || "");
       setAttachmentsRequired(initialData.attachmentsRequired || "none");
+
+      // Handle dates with proper formatting
+      const formattedDueDate = formatDateForInput(initialData.dueDate);
+      const formattedStartDate = formatDateForInput(initialData.startDate);
+      const formattedEndDate = formatDateForInput(initialData.endDate);
+
+      console.log("Setting formatted dates:", {
+        original: { due: initialData.dueDate, start: initialData.startDate, end: initialData.endDate },
+        formatted: { due: formattedDueDate, start: formattedStartDate, end: formattedEndDate }
+      });
+
+      setDueDate(formattedDueDate);
+      setStartDate(formattedStartDate);
+      setEndDate(formattedEndDate);
     }
-  }, [initialData?.id, initialData]);
+  }, [initialData]); // Remove the ID dependency to ensure all updates trigger
 
   return {
     title,

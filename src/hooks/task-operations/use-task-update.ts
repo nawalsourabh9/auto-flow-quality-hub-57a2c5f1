@@ -5,6 +5,7 @@ import { Task } from "@/types/task";
 import { toast } from "@/hooks/use-toast";
 import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
 import { addDays, addWeeks, addMonths, addYears, parseISO, format } from "date-fns";
+import { formatDateForInput, parseInputDate } from "@/utils/dateUtils";
 
 interface TaskUpdatePayload {
   title: string;
@@ -45,13 +46,13 @@ interface RecurringTaskPayload {
 }
 
 /**
- * Hook for task update operations
+ * Hook for task update operations with enhanced date handling
  */
 export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) => {
   const queryClient = useQueryClient();
   const { processTaskDocuments } = useTaskDocumentUpload();
 
-  // Helper function to create recurring tasks
+  // Helper function to create recurring tasks with proper date handling
   const updateRecurringTasks = async (baseTask: TaskUpdatePayload, taskId: string, startDate: string, endDate: string, frequency: string) => {
     console.log(`Updating recurring tasks with frequency: ${frequency}, from ${startDate} to ${endDate}`);
     
@@ -66,16 +67,22 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         console.error('Error deleting existing recurring tasks:', deleteError);
       }
       
-      // Now create new recurring tasks
-      const start = parseISO(startDate);
-      const end = parseISO(endDate);
-      let currentDate = start;
+      // Parse dates with enhanced handling
+      const startDateObj = parseInputDate(startDate);
+      const endDateObj = parseInputDate(endDate);
+      
+      if (!startDateObj || !endDateObj) {
+        console.error('Invalid start or end date for recurring tasks');
+        throw new Error('Invalid date format for recurring tasks');
+      }
+      
+      let currentDate = startDateObj;
       const tasksToCreate: RecurringTaskPayload[] = [];
       
-      while (currentDate <= end) {
+      while (currentDate <= endDateObj) {
         // Skip the first occurrence if it's the same as the base task's due date
-        if (format(currentDate, 'yyyy-MM-dd') === baseTask.due_date) {
-          // Move to next occurrence
+        const currentDateStr = formatDateForInput(currentDate);
+        if (currentDateStr === baseTask.due_date) {
           currentDate = getNextDate(currentDate, frequency);
           continue;
         }
@@ -83,7 +90,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         // Create a new task for this date
         const recurringTask: RecurringTaskPayload = {
           ...baseTask,
-          due_date: format(currentDate, 'yyyy-MM-dd'),
+          due_date: currentDateStr,
           title: `${baseTask.title} (${format(currentDate, 'MMM dd, yyyy')})`,
           recurring_parent_id: taskId,
           status: baseTask.status || 'not-started',
@@ -146,42 +153,41 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
 
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
-      console.log("Updating task:", updatedTask);
-      console.log("Task status:", updatedTask.status);
-      console.log("Assignee type:", typeof updatedTask.assignee);
-      console.log("Assignee value from form:", updatedTask.assignee);
-      console.log("Recurring task data:", {
-        isRecurring: updatedTask.isRecurring,
-        frequency: updatedTask.recurringFrequency,
-        startDate: updatedTask.startDate,
-        endDate: updatedTask.endDate
+      console.log("Updating task with enhanced date handling:", updatedTask);
+      
+      // Format all dates consistently
+      const formattedDueDate = formatDateForInput(updatedTask.dueDate);
+      const formattedStartDate = updatedTask.startDate ? formatDateForInput(updatedTask.startDate) : null;
+      const formattedEndDate = updatedTask.endDate ? formatDateForInput(updatedTask.endDate) : null;
+      
+      console.log("Formatted dates for database:", {
+        original: { due: updatedTask.dueDate, start: updatedTask.startDate, end: updatedTask.endDate },
+        formatted: { due: formattedDueDate, start: formattedStartDate, end: formattedEndDate }
       });
       
       // assignee is already properly converted at the form level
-      // but let's double check here
       const assigneeValue = updatedTask.assignee === "unassigned" ? null : updatedTask.assignee;
-      console.log("Final assignee value for database:", assigneeValue);
       
-      // Create the update payload with proper typing
+      // Create the update payload with proper typing and formatted dates
       const updatePayload: TaskUpdatePayload = {
         title: updatedTask.title,
         description: updatedTask.description || null,
         department: updatedTask.department,
         priority: updatedTask.priority,
-        due_date: updatedTask.dueDate || null,
+        due_date: formattedDueDate || null,
         is_recurring: updatedTask.isRecurring || false,
         is_customer_related: updatedTask.isCustomerRelated || false,
         customer_name: updatedTask.customerName || null,
         recurring_frequency: updatedTask.isRecurring ? updatedTask.recurringFrequency || null : null,
-        start_date: updatedTask.isRecurring ? updatedTask.startDate || null : null,
-        end_date: updatedTask.isRecurring ? updatedTask.endDate || null : null,
+        start_date: updatedTask.isRecurring ? formattedStartDate : null,
+        end_date: updatedTask.isRecurring ? formattedEndDate : null,
         attachments_required: updatedTask.attachmentsRequired,
         assignee: assigneeValue,
         status: updatedTask.status,
         comments: updatedTask.comments || null
       };
       
-      console.log("Final update payload before sending to database:", updatePayload);
+      console.log("Final update payload with formatted dates:", updatePayload);
 
       // Update the task with the properly constructed payload
       const { data, error } = await supabase
@@ -206,12 +212,12 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       }
 
       // If this is a recurring task with start and end dates, update the future tasks
-      if (updatedTask.isRecurring && updatedTask.startDate && updatedTask.endDate && updatedTask.recurringFrequency) {
+      if (updatedTask.isRecurring && formattedStartDate && formattedEndDate && updatedTask.recurringFrequency) {
         await updateRecurringTasks(
           updatePayload,
           updatedTask.id,
-          updatedTask.startDate, 
-          updatedTask.endDate, 
+          formattedStartDate, 
+          formattedEndDate, 
           updatedTask.recurringFrequency
         );
       }
