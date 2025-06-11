@@ -8,7 +8,7 @@ interface TasksContentProps {
   filteredTasks: Task[];
   onViewTask: (task: Task) => void;
   onEditTask: (task: Task) => void;
-  onDeleteTask: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => Promise<boolean>;
   isAdmin: boolean;
   currentUserId: string | undefined;
   currentUserPermissions: any;

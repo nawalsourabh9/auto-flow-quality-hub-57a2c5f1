@@ -149,8 +149,11 @@ const TasksTable: React.FC<TasksTableProps> = ({
                       task={task}
                       onViewTask={onViewTask}
                       onEditTask={onEditTask}
-                      onDeleteTask={onDeleteTask ? (taskId) => setTaskToDelete(taskId) : undefined}
+                      onDeleteTask={onDeleteTask ? (taskId) => setTaskToDelete(taskId) : () => {}}
                       isAdmin={isAdmin}
+                      currentUserId={currentUserId}
+                      currentUserPermissions={currentUserPermissions}
+                      teamMembers={teamMembers}
                       setViewingDocument={setViewingDocument}
                     />
                   ))

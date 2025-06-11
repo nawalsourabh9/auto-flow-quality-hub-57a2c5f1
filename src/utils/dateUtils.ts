@@ -35,7 +35,6 @@ export const formatDateForInput = (dateValue: string | Date | null | undefined):
     
     if (!isValid(date)) {
       console.warn("Invalid date provided:", dateValue);
-      console.warn("Invalid date provided:", dateValue);
       return null; // Return null for invalid dates
     }
 
@@ -93,6 +92,22 @@ export const formatDateForDisplay = (dateValue: string | Date | null | undefined
     return format(date, "PPP");
   } catch (error) {
     console.error("Error formatting date for display:", error);
+    return "";
+  }
+};
+
+/**
+ * Formats a date for table display (shorter format)
+ */
+export const formatDate = (dateValue: string | Date | null | undefined): string => {
+  const date = typeof dateValue === "string" ? parseInputDate(dateValue) : dateValue;
+  
+  if (!date || !isValid(date)) return "";
+  
+  try {
+    return format(date, "MMM dd, yyyy");
+  } catch (error) {
+    console.error("Error formatting date:", error);
     return "";
   }
 };

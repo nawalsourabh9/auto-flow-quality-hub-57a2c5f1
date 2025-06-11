@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
 import { Task, TeamMember } from "@/types/task";
+import { TaskDocument } from "@/types/document";
 import { formatDate } from "@/utils/dateUtils";
-import TaskPriorityBadge from "./TaskPriorityBadge";
-import TaskStatusBadge from "./TaskStatusBadge";
-import TaskCustomerBadge from "./TaskCustomerBadge";
-import TaskAttachmentBadge from "./TaskAttachmentBadge";
-import TaskDocumentBadges from "./TaskDocumentBadges";
+import { TaskPriorityBadge } from "./TaskPriorityBadge";
+import { TaskStatusBadge } from "./TaskStatusBadge";
+import { TaskCustomerBadge } from "./TaskCustomerBadge";
+import { TaskAttachmentBadge } from "./TaskAttachmentBadge";
+import { TaskDocumentBadges } from "./TaskDocumentBadges";
 import TaskRecurringBadge from "./TaskRecurringBadge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -23,6 +24,7 @@ interface TaskTableRowProps {
   currentUserId: string | undefined;
   currentUserPermissions: any;
   teamMembers: TeamMember[];
+  setViewingDocument: (data: { task: Task, document: TaskDocument } | null) => void;
 }
 
 const TaskTableRow: React.FC<TaskTableRowProps> = ({
@@ -33,7 +35,8 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
   isAdmin,
   currentUserId,
   currentUserPermissions,
-  teamMembers
+  teamMembers,
+  setViewingDocument
 }) => {
   const formatDateForDisplay = (dateString: string | undefined) => {
     if (!dateString) return "";
@@ -65,26 +68,10 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
           </div>
           <div className="flex flex-wrap gap-1">
             <TaskRecurringBadge task={task} />
-            <TaskCustomerBadge task={task} />
-            <TaskAttachmentBadge task={task} />
-            <TaskDocumentBadges task={task} />
+            <TaskCustomerBadge isCustomerRelated={task.isCustomerRelated} customerName={task.customerName} />
+            <TaskAttachmentBadge attachmentsRequired={task.attachmentsRequired} />
+            <TaskDocumentBadges task={task} setViewingDocument={setViewingDocument} />
           </div>
-        </div>
-      </TableCell>
-      <TableCell>
-        <span className="text-sm">{task.department}</span>
-      </TableCell>
-      <TableCell>
-        <TaskPriorityBadge priority={task.priority} />
-      </TableCell>
-      <TableCell>
-        <div className="flex flex-col gap-1">
-          <span className="text-sm">{formatDateForDisplay(task.dueDate)}</span>
-          {isInstanceTask && task.startDate && (
-            <span className="text-xs text-muted-foreground">
-              Started: {formatDateForDisplay(task.startDate)}
-            </span>
-          )}
         </div>
       </TableCell>
       <TableCell>
@@ -104,7 +91,26 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
         </div>
       </TableCell>
       <TableCell>
-        <TaskStatusBadge status={task.status} />
+        <span className="text-sm">{task.department}</span>
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-col gap-1">
+          <span className="text-sm">{formatDateForDisplay(task.dueDate)}</span>
+          {isInstanceTask && task.startDate && (
+            <span className="text-xs text-muted-foreground">
+              Started: {formatDateForDisplay(task.startDate)}
+            </span>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <TaskPriorityBadge priority={task.priority} />
+      </TableCell>
+      <TableCell>
+        <TaskStatusBadge status={task.status} comments={task.comments} />
+      </TableCell>
+      <TableCell>
+        <TaskDocumentBadges task={task} setViewingDocument={setViewingDocument} />
       </TableCell>
       <TableCell>
         <DropdownMenu>
