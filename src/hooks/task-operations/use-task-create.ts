@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types/task";
 import { toast } from "@/hooks/use-toast";
 import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
-import { useRecurringTaskManager } from "./use-recurring-task-manager";
 
 interface TaskPayload {
   title: string;
@@ -30,7 +29,6 @@ interface TaskPayload {
 export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) => {
   const queryClient = useQueryClient();
   const { processTaskDocuments } = useTaskDocumentUpload();
-  const { createFutureRecurringTasks } = useRecurringTaskManager();
 
   const handleCreateTask = async (newTask: Task) => {
     try {
@@ -62,6 +60,7 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         recurring_frequency: newTask.recurringFrequency || null,
         start_date: newTask.startDate || null,
         end_date: newTask.endDate || null,
+        recurring_parent_id: null,
         attachments_required: newTask.attachmentsRequired,
         approval_status: 'approved', // All tasks are automatically approved
         status: 'not-started',
@@ -90,16 +89,6 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         await processTaskDocuments(data.id, newTask.documents);
       }
 
-      // If this is a recurring task with start and end dates, create future tasks using the new manager
-      if (newTask.isRecurring && newTask.startDate && newTask.endDate && newTask.recurringFrequency) {
-        await createFutureRecurringTasks(
-          taskPayload, 
-          data.id, // Pass the task ID to identify the parent
-          newTask.startDate, 
-          newTask.endDate, 
-          newTask.recurringFrequency
-        );
-      }
 
       // Invalidate the tasks query to refetch data after successful creation
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -122,3 +111,4 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
 
   return { handleCreateTask };
 };
+

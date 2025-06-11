@@ -4,8 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types/task";
 import { toast } from "@/hooks/use-toast";
 import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
-import { addDays, addWeeks, addMonths, addYears, parseISO, format } from "date-fns";
-import { formatDateForInput, parseInputDate } from "@/utils/dateUtils";
+import { formatDateForInput } from "@/utils/dateUtils";
 
 interface TaskUpdatePayload {
   title: string;
@@ -25,25 +24,6 @@ interface TaskUpdatePayload {
   comments?: string | null;
 }
 
-interface RecurringTaskPayload {
-  title: string;
-  description: string | null;
-  department: string;
-  priority: 'low' | 'medium' | 'high';
-  due_date: string | null;
-  is_recurring: boolean;
-  is_customer_related: boolean;
-  customer_name?: string | null;
-  recurring_frequency?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  attachments_required: 'none' | 'optional' | 'required';
-  assignee: string | null;
-  status: 'not-started' | 'in-progress' | 'completed' | 'overdue';
-  comments?: string | null;
-  recurring_parent_id: string;
-  approval_status: 'pending' | 'approved' | 'rejected';
-}
 
 /**
  * Hook for task update operations with enhanced date handling
@@ -52,126 +32,6 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
   const queryClient = useQueryClient();
   const { processTaskDocuments } = useTaskDocumentUpload();
 
-  // Helper function to check if recurring task settings have actually changed
-  const hasRecurringSettingsChanged = (originalTask: Task, updatedTask: Task): boolean => {
-    return (
-      originalTask.isRecurring !== updatedTask.isRecurring ||
-      originalTask.recurringFrequency !== updatedTask.recurringFrequency ||
-      originalTask.startDate !== updatedTask.startDate ||
-      originalTask.endDate !== updatedTask.endDate ||
-      originalTask.title !== updatedTask.title
-    );
-  };
-
-  // Helper function to create recurring tasks with proper date handling
-  const updateRecurringTasks = async (baseTask: TaskUpdatePayload, taskId: string, startDate: string, endDate: string, frequency: string) => {
-    console.log(`Updating recurring tasks with frequency: ${frequency}, from ${startDate} to ${endDate}`);
-    
-    try {
-      // First, delete any existing recurring tasks for this task
-      const { error: deleteError } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('recurring_parent_id', taskId);
-        
-      if (deleteError) {
-        console.error('Error deleting existing recurring tasks:', deleteError);
-      }
-      
-      // Parse dates with enhanced handling
-      const startDateObj = parseInputDate(startDate);
-      const endDateObj = parseInputDate(endDate);
-      
-      if (!startDateObj || !endDateObj) {
-        console.error('Invalid start or end date for recurring tasks');
-        throw new Error('Invalid date format for recurring tasks');
-      }
-      
-      let currentDate = startDateObj;
-      const tasksToCreate: RecurringTaskPayload[] = [];
-      
-      while (currentDate <= endDateObj) {
-        // Skip the first occurrence if it's the same as the base task's due date
-        const currentDateStr = formatDateForInput(currentDate);
-        if (currentDateStr === baseTask.due_date) {
-          currentDate = getNextDate(currentDate, frequency);
-          continue;
-        }
-        
-        // Create a new task for this date with proper typing
-        const recurringTask: RecurringTaskPayload = {
-          title: `${baseTask.title} (${format(currentDate, 'MMM dd, yyyy')})`,
-          description: baseTask.description,
-          department: baseTask.department,
-          priority: baseTask.priority as 'low' | 'medium' | 'high',
-          due_date: currentDateStr,
-          is_recurring: baseTask.is_recurring,
-          is_customer_related: baseTask.is_customer_related,
-          customer_name: baseTask.customer_name,
-          recurring_frequency: baseTask.recurring_frequency,
-          start_date: baseTask.start_date,
-          end_date: baseTask.end_date,
-          attachments_required: baseTask.attachments_required as 'none' | 'optional' | 'required',
-          assignee: baseTask.assignee,
-          status: 'not-started' as 'not-started' | 'in-progress' | 'completed' | 'overdue',
-          comments: baseTask.comments,
-          recurring_parent_id: taskId,
-          approval_status: 'approved'
-        };
-        
-        tasksToCreate.push(recurringTask);
-        
-        // Move to next occurrence
-        currentDate = getNextDate(currentDate, frequency);
-      }
-      
-      if (tasksToCreate.length > 0) {
-        console.log(`Creating ${tasksToCreate.length} recurring tasks`);
-        const { data, error } = await supabase
-          .from('tasks')
-          .insert(tasksToCreate);
-          
-        if (error) {
-          console.error('Error creating recurring tasks:', error);
-          throw error;
-        }
-        
-        toast({
-          title: "Recurring Tasks Updated",
-          description: `Created ${tasksToCreate.length} recurring tasks successfully.`
-        });
-      } else {
-        console.log('No recurring tasks to create');
-      }
-    } catch (error) {
-      console.error('Error in updateRecurringTasks:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update recurring tasks.",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Helper function to calculate the next date based on frequency
-  const getNextDate = (currentDate: Date, frequency: string): Date => {
-    switch (frequency) {
-      case 'daily':
-        return addDays(currentDate, 1);
-      case 'weekly':
-        return addDays(currentDate, 7);
-      case 'bi-weekly':
-        return addDays(currentDate, 14);
-      case 'monthly':
-        return addMonths(currentDate, 1);
-      case 'quarterly':
-        return addMonths(currentDate, 3);
-      case 'annually':
-        return addYears(currentDate, 1);
-      default:
-        return addDays(currentDate, 7); // default to weekly
-    }
-  };
 
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
@@ -195,10 +55,10 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         title: originalTaskData.title,
         description: originalTaskData.description,
         department: originalTaskData.department,
-        priority: originalTaskData.priority,
+        priority: originalTaskData.priority as 'low' | 'medium' | 'high',
         dueDate: originalTaskData.due_date,
         assignee: originalTaskData.assignee,
-        status: originalTaskData.status,
+        status: originalTaskData.status as 'completed' | 'in-progress' | 'overdue' | 'not-started',
         createdAt: originalTaskData.created_at,
         isRecurring: originalTaskData.is_recurring,
         recurringFrequency: originalTaskData.recurring_frequency,
@@ -206,7 +66,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         endDate: originalTaskData.end_date,
         isCustomerRelated: originalTaskData.is_customer_related,
         customerName: originalTaskData.customer_name,
-        attachmentsRequired: originalTaskData.attachments_required
+        attachmentsRequired: originalTaskData.attachments_required as 'none' | 'optional' | 'required'
       };
       
       // Format all dates consistently
@@ -265,32 +125,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         console.log("No documents to process for updated task");
       }
 
-      // Only update recurring tasks if recurring settings have actually changed
-      const recurringSettingsChanged = hasRecurringSettingsChanged(originalTask, updatedTask);
-      
-      if (updatedTask.isRecurring && formattedStartDate && formattedEndDate && updatedTask.recurringFrequency && recurringSettingsChanged) {
-        console.log("Recurring settings changed, updating future tasks");
-        await updateRecurringTasks(
-          updatePayload,
-          updatedTask.id,
-          formattedStartDate, 
-          formattedEndDate, 
-          updatedTask.recurringFrequency
-        );
-      } else if (recurringSettingsChanged && !updatedTask.isRecurring) {
-        // If task is no longer recurring, delete all future recurring tasks
-        console.log("Task is no longer recurring, deleting future tasks");
-        const { error: deleteError } = await supabase
-          .from('tasks')
-          .delete()
-          .eq('recurring_parent_id', updatedTask.id);
-          
-        if (deleteError) {
-          console.error('Error deleting future recurring tasks:', deleteError);
-        }
-      } else {
-        console.log("No recurring settings changed, skipping recurring task updates");
-      }
+      console.log("No recurring settings changed, skipping recurring task updates");
 
       // Invalidate the tasks query to refetch data
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
