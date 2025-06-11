@@ -1,20 +1,13 @@
 
-import React, { useState } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
-} from "@/components/ui/dialog";
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Task } from "@/types/task";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DocumentSelector } from "./form/DocumentSelector";
-import { useDocumentUploads } from "./form/useDocumentUploads";
-import { TaskDocument } from "@/types/document";
+import { Task } from "@/types/task";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { formatDateForInput } from "@/utils/dateUtils";
 
 interface StatusUpdateDialogProps {
   task: Task | null;
@@ -23,125 +16,127 @@ interface StatusUpdateDialogProps {
   onUpdateTask: (task: Task) => void;
 }
 
-const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({ 
-  task, 
-  isOpen, 
-  onClose, 
-  onUpdateTask 
+const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
+  task,
+  isOpen,
+  onClose,
+  onUpdateTask
 }) => {
-  const [status, setStatus] = useState<"not-started" | "in-progress" | "completed" | "overdue">(
-    task?.status || "not-started"
-  );
-  
-  const [comments, setComments] = useState<string>(task?.comments || "");
-  
-  const { 
-    documentUploads, 
-    handleDocumentSelect, 
-    handleFileUpload 
-  } = useDocumentUploads(task?.documents);
+  const [status, setStatus] = useState<'not-started' | 'in-progress' | 'completed' | 'overdue'>('not-started');
+  const [comments, setComments] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [fullTaskData, setFullTaskData] = useState<Task | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!task) return;
-    
-    // Process document uploads
-    const updatedDocuments: TaskDocument[] = [];
-    
-    // Convert document uploads to the correct format for TaskDocument[]
-    if (documentUploads.sop.selected) {
-      const file = documentUploads.sop.file;
-      if (file) {
-        updatedDocuments.push({
-          id: `temp-${Date.now()}-sop`,
-          fileName: file.name,
-          fileType: file.type,
-          version: "1.0",
-          documentType: "sop",
-          uploadDate: new Date().toISOString(),
-          uploadedBy: "current-user", // This will be replaced on the server
-          file
+  // Fetch complete task data when dialog opens
+  useEffect(() => {
+    const fetchCompleteTaskData = async () => {
+      if (!task?.id || !isOpen) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('id', task.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching complete task data:', error);
+          return;
+        }
+
+        // Convert database format to Task format
+        const completeTask: Task = {
+          id: data.id,
+          title: data.title,
+          description: data.description || '',
+          department: data.department,
+          priority: data.priority as 'low' | 'medium' | 'high',
+          dueDate: data.due_date,
+          assignee: data.assignee || 'unassigned',
+          status: data.status as 'completed' | 'in-progress' | 'overdue' | 'not-started',
+          createdAt: data.created_at,
+          isRecurring: data.is_recurring || false,
+          recurringFrequency: data.recurring_frequency,
+          startDate: data.start_date,
+          endDate: data.end_date,
+          isCustomerRelated: data.is_customer_related || false,
+          customerName: data.customer_name,
+          attachmentsRequired: data.attachments_required as 'none' | 'optional' | 'required',
+          comments: data.comments || ''
+        };
+
+        setFullTaskData(completeTask);
+        setStatus(completeTask.status);
+        setComments(completeTask.comments || '');
+      } catch (error) {
+        console.error('Error fetching task data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load complete task data",
+          variant: "destructive"
         });
       }
-    }
-    
-    if (documentUploads.dataFormat.selected) {
-      const file = documentUploads.dataFormat.file;
-      if (file) {
-        updatedDocuments.push({
-          id: `temp-${Date.now()}-dataFormat`,
-          fileName: file.name,
-          fileType: file.type,
-          version: "1.0",
-          documentType: "dataFormat",
-          uploadDate: new Date().toISOString(),
-          uploadedBy: "current-user", // This will be replaced on the server
-          file
-        });
-      }
-    }
-    
-    if (documentUploads.reportFormat.selected) {
-      const file = documentUploads.reportFormat.file;
-      if (file) {
-        updatedDocuments.push({
-          id: `temp-${Date.now()}-reportFormat`,
-          fileName: file.name,
-          fileType: file.type,
-          version: "1.0",
-          documentType: "reportFormat",
-          uploadDate: new Date().toISOString(),
-          uploadedBy: "current-user", // This will be replaced on the server
-          file
-        });
-      }
-    }
-    
-    if (documentUploads.rulesAndProcedures.selected) {
-      const file = documentUploads.rulesAndProcedures.file;
-      if (file) {
-        updatedDocuments.push({
-          id: `temp-${Date.now()}-rulesAndProcedures`,
-          fileName: file.name,
-          fileType: file.type,
-          version: "1.0",
-          documentType: "rulesAndProcedures",
-          uploadDate: new Date().toISOString(),
-          uploadedBy: "current-user", // This will be replaced on the server
-          file
-        });
-      }
-    }
-    
-    // Create an updated task with the new status, comments, and documents
-    const updatedTask: Task = {
-      ...task,
-      status,
-      comments,
-      documents: updatedDocuments.length > 0 ? 
-        [...updatedDocuments, ...(task.documents || [])] : 
-        (task.documents || [])
     };
 
-    // Send the updated task to the parent component
-    onUpdateTask(updatedTask);
+    fetchCompleteTaskData();
+  }, [task?.id, isOpen]);
+
+  const handleSubmit = async () => {
+    if (!fullTaskData) return;
+
+    setIsLoading(true);
+    try {
+      const updatedTask: Task = {
+        ...fullTaskData,
+        status,
+        comments
+      };
+
+      console.log('Updating task status with complete data:', updatedTask);
+      await onUpdateTask(updatedTask);
+      onClose();
+    } catch (error) {
+      console.error('Error updating task status:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setStatus('not-started');
+    setComments('');
+    setFullTaskData(null);
     onClose();
   };
 
-  if (!task) return null;
+  if (!fullTaskData) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Update Task Status</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        
+        <div className="space-y-4 py-4">
+          <div>
+            <h3 className="font-medium mb-2">{fullTaskData.title}</h3>
+            <p className="text-sm text-muted-foreground">{fullTaskData.description}</p>
+            {fullTaskData.isRecurring && (
+              <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                <strong>Recurring Task:</strong> {fullTaskData.recurringFrequency} 
+                {fullTaskData.startDate && fullTaskData.endDate && (
+                  <span> ({formatDateForInput(fullTaskData.startDate)} to {formatDateForInput(fullTaskData.endDate)})</span>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="status">Task Status</Label>
-            <Select value={status} onValueChange={(value: "not-started" | "in-progress" | "completed" | "overdue") => setStatus(value)}>
-              <SelectTrigger id="status" className="w-full">
-                <SelectValue placeholder="Select status" />
+            <label className="text-sm font-medium">Status</label>
+            <Select value={status} onValueChange={(value: any) => setStatus(value)}>
+              <SelectTrigger>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="not-started">Not Started</SelectItem>
@@ -151,32 +146,26 @@ const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
-            <Label htmlFor="comments">Comments</Label>
-            <Textarea 
-              id="comments"
-              placeholder="Add your comments here..." 
-              value={comments} 
+            <label className="text-sm font-medium">Comments (Optional)</label>
+            <Textarea
+              placeholder="Add any comments about the status update..."
+              value={comments}
               onChange={(e) => setComments(e.target.value)}
-              className="min-h-[100px]"
+              rows={3}
             />
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label>Upload Documents</Label>
-            <DocumentSelector
-              documentUploads={documentUploads}
-              onDocumentSelect={handleDocumentSelect}
-              onFileUpload={handleFileUpload}
-            />
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit">Update Task</Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={isLoading}>
+            {isLoading ? "Updating..." : "Update Status"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
