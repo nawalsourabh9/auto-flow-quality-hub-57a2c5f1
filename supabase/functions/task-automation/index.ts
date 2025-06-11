@@ -1,253 +1,185 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
-import { corsHeaders } from '../_shared/cors.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
+import { corsHeaders } from "../_shared/cors.ts"
 
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  department: string;
-  priority: 'low' | 'medium' | 'high';
-  due_date: string;
-  status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
-  is_recurring: boolean;
-  recurring_frequency?: string;
-  start_date?: string;
-  end_date?: string;
-  assignee?: string;
-  is_customer_related?: boolean;
-  customer_name?: string;
-  attachments_required: 'none' | 'optional' | 'required';
-  approval_status: 'pending' | 'approved' | 'rejected';
-  recurring_parent_id?: string;
-}
-
-Deno.serve(async (req) => {
-  // Handle CORS
+serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    
+    const supabase = createClient(supabaseUrl, supabaseKey)
 
-    console.log('Starting task automation process...')
+    console.log('Task automation started')
+    
+    const results = {
+      overdueUpdated: 0,
+      recurringCreated: 0,
+      errors: []
+    }
 
-    // 1. Update overdue tasks
-    await updateOverdueTasks(supabase)
+    // 1. Mark overdue tasks
+    const today = new Date().toISOString().split('T')[0]
+    
+    const { data: overdueTasks, error: overdueError } = await supabase
+      .from('tasks')
+      .update({ status: 'overdue' })
+      .lt('due_date', today)
+      .in('status', ['not-started', 'in-progress'])
+      .select('id, title')
 
-    // 2. Create recurring tasks
-    await createRecurringTasks(supabase)
+    if (overdueError) {
+      console.error('Error updating overdue tasks:', overdueError)
+      results.errors.push(`Overdue update error: ${overdueError.message}`)
+    } else if (overdueTasks) {
+      results.overdueUpdated = overdueTasks.length
+      console.log(`Marked ${overdueTasks.length} tasks as overdue`)
+    }
 
-    return new Response(
-      JSON.stringify({ success: true, message: 'Task automation completed successfully' }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+    // 2. Handle recurring tasks - Only create next task when current one is completed
+    const { data: completedRecurringTasks, error: recurringError } = await supabase
+      .from('tasks')
+      .select(`
+        id, title, description, department, priority, assignee,
+        is_recurring, recurring_frequency, start_date, end_date,
+        is_customer_related, customer_name, attachments_required,
+        due_date, status
+      `)
+      .eq('status', 'completed')
+      .eq('is_recurring', true)
+      .not('recurring_frequency', 'is', null)
+      .not('start_date', 'is', null)
+      .not('end_date', 'is', null)
+
+    if (recurringError) {
+      console.error('Error fetching completed recurring tasks:', recurringError)
+      results.errors.push(`Recurring fetch error: ${recurringError.message}`)
+    } else if (completedRecurringTasks && completedRecurringTasks.length > 0) {
+      console.log(`Found ${completedRecurringTasks.length} completed recurring tasks`)
+
+      for (const task of completedRecurringTasks) {
+        try {
+          // Check if next task already exists
+          const { data: existingNextTask } = await supabase
+            .from('tasks')
+            .select('id')
+            .eq('recurring_parent_id', task.id)
+            .eq('status', 'not-started')
+            .limit(1)
+
+          if (existingNextTask && existingNextTask.length > 0) {
+            console.log(`Next task already exists for ${task.title}, skipping`)
+            continue
+          }
+
+          // Calculate next due date
+          const currentDueDate = new Date(task.due_date)
+          const nextDueDate = getNextDate(currentDueDate, task.recurring_frequency)
+          const endDate = new Date(task.end_date)
+
+          // Only create if next date is within the end date
+          if (nextDueDate <= endDate) {
+            const nextDateStr = nextDueDate.toISOString().split('T')[0]
+            
+            const newTask = {
+              title: `${task.title} (${formatDate(nextDueDate)})`,
+              description: task.description,
+              department: task.department,
+              priority: task.priority,
+              due_date: nextDateStr,
+              assignee: task.assignee,
+              is_recurring: false, // Individual instances are not recurring
+              is_customer_related: task.is_customer_related,
+              customer_name: task.customer_name,
+              attachments_required: task.attachments_required,
+              status: 'not-started',
+              approval_status: 'approved',
+              recurring_parent_id: task.id
+            }
+
+            const { error: createError } = await supabase
+              .from('tasks')
+              .insert(newTask)
+
+            if (createError) {
+              console.error(`Error creating next task for ${task.title}:`, createError)
+              results.errors.push(`Create error for ${task.title}: ${createError.message}`)
+            } else {
+              results.recurringCreated++
+              console.log(`Created next task for ${task.title} with due date ${nextDateStr}`)
+            }
+          } else {
+            console.log(`Next date ${nextDueDate.toISOString()} is beyond end date ${task.end_date} for ${task.title}`)
+          }
+        } catch (taskError) {
+          console.error(`Error processing task ${task.id}:`, taskError)
+          results.errors.push(`Task ${task.id} processing error: ${taskError.message}`)
+        }
       }
-    )
+    }
+
+    console.log('Task automation completed:', results)
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Task automation completed successfully',
+      results
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
 
   } catch (error) {
-    console.error('Error in task automation:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
-    )
+    console.error('Task automation error:', error)
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
   }
 })
 
-async function updateOverdueTasks(supabase: any) {
-  console.log('Checking for overdue tasks...')
-  
-  const now = new Date().toISOString()
-  
-  // Find tasks that are past due and not completed
-  const { data: overdueTasks, error } = await supabase
-    .from('tasks')
-    .select('*')
-    .lt('due_date', now)
-    .neq('status', 'completed')
-    .neq('status', 'overdue')
-
-  if (error) {
-    console.error('Error fetching overdue tasks:', error)
-    throw error
-  }
-
-  if (overdueTasks && overdueTasks.length > 0) {
-    console.log(`Found ${overdueTasks.length} overdue tasks`)
-    
-    // Update status to overdue
-    const { error: updateError } = await supabase
-      .from('tasks')
-      .update({ status: 'overdue' })
-      .in('id', overdueTasks.map((task: Task) => task.id))
-
-    if (updateError) {
-      console.error('Error updating overdue tasks:', updateError)
-      throw updateError
-    }
-
-    console.log(`Successfully marked ${overdueTasks.length} tasks as overdue`)
-  } else {
-    console.log('No overdue tasks found')
-  }
-}
-
-async function createRecurringTasks(supabase: any) {
-  console.log('Checking for recurring tasks to create...')
-  
-  const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
-  
-  // Find recurring tasks that should generate new instances today
-  const { data: recurringTasks, error } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('is_recurring', true)
-    .not('recurring_frequency', 'is', null)
-    .not('start_date', 'is', null)
-    .not('end_date', 'is', null)
-    .lte('start_date', todayStr)
-    .gte('end_date', todayStr)
-
-  if (error) {
-    console.error('Error fetching recurring tasks:', error)
-    throw error
-  }
-
-  if (!recurringTasks || recurringTasks.length === 0) {
-    console.log('No recurring tasks found')
-    return
-  }
-
-  console.log(`Found ${recurringTasks.length} recurring tasks to process`)
-
-  for (const task of recurringTasks) {
-    await processRecurringTask(supabase, task, today)
-  }
-}
-
-async function processRecurringTask(supabase: any, parentTask: Task, today: Date) {
-  const frequency = parentTask.recurring_frequency
-  const todayStr = today.toISOString().split('T')[0]
-  
-  // Calculate the next due date based on frequency
-  const nextDueDate = calculateNextDueDate(parentTask.due_date, frequency, today)
-  
-  if (!nextDueDate) {
-    console.log(`Invalid frequency for task ${parentTask.id}: ${frequency}`)
-    return
-  }
-
-  const nextDueDateStr = nextDueDate.toISOString().split('T')[0]
-  
-  // Check if we should create a task for this date
-  if (!shouldCreateTaskForDate(frequency, parentTask.due_date, todayStr)) {
-    return
-  }
-
-  // Check if a task already exists for this date
-  const { data: existingTask } = await supabase
-    .from('tasks')
-    .select('id')
-    .eq('recurring_parent_id', parentTask.id)
-    .eq('due_date', nextDueDateStr)
-    .single()
-
-  if (existingTask) {
-    console.log(`Task already exists for ${nextDueDateStr} (parent: ${parentTask.id})`)
-    return
-  }
-
-  // Create new recurring task
-  const newTask = {
-    title: `${parentTask.title} (${nextDueDate.toLocaleDateString()})`,
-    description: parentTask.description,
-    department: parentTask.department,
-    priority: parentTask.priority,
-    due_date: nextDueDateStr,
-    status: 'not-started',
-    is_recurring: false, // Child tasks are not recurring themselves
-    assignee: parentTask.assignee,
-    is_customer_related: parentTask.is_customer_related,
-    customer_name: parentTask.customer_name,
-    attachments_required: parentTask.attachments_required,
-    approval_status: 'approved',
-    recurring_parent_id: parentTask.id
-  }
-
-  const { error: insertError } = await supabase
-    .from('tasks')
-    .insert([newTask])
-
-  if (insertError) {
-    console.error(`Error creating recurring task for ${parentTask.id}:`, insertError)
-  } else {
-    console.log(`Created recurring task for ${nextDueDateStr} (parent: ${parentTask.id})`)
-  }
-}
-
-function calculateNextDueDate(originalDueDate: string, frequency: string, today: Date): Date | null {
-  const originalDate = new Date(originalDueDate)
+// Helper function to calculate next date
+function getNextDate(currentDate: Date, frequency: string): Date {
+  const date = new Date(currentDate)
   
   switch (frequency) {
     case 'daily':
-      return new Date(today.getTime() + 24 * 60 * 60 * 1000) // Tomorrow
+      date.setDate(date.getDate() + 1)
+      break
     case 'weekly':
-      return new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000) // Next week
+      date.setDate(date.getDate() + 7)
+      break
     case 'bi-weekly':
-      return new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000) // Two weeks
+      date.setDate(date.getDate() + 14)
+      break
     case 'monthly':
-      const nextMonth = new Date(today)
-      nextMonth.setMonth(nextMonth.getMonth() + 1)
-      return nextMonth
+      date.setMonth(date.getMonth() + 1)
+      break
     case 'quarterly':
-      const nextQuarter = new Date(today)
-      nextQuarter.setMonth(nextQuarter.getMonth() + 3)
-      return nextQuarter
+      date.setMonth(date.getMonth() + 3)
+      break
     case 'annually':
-      const nextYear = new Date(today)
-      nextYear.setFullYear(nextYear.getFullYear() + 1)
-      return nextYear
+      date.setFullYear(date.getFullYear() + 1)
+      break
     default:
-      return null
+      date.setDate(date.getDate() + 7) // default to weekly
   }
+  
+  return date
 }
 
-function shouldCreateTaskForDate(frequency: string, originalDueDate: string, todayStr: string): boolean {
-  const originalDate = new Date(originalDueDate)
-  const today = new Date(todayStr)
-  
-  switch (frequency) {
-    case 'daily':
-      // Create task every day
-      return true
-    case 'weekly':
-      // Create task if today is the same day of week as original
-      return originalDate.getDay() === today.getDay()
-    case 'bi-weekly':
-      // Create task every 14 days from original date
-      const daysDiff = Math.floor((today.getTime() - originalDate.getTime()) / (24 * 60 * 60 * 1000))
-      return daysDiff > 0 && daysDiff % 14 === 0
-    case 'monthly':
-      // Create task if today is the same day of month as original
-      return originalDate.getDate() === today.getDate()
-    case 'quarterly':
-      // Create task every 3 months on the same day
-      return originalDate.getDate() === today.getDate() && 
-             (today.getMonth() - originalDate.getMonth()) % 3 === 0
-    case 'annually':
-      // Create task if today is the same day and month as original
-      return originalDate.getDate() === today.getDate() && 
-             originalDate.getMonth() === today.getMonth()
-    default:
-      return false
-  }
+// Helper function to format date for display
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: '2-digit', 
+    year: 'numeric' 
+  })
 }

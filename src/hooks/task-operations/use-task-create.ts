@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types/task";
 import { toast } from "@/hooks/use-toast";
 import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
-import { addDays, addWeeks, addMonths, addYears, parseISO, format } from "date-fns";
+import { useRecurringTaskManager } from "./use-recurring-task-manager";
 
 interface TaskPayload {
   title: string;
@@ -24,111 +24,13 @@ interface TaskPayload {
   assignee: string | null;
 }
 
-interface RecurringTaskPayload {
-  title: string;
-  description: string;
-  department: string;
-  priority: 'low' | 'medium' | 'high';
-  due_date: string;
-  is_recurring: boolean;
-  is_customer_related: boolean;
-  customer_name?: string | null;
-  recurring_frequency?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  attachments_required: 'none' | 'optional' | 'required';
-  approval_status: 'pending' | 'approved' | 'rejected';
-  status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
-  assignee: string | null;
-  recurring_parent_id: string;
-}
-
 /**
  * Hook for task creation operations
  */
 export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) => {
   const queryClient = useQueryClient();
   const { processTaskDocuments } = useTaskDocumentUpload();
-
-  // Helper function to create recurring tasks
-  const createRecurringTasks = async (baseTask: TaskPayload, parentTaskId: string, startDate: string, endDate: string, frequency: string) => {
-    console.log(`Creating recurring tasks with frequency: ${frequency}, from ${startDate} to ${endDate}`);
-    
-    try {
-      const start = parseISO(startDate);
-      const end = parseISO(endDate);
-      let currentDate = start;
-      const tasksToCreate: RecurringTaskPayload[] = [];
-      
-      while (currentDate <= end) {
-        // Skip the first occurrence if it's the same as the base task's due date
-        if (format(currentDate, 'yyyy-MM-dd') === baseTask.due_date) {
-          // Move to next occurrence
-          currentDate = getNextDate(currentDate, frequency);
-          continue;
-        }
-        
-        // Create a new task for this date
-        const recurringTask: RecurringTaskPayload = {
-          ...baseTask,
-          due_date: format(currentDate, 'yyyy-MM-dd'),
-          title: `${baseTask.title} (${format(currentDate, 'MMM dd, yyyy')})`,
-          recurring_parent_id: parentTaskId
-        };
-        
-        tasksToCreate.push(recurringTask);
-        
-        // Move to next occurrence
-        currentDate = getNextDate(currentDate, frequency);
-      }
-      
-      if (tasksToCreate.length > 0) {
-        console.log(`Creating ${tasksToCreate.length} recurring tasks`);
-        const { data, error } = await supabase
-          .from('tasks')
-          .insert(tasksToCreate);
-          
-        if (error) {
-          console.error('Error creating recurring tasks:', error);
-          throw error;
-        }
-        
-        toast({
-          title: "Recurring Tasks Created",
-          description: `Created ${tasksToCreate.length} recurring tasks successfully.`
-        });
-      } else {
-        console.log('No recurring tasks to create');
-      }
-    } catch (error) {
-      console.error('Error in createRecurringTasks:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create recurring tasks.",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Helper function to calculate the next date based on frequency
-  const getNextDate = (currentDate: Date, frequency: string): Date => {
-    switch (frequency) {
-      case 'daily':
-        return addDays(currentDate, 1);
-      case 'weekly':
-        return addDays(currentDate, 7);
-      case 'bi-weekly':
-        return addDays(currentDate, 14);
-      case 'monthly':
-        return addMonths(currentDate, 1);
-      case 'quarterly':
-        return addMonths(currentDate, 3);
-      case 'annually':
-        return addYears(currentDate, 1);
-      default:
-        return addDays(currentDate, 7); // default to weekly
-    }
-  };
+  const { createFutureRecurringTasks } = useRecurringTaskManager();
 
   const handleCreateTask = async (newTask: Task) => {
     try {
@@ -188,9 +90,9 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         await processTaskDocuments(data.id, newTask.documents);
       }
 
-      // If this is a recurring task with start and end dates, create the future tasks
+      // If this is a recurring task with start and end dates, create future tasks using the new manager
       if (newTask.isRecurring && newTask.startDate && newTask.endDate && newTask.recurringFrequency) {
-        await createRecurringTasks(
+        await createFutureRecurringTasks(
           taskPayload, 
           data.id, // Pass the task ID to identify the parent
           newTask.startDate, 
