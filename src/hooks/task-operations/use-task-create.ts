@@ -17,6 +17,7 @@ interface TaskPayload {
   recurring_frequency?: string | null;
   start_date?: string | null;
   end_date?: string | null;
+  recurring_parent_id?: string | null;
   attachments_required: 'none' | 'optional' | 'required';
   approval_status: 'pending' | 'approved' | 'rejected';
   status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
@@ -111,4 +112,3 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
 
   return { handleCreateTask };
 };
-
