@@ -9,8 +9,9 @@ import { format, parse, isValid, parseISO } from "date-fns";
  * Safely converts various date formats to yyyy-MM-dd string format
  * Handles ISO dates, Date objects, and yyyy-MM-dd strings
  */
-export const formatDateForInput = (dateValue: string | Date | null | undefined): string => {
-  if (!dateValue) return "";
+export const formatDateForInput = (dateValue: string | Date | null | undefined): string | null => {
+  if (dateValue === null || dateValue === undefined) return null;
+  if (typeof dateValue === 'string' && dateValue.trim() === '') return null;
   
   try {
     let date: Date;
@@ -34,13 +35,14 @@ export const formatDateForInput = (dateValue: string | Date | null | undefined):
     
     if (!isValid(date)) {
       console.warn("Invalid date provided:", dateValue);
-      return "";
+      console.warn("Invalid date provided:", dateValue);
+      return null; // Return null for invalid dates
     }
-    
+
     return format(date, "yyyy-MM-dd");
   } catch (error) {
     console.error("Error formatting date:", error, "Input:", dateValue);
-    return "";
+    return null; // Return null on error
   }
 };
 

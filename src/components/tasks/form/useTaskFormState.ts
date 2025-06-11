@@ -14,8 +14,9 @@ export const useTaskFormState = (initialData: Partial<Task>) => {
   const [assignee, setAssignee] = useState(initialData?.assignee || "unassigned");
   const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring || false);
   const [recurringFrequency, setRecurringFrequency] = useState(initialData?.recurringFrequency || "weekly");
-  const [startDate, setStartDate] = useState(formatDateForInput(initialData?.startDate));
-  const [endDate, setEndDate] = useState(formatDateForInput(initialData?.endDate));
+  // Initialize with null if formatDateForInput returns null
+  const [startDate, setStartDate] = useState<string | null>(formatDateForInput(initialData?.startDate));
+  const [endDate, setEndDate] = useState<string | null>(formatDateForInput(initialData?.endDate));
   const [isCustomerRelated, setIsCustomerRelated] = useState(initialData?.isCustomerRelated || false);
   const [customerName, setCustomerName] = useState(initialData?.customerName || "");
   const [attachmentsRequired, setAttachmentsRequired] = useState<"none" | "optional" | "required">(
@@ -65,6 +66,7 @@ export const useTaskFormState = (initialData: Partial<Task>) => {
       });
 
       setDueDate(formattedDueDate);
+      // Ensure state can be null
       setStartDate(formattedStartDate);
       setEndDate(formattedEndDate);
     }
