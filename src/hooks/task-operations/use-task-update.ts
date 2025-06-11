@@ -22,20 +22,16 @@ interface TaskUpdatePayload {
   assignee: string | null;
   status?: 'not-started' | 'in-progress' | 'completed' | 'overdue';
   comments?: string | null;
+  original_task_name?: string | null; // New field
 }
 
-
-/**
- * Hook for task update operations with enhanced date handling
- */
 export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) => {
   const queryClient = useQueryClient();
   const { processTaskDocuments } = useTaskDocumentUpload();
 
-
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
-      console.log("Updating task with enhanced date handling:", updatedTask);
+      console.log("Updating task with enhanced recurring support:", updatedTask);
       
       // Get original task data to compare changes
       const { data: originalTaskData, error: fetchError } = await supabase
@@ -66,7 +62,9 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         endDate: originalTaskData.end_date,
         isCustomerRelated: originalTaskData.is_customer_related,
         customerName: originalTaskData.customer_name,
-        attachmentsRequired: originalTaskData.attachments_required as 'none' | 'optional' | 'required'
+        attachmentsRequired: originalTaskData.attachments_required as 'none' | 'optional' | 'required',
+        parentTaskId: originalTaskData.parent_task_id,
+        originalTaskName: originalTaskData.original_task_name
       };
       
       // Format all dates consistently
@@ -98,10 +96,12 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         attachments_required: updatedTask.attachmentsRequired,
         assignee: assigneeValue,
         status: updatedTask.status,
-        comments: updatedTask.comments || null
+        comments: updatedTask.comments || null,
+        // Update original_task_name for recurring tasks
+        original_task_name: updatedTask.isRecurring ? (updatedTask.originalTaskName || updatedTask.title) : null
       };
       
-      console.log("Final update payload with formatted dates:", updatePayload);
+      console.log("Final update payload with enhanced recurring fields:", updatePayload);
 
       // Update the task with the properly constructed payload
       const { data, error } = await supabase
@@ -125,14 +125,18 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         console.log("No documents to process for updated task");
       }
 
-      console.log("No recurring settings changed, skipping recurring task updates");
-
       // Invalidate the tasks query to refetch data
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
 
+      // Show appropriate success message based on status change
+      let successMessage = `Task "${updatedTask.title}" has been updated successfully.`;
+      if (originalTask.status !== 'completed' && updatedTask.status === 'completed') {
+        successMessage += ' New recurring instance will be generated automatically if applicable.';
+      }
+
       toast({
         title: "Task Updated",
-        description: `Task "${updatedTask.title}" has been updated successfully.`
+        description: successMessage
       });
 
       setIsEditDialogOpen(false);

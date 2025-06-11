@@ -1,4 +1,3 @@
-
 import { TaskDocument } from "@/types/document";
 
 export interface Task {
@@ -18,7 +17,11 @@ export interface Task {
   startDate?: string; // Added field for recurring task start date
   endDate?: string; // Added field for recurring task end date
   attachmentsRequired: 'none' | 'optional' | 'required';
-  recurringParentId?: string; // Added field to track parent-child relationships
+  recurringParentId?: string; // This maps to recurring_parent_id in the old schema
+  parentTaskId?: string; // New field for parent_task_id
+  originalTaskName?: string; // New field for original_task_name
+  recurrenceCountInPeriod?: number; // New field for recurrence_count_in_period
+  lastGeneratedDate?: string; // New field for last_generated_date
   assigneeDetails?: {
     name: string;
     avatar?: string;

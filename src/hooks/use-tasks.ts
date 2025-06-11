@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types/task";
@@ -9,7 +8,7 @@ export const useTasks = () => {
     queryFn: async () => {
       console.log("Fetching tasks from database...");
       
-      // Fetch tasks
+      // Fetch tasks with new fields
       const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
         .select("*")
@@ -36,7 +35,7 @@ export const useTasks = () => {
       if (employeeIds.length > 0) {
         const { data: empData, error: empError } = await supabase
           .from("employees")
-          .select("*")  // Fetch all fields to ensure we have complete data
+          .select("*")
           .in("id", employeeIds);
           
         if (empError) {
@@ -99,7 +98,7 @@ export const useTasks = () => {
         }
       }
 
-      // Map the database fields to our Task interface
+      // Map the database fields to our Task interface with new recurring fields
       const tasks: Task[] = tasksData.map(item => {
         // Find employee details
         const employee = employeesData.find(emp => emp.id === item.assignee);
@@ -193,7 +192,14 @@ export const useTasks = () => {
           isCustomerRelated: item.is_customer_related || false,
           customerName: item.customer_name || "",
           recurringFrequency: item.recurring_frequency || "",
+          startDate: item.start_date,
+          endDate: item.end_date,
           attachmentsRequired: item.attachments_required as 'none' | 'optional' | 'required',
+          recurringParentId: item.recurring_parent_id, // Legacy field
+          parentTaskId: item.parent_task_id, // New field
+          originalTaskName: item.original_task_name, // New field
+          recurrenceCountInPeriod: item.recurrence_count_in_period, // New field
+          lastGeneratedDate: item.last_generated_date, // New field
           assigneeDetails,
           documents: taskDocuments.length > 0 ? taskDocuments : undefined,
           approvalStatus: item.approval_status as 'pending' | 'approved' | 'rejected' | undefined,
@@ -207,7 +213,7 @@ export const useTasks = () => {
         };
       });
 
-      console.log("Tasks processed successfully");
+      console.log("Tasks processed successfully with new recurring fields");
       return tasks;
     }
   });

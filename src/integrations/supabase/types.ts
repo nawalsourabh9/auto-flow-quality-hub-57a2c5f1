@@ -670,7 +670,11 @@ export type Database = {
           id: string
           is_customer_related: boolean | null
           is_recurring: boolean | null
+          last_generated_date: string | null
+          original_task_name: string | null
+          parent_task_id: string | null
           priority: string
+          recurrence_count_in_period: number | null
           recurring_frequency: string | null
           recurring_parent_id: string | null
           rejected_at: string | null
@@ -697,7 +701,11 @@ export type Database = {
           id?: string
           is_customer_related?: boolean | null
           is_recurring?: boolean | null
+          last_generated_date?: string | null
+          original_task_name?: string | null
+          parent_task_id?: string | null
           priority: string
+          recurrence_count_in_period?: number | null
           recurring_frequency?: string | null
           recurring_parent_id?: string | null
           rejected_at?: string | null
@@ -724,7 +732,11 @@ export type Database = {
           id?: string
           is_customer_related?: boolean | null
           is_recurring?: boolean | null
+          last_generated_date?: string | null
+          original_task_name?: string | null
+          parent_task_id?: string | null
           priority?: string
+          recurrence_count_in_period?: number | null
           recurring_frequency?: string | null
           recurring_parent_id?: string | null
           rejected_at?: string | null
@@ -740,6 +752,13 @@ export type Database = {
             columns: ["assignee"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
           {
@@ -818,6 +837,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_next_recurring_task: {
+        Args: { completed_task_id: string }
+        Returns: string
+      }
       has_role: {
         Args: { user_id: string; role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean

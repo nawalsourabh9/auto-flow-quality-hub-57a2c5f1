@@ -1,23 +1,28 @@
 
 import React from "react";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Trash2, RefreshCw } from "lucide-react";
-import { Task } from "@/types/task";
-import { TaskStatusBadge } from "./TaskStatusBadge";
-import { TaskPriorityBadge } from "./TaskPriorityBadge";
-import { TaskAttachmentBadge } from "./TaskAttachmentBadge";
-import { TaskCustomerBadge } from "./TaskCustomerBadge";
-import { TaskDocumentBadges } from "./TaskDocumentBadges";
-import { format } from "date-fns";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
+import { Task, TeamMember } from "@/types/task";
+import { formatDate } from "@/utils/dateUtils";
+import TaskPriorityBadge from "./TaskPriorityBadge";
+import TaskStatusBadge from "./TaskStatusBadge";
+import TaskCustomerBadge from "./TaskCustomerBadge";
+import TaskAttachmentBadge from "./TaskAttachmentBadge";
+import TaskDocumentBadges from "./TaskDocumentBadges";
+import TaskRecurringBadge from "./TaskRecurringBadge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface TaskTableRowProps {
   task: Task;
   onViewTask: (task: Task) => void;
-  onEditTask?: (task: Task) => void;
-  onDeleteTask?: (taskId: string) => void;
-  isAdmin?: boolean;
-  setViewingDocument: (data: { task: Task, document: any } | null) => void;
+  onEditTask: (task: Task) => void;
+  onDeleteTask: (taskId: string) => void;
+  isAdmin: boolean;
+  currentUserId: string | undefined;
+  currentUserPermissions: any;
+  teamMembers: TeamMember[];
 }
 
 const TaskTableRow: React.FC<TaskTableRowProps> = ({
@@ -26,84 +31,111 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
   onEditTask,
   onDeleteTask,
   isAdmin,
-  setViewingDocument
+  currentUserId,
+  currentUserPermissions,
+  teamMembers
 }) => {
-  // Format the due date to DD-MM-YYYY if it exists
-  const formattedDueDate = task.dueDate ? 
-    format(new Date(task.dueDate), 'dd-MM-yyyy') : '';
-  
-  // Debug log to check if comments are available
-  console.log(`Task ${task.id} comments:`, task.comments);
+  const formatDateForDisplay = (dateString: string | undefined) => {
+    if (!dateString) return "";
+    try {
+      return formatDate(dateString);
+    } catch (error) {
+      return dateString;
+    }
+  };
 
+  // Determine if this is an instance task (indented display)
+  const isInstanceTask = !!task.parentTaskId;
+  
   return (
-    <tr className={`border-b hover:bg-muted/50 ${task.isCustomerRelated ? 'bg-green-50/50' : ''}`}>
-      <td className="px-4 py-3 border-r">
-        <div>
-          <p className="font-medium flex items-center gap-2">
-            {task.title}
-            <TaskCustomerBadge 
-              isCustomerRelated={task.isCustomerRelated} 
-              customerName={task.customerName} 
-            />
-          </p>
-          <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-            {task.description}
-          </p>
+    <TableRow 
+      className={`hover:bg-muted/50 ${isInstanceTask ? 'bg-muted/20 border-l-4 border-l-blue-200' : ''}`}
+    >
+      <TableCell className="font-medium">
+        <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : ''}`}>
+          <div className="flex items-center gap-2">
+            <span className={isInstanceTask ? 'text-sm text-muted-foreground' : ''}>
+              {task.title}
+            </span>
+            {task.originalTaskName && isInstanceTask && (
+              <span className="text-xs text-muted-foreground">
+                (from "{task.originalTaskName}")
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1">
+            <TaskRecurringBadge task={task} />
+            <TaskCustomerBadge task={task} />
+            <TaskAttachmentBadge task={task} />
+            <TaskDocumentBadges task={task} />
+          </div>
         </div>
-      </td>
-      <td className="px-4 py-3 border-r">
+      </TableCell>
+      <TableCell>
+        <span className="text-sm">{task.department}</span>
+      </TableCell>
+      <TableCell>
+        <TaskPriorityBadge priority={task.priority} />
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-col gap-1">
+          <span className="text-sm">{formatDateForDisplay(task.dueDate)}</span>
+          {isInstanceTask && task.startDate && (
+            <span className="text-xs text-muted-foreground">
+              Started: {formatDateForDisplay(task.startDate)}
+            </span>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
         <div className="flex items-center gap-2">
-          <Avatar className="h-6 w-6">
-            <AvatarImage src={task.assigneeDetails?.avatar} />
-            <AvatarFallback className="bg-primary/20 text-primary text-xs">
-              {task.assigneeDetails?.initials || "UN"}
-            </AvatarFallback>
-          </Avatar>
-          <span className="text-sm">{task.assigneeDetails?.name || "Unassigned"}</span>
+          {task.assigneeDetails ? (
+            <>
+              <Avatar className="h-6 w-6">
+                <AvatarFallback className="text-xs">
+                  {task.assigneeDetails.initials}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm">{task.assigneeDetails.name}</span>
+            </>
+          ) : (
+            <span className="text-sm text-muted-foreground">Unassigned</span>
+          )}
         </div>
-      </td>
-      <td className="px-4 py-3 text-sm border-r">{task.department}</td>
-      <td className="px-4 py-3 text-sm border-r whitespace-nowrap">{formattedDueDate}</td>
-      <td className="px-4 py-3 border-r"><TaskPriorityBadge priority={task.priority} /></td>
-      <td className="px-4 py-3 border-r">
-        <TaskStatusBadge status={task.status} comments={task.comments} />
-      </td>
-      <td className="px-4 py-3 border-r">
-        <div className="flex flex-wrap gap-1">
-          <TaskAttachmentBadge attachmentsRequired={task.attachmentsRequired} />
-          <TaskDocumentBadges 
-            task={task} 
-            setViewingDocument={setViewingDocument}
-          />
-        </div>
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" onClick={() => onViewTask(task)} className="text-xs py-1 h-7">
-            <RefreshCw className="h-3 w-3 mr-1" />
-            Update
-          </Button>
-          {/* Only render Edit and Delete buttons for admin users */}
-          {isAdmin && onEditTask && (
-            <Button size="sm" variant="outline" onClick={() => onEditTask(task)} className="text-xs py-1 h-7">
-              <Edit className="h-3 w-3 mr-1" />
+      </TableCell>
+      <TableCell>
+        <TaskStatusBadge status={task.status} />
+      </TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onViewTask(task)}>
+              <Eye className="mr-2 h-4 w-4" />
+              View
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEditTask(task)}>
+              <Edit className="mr-2 h-4 w-4" />
               Edit
-            </Button>
-          )}
-          {isAdmin && onDeleteTask && (
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="text-red-600 hover:bg-red-50 text-xs py-1 h-7"
-              onClick={() => onDeleteTask(task.id)}
-            >
-              <Trash2 className="h-3 w-3 mr-1" />
-              Delete
-            </Button>
-          )}
-        </div>
-      </td>
-    </tr>
+            </DropdownMenuItem>
+            {(isAdmin || currentUserId === task.assignee) && (
+              <DropdownMenuItem
+                onClick={() => onDeleteTask(task.id)}
+                className="text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
   );
 };
 

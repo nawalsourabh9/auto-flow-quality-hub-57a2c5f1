@@ -4,74 +4,68 @@ import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types/task";
 import { toast } from "@/hooks/use-toast";
 import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
+import { formatDateForInput } from "@/utils/dateUtils";
 
 interface TaskPayload {
   title: string;
-  description: string;
+  description: string | null;
   department: string;
   priority: 'low' | 'medium' | 'high';
-  due_date: string;
+  due_date: string | null;
   is_recurring: boolean;
   is_customer_related: boolean;
   customer_name?: string | null;
   recurring_frequency?: string | null;
   start_date?: string | null;
   end_date?: string | null;
-  recurring_parent_id?: string | null;
   attachments_required: 'none' | 'optional' | 'required';
-  approval_status: 'pending' | 'approved' | 'rejected';
-  status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
   assignee: string | null;
+  status: 'not-started' | 'in-progress' | 'completed' | 'overdue';
+  approval_status: 'pending' | 'approved' | 'rejected';
+  original_task_name?: string | null; // New field
+  recurrence_count_in_period?: number; // New field
 }
 
-/**
- * Hook for task creation operations
- */
 export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) => {
   const queryClient = useQueryClient();
   const { processTaskDocuments } = useTaskDocumentUpload();
 
-  const handleCreateTask = async (newTask: Task) => {
+  const handleCreateTask = async (newTask: Partial<Task> & { documentUploads?: any[] }) => {
     try {
-      console.log("Creating task with data:", newTask);
-      console.log("Assignee type:", typeof newTask.assignee);
-      console.log("Assignee value received from form:", newTask.assignee);
-      console.log("Recurring task data:", {
-        isRecurring: newTask.isRecurring,
-        frequency: newTask.recurringFrequency,
-        startDate: newTask.startDate,
-        endDate: newTask.endDate
-      });
+      console.log("Creating task with enhanced recurring support:", newTask);
       
-      // assignee is already properly converted at the form level
-      // but let's double check here
+      // Format dates consistently
+      const formattedDueDate = formatDateForInput(newTask.dueDate);
+      const formattedStartDate = newTask.startDate ? formatDateForInput(newTask.startDate) : null;
+      const formattedEndDate = newTask.endDate ? formatDateForInput(newTask.endDate) : null;
+      
+      // Handle assignee conversion
       const assigneeValue = newTask.assignee === "unassigned" ? null : newTask.assignee;
-      console.log("Final assignee value for database:", assigneeValue);
       
-      // Create the properly typed payload for database insertion
+      // Create the task payload with new fields
       const taskPayload: TaskPayload = {
-        title: newTask.title,
-        description: newTask.description || "",
-        department: newTask.department,
-        priority: newTask.priority,
-        due_date: newTask.dueDate,
+        title: newTask.title || "",
+        description: newTask.description || null,
+        department: newTask.department || "Quality",
+        priority: newTask.priority || "medium",
+        due_date: formattedDueDate || null,
         is_recurring: newTask.isRecurring || false,
         is_customer_related: newTask.isCustomerRelated || false,
         customer_name: newTask.customerName || null,
-        recurring_frequency: newTask.recurringFrequency || null,
-        start_date: newTask.startDate || null,
-        end_date: newTask.endDate || null,
-        recurring_parent_id: null,
-        attachments_required: newTask.attachmentsRequired,
-        approval_status: 'approved', // All tasks are automatically approved
-        status: 'not-started',
-        assignee: assigneeValue  // Use the properly processed assignee value
+        recurring_frequency: newTask.isRecurring ? newTask.recurringFrequency || null : null,
+        start_date: newTask.isRecurring ? formattedStartDate : null,
+        end_date: newTask.isRecurring ? formattedEndDate : null,
+        attachments_required: newTask.attachmentsRequired || "none",
+        assignee: assigneeValue,
+        status: "not-started",
+        approval_status: "approved",
+        // Set original_task_name for recurring tasks - this will be used for naming instances
+        original_task_name: newTask.isRecurring ? newTask.title || null : null,
+        recurrence_count_in_period: newTask.isRecurring ? 1 : undefined // First instance starts at 1
       };
       
-      console.log("Final task payload before database insertion:", taskPayload);
-      console.log("Assignee type in payload:", typeof taskPayload.assignee);
-      
-      // Create the task with the properly typed payload
+      console.log("Task payload with new recurring fields:", taskPayload);
+
       const { data, error } = await supabase
         .from('tasks')
         .insert(taskPayload)
@@ -79,24 +73,24 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         .single();
 
       if (error) {
-        console.error('Error creating task:', error);
+        console.error("Task creation error:", error);
         throw error;
       }
+
+      console.log("Task created successfully:", data);
       
-      console.log("Task created successfully, returned data:", data);
-      
-      // If documents were uploaded, store them
-      if (newTask.documents && newTask.documents.length > 0) {
-        await processTaskDocuments(data.id, newTask.documents);
+      // Process document uploads if any
+      if (newTask.documentUploads && newTask.documentUploads.length > 0) {
+        console.log("Processing document uploads for new task");
+        await processTaskDocuments(data.id, newTask.documentUploads);
       }
 
-
-      // Invalidate the tasks query to refetch data after successful creation
+      // Invalidate queries to refresh the UI
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
 
       toast({
         title: "Task Created",
-        description: `Task "${data.title}" has been created successfully.`
+        description: `Task "${newTask.title}" has been created successfully.${newTask.isRecurring ? ' Recurring instances will be generated automatically when completed.' : ''}`
       });
 
       setIsCreateDialogOpen(false);
