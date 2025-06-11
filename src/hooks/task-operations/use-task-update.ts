@@ -98,16 +98,25 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
           continue;
         }
         
-        // Create a new task for this date with proper naming and type casting
+        // Create a new task for this date with proper typing
         const recurringTask: RecurringTaskPayload = {
-          ...baseTask,
-          due_date: currentDateStr,
           title: `${baseTask.title} (${format(currentDate, 'MMM dd, yyyy')})`,
+          description: baseTask.description,
+          department: baseTask.department,
+          priority: baseTask.priority,
+          due_date: currentDateStr,
+          is_recurring: baseTask.is_recurring,
+          is_customer_related: baseTask.is_customer_related,
+          customer_name: baseTask.customer_name,
+          recurring_frequency: baseTask.recurring_frequency,
+          start_date: baseTask.start_date,
+          end_date: baseTask.end_date,
+          attachments_required: baseTask.attachments_required,
+          assignee: baseTask.assignee,
+          status: 'not-started',
+          comments: baseTask.comments,
           recurring_parent_id: taskId,
-          status: (baseTask.status || 'not-started') as 'not-started' | 'in-progress' | 'completed' | 'overdue',
-          approval_status: 'approved',
-          priority: baseTask.priority as 'low' | 'medium' | 'high',
-          attachments_required: baseTask.attachments_required as 'none' | 'optional' | 'required'
+          approval_status: 'approved'
         };
         
         tasksToCreate.push(recurringTask);
