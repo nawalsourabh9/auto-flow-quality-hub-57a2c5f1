@@ -1,3 +1,4 @@
+
 import { Task } from "@/types/task";
 import { TaskDocument } from "@/types/document";
 import { Employee } from "./useEmployeeData";
@@ -113,19 +114,20 @@ export const useTaskFormSubmit = (
     return documents;
   };
 
-  // Enhanced date validation with better error messages
-  const validateRecurringDates = (
+  // Enhanced validation for recurring tasks based on backend requirements
+  const validateRecurringTask = (
     isRecurring: boolean,
     startDate: string | undefined,
-    endDate: string | undefined
+    endDate: string | undefined,
+    recurringFrequency: string | undefined
   ): { isValid: boolean; error?: string } => {
     if (!isRecurring) return { isValid: true };
     
-    // If recurring, both dates are required
-    if (!startDate || !endDate) {
+    // Backend requires all three fields for recurring tasks
+    if (!startDate || !endDate || !recurringFrequency) {
       return { 
         isValid: false, 
-        error: "Start date and end date are required for recurring tasks" 
+        error: "Start date, end date, and frequency are required for recurring tasks" 
       };
     }
     
@@ -150,7 +152,7 @@ export const useTaskFormSubmit = (
       
       const maxEndDate = addMonths(start, 6);
       
-      // End date must be after start date
+      // Backend validation: End date must be after start date
       if (!isAfter(end, start)) {
         return { 
           isValid: false, 
@@ -158,7 +160,7 @@ export const useTaskFormSubmit = (
         };
       }
       
-      // End date must be within 6 months
+      // Backend validation: End date must be within 6 months
       if (!isBefore(end, maxEndDate)) {
         return { 
           isValid: false, 
@@ -197,17 +199,18 @@ export const useTaskFormSubmit = (
   ) => {
     e.preventDefault();
     
-    // Enhanced date validation
-    const dateValidation = validateRecurringDates(
+    // Validate recurring task according to backend requirements
+    const recurringValidation = validateRecurringTask(
       formData.isRecurring, 
       formData.startDate, 
-      formData.endDate
+      formData.endDate,
+      formData.recurringFrequency
     );
     
-    if (!dateValidation.isValid) {
+    if (!recurringValidation.isValid) {
       toast({
         title: "Validation Error",
-        description: dateValidation.error,
+        description: recurringValidation.error,
         variant: "destructive"
       });
       return;
@@ -223,10 +226,10 @@ export const useTaskFormSubmit = (
       return;
     }
     
-    // Log form values before submission with enhanced date info
-    console.log("Form submitted with enhanced date handling:", {
+    // Log form values before submission
+    console.log("Form submitted with backend-compatible data:", {
       ...formData,
-      dateValidation: dateValidation,
+      recurringValidation: recurringValidation,
       formattedDates: {
         due: formatDateForInput(formData.dueDate),
         start: formData.startDate ? formatDateForInput(formData.startDate) : undefined,
@@ -266,7 +269,7 @@ export const useTaskFormSubmit = (
       documents: documents.length > 0 ? documents : undefined
     };
 
-    console.log("Submitting task with standardized date formatting:", newTask);
+    console.log("Submitting task with backend-compatible formatting:", newTask);
     
     // Submit the task first
     onSubmit(newTask);
