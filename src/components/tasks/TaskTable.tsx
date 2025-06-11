@@ -28,6 +28,8 @@ interface TasksTableProps {
     name: string;
     position: string;
     initials: string;
+    email?: string;
+    department?: string;
   }>;
 }
 
@@ -117,6 +119,13 @@ const TasksTable: React.FC<TasksTableProps> = ({
     }
   };
 
+  // Convert teamMembers to proper TeamMember format
+  const convertedTeamMembers = teamMembers.map(member => ({
+    ...member,
+    email: member.email || `${member.name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
+    department: member.department || 'General'
+  }));
+
   return (
     <>
       <Card>
@@ -148,12 +157,16 @@ const TasksTable: React.FC<TasksTableProps> = ({
                       key={task.id}
                       task={task}
                       onViewTask={onViewTask}
-                      onEditTask={onEditTask}
-                      onDeleteTask={onDeleteTask ? (taskId) => setTaskToDelete(taskId) : () => {}}
+                      onEditTask={onEditTask || (() => {})}
+                      onDeleteTask={(taskId) => {
+                        if (onDeleteTask) {
+                          setTaskToDelete(taskId);
+                        }
+                      }}
                       isAdmin={isAdmin}
                       currentUserId={currentUserId}
                       currentUserPermissions={currentUserPermissions}
-                      teamMembers={teamMembers}
+                      teamMembers={convertedTeamMembers}
                       setViewingDocument={setViewingDocument}
                     />
                   ))
@@ -168,7 +181,7 @@ const TasksTable: React.FC<TasksTableProps> = ({
         viewingDocument={viewingDocument}
         onClose={() => setViewingDocument(null)}
         currentUserId={currentUserId}
-        teamMembers={teamMembers}
+        teamMembers={convertedTeamMembers}
         onUpdateRevision={(documentType, revisionId) => 
           viewingDocument && handleUpdateRevision(viewingDocument.task, documentType, revisionId)
         }
