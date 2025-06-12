@@ -31,9 +31,19 @@ BEGIN
     END IF;
     
     -- Check if end_date is within 6 months of start_date
-    IF NEW.end_date > NEW.start_date + INTERVAL '6 months' THEN
-      RAISE EXCEPTION 'End date must be within 6 months of start date for recurring tasks';
-    END IF;
+    DECLARE
+        duration_interval INTERVAL;
+        duration_days INTEGER;
+    BEGIN
+        duration_interval := NEW.end_date - NEW.start_date;
+        duration_days := EXTRACT(DAY FROM duration_interval); -- Extract days from interval
+
+        RAISE NOTICE 'Validating recurring task dates: duration_interval = %, duration_days = %', duration_interval, duration_days;
+
+        IF duration_interval > INTERVAL '6 months' THEN
+            RAISE EXCEPTION 'End date must be within 6 months of start date for recurring tasks (Duration: %)', duration_interval;
+        END IF;
+    END;
     
     -- Set original_task_name if not provided
     IF NEW.original_task_name IS NULL THEN
