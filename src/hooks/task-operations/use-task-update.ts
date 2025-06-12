@@ -118,40 +118,57 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
 
       // Check if status changed to completed and handle recurring task generation
       if (originalTask.status !== 'completed' && updatedTask.status === 'completed') {
-        console.log("Task marked as completed, triggering recurring task generation");
+        console.log("Task marked as completed, checking if recurring task generation is needed");
         
-        // Try to generate next recurring task using the database function
-        try {
-          console.log("Calling generate_next_recurring_task with task ID:", updatedTask.id);
-          const { data: newTaskId, error: recurringError } = await supabase
-            .rpc('generate_next_recurring_task', { completed_task_id: updatedTask.id });
+        // Only try to generate next recurring task if this is a recurring task or task instance
+        const isRecurringCandidate = originalTask.isRecurring || originalTask.parentTaskId;
+        
+        if (isRecurringCandidate) {
+          console.log("Task is a recurring candidate. Triggering recurring task generation with task ID:", updatedTask.id);
+          
+          try {
+            // Use a timeout to prevent multiple rapid calls
+            setTimeout(async () => {
+              const { data: newTaskId, error: recurringError } = await supabase
+                .rpc('generate_next_recurring_task', { completed_task_id: updatedTask.id });
 
-          if (recurringError) {
-            console.error("Error generating recurring task:", recurringError);
+              if (recurringError) {
+                console.error("Error generating recurring task:", recurringError);
+                toast({
+                  title: "Warning",
+                  description: `Task updated but recurring task generation failed: ${recurringError.message}`,
+                  variant: "destructive"
+                });
+              } else if (newTaskId) {
+                console.log("Generated new recurring task with ID:", newTaskId);
+                toast({
+                  title: "Success",
+                  description: `Task completed and new recurring instance generated!`,
+                });
+                // Refresh the tasks list to show the new task
+                queryClient.invalidateQueries({ queryKey: ['tasks'] });
+              } else {
+                console.log("No new recurring task generated (conditions not met or already exists)");
+                toast({
+                  title: "Task Updated",
+                  description: "Task marked as completed.",
+                });
+              }
+            }, 500); // 500ms delay to prevent rapid successive calls
+            
+          } catch (recurringError) {
+            console.error("Exception generating recurring task:", recurringError);
             toast({
-              title: "Warning",
-              description: `Task updated but recurring task generation failed: ${recurringError.message}`,
+              title: "Warning", 
+              description: "Task updated but recurring task generation encountered an error",
               variant: "destructive"
             });
-          } else if (newTaskId) {
-            console.log("Generated new recurring task with ID:", newTaskId);
-            toast({
-              title: "Success",
-              description: `Task completed and new recurring instance generated (ID: ${newTaskId})`,
-            });
-          } else {
-            console.log("No new recurring task generated (conditions not met)");
-            toast({
-              title: "Task Updated",
-              description: "Task marked as completed. No new recurring instance needed.",
-            });
           }
-        } catch (recurringError) {
-          console.error("Exception generating recurring task:", recurringError);
+        } else {
+          console.log("Task is not a recurring task or instance. No generation needed.");
           toast({
-            title: "Warning", 
-            description: "Task updated but recurring task generation encountered an error",
-            variant: "destructive"
+            title: "Task Updated",
+            description: "Task marked as completed.",
           });
         }
       } else {
