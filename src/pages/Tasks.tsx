@@ -8,7 +8,6 @@ import TaskFilters from "@/components/tasks/TaskFilters";
 import TasksContent from "@/components/tasks/TasksContent";
 import TaskDialogs from "@/components/tasks/TaskDialogs";
 import { useAuth } from "@/hooks/use-auth";
-import TaskAutomationDebug from "@/components/tasks/TaskAutomationDebug";
 
 const Tasks = () => {
   const { data: tasks = [], isLoading } = useTasks();
@@ -73,9 +72,6 @@ const Tasks = () => {
   return (
     <div className="space-y-6">
       <TasksHeader onCreateTask={() => setIsCreateDialogOpen(true)} />
-
-      {/* Add debug component for testing automation */}
-      <TaskAutomationDebug />
 
       <TaskFilters 
         searchTerm={searchTerm}
