@@ -161,45 +161,43 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
 
       console.log("useTaskUpdate: Task updated successfully:", data);
 
-      // Check if status changed to completed and handle recurring task generation
+      // Check if status changed to completed and handle recurring task generation IMMEDIATELY
       if (originalTaskData.status !== 'completed' && updatedTask.status === 'completed') {
-        console.log("useTaskUpdate: Task marked as completed, checking recurring generation");
+        console.log("useTaskUpdate: Task marked as completed, generating recurring task immediately");
         
         // Only try to generate next recurring task if this is a recurring task or task instance
         const isRecurringCandidate = originalTaskData.is_recurring || originalTaskData.parent_task_id;
         
         if (isRecurringCandidate) {
-          console.log("useTaskUpdate: Triggering recurring task generation");
+          console.log("useTaskUpdate: Calling generate_next_recurring_task immediately");
           
           try {
-            // Use a timeout to prevent multiple rapid calls
-            setTimeout(async () => {
-              const { data: newTaskId, error: recurringError } = await supabase
-                .rpc('generate_next_recurring_task', { completed_task_id: updatedTask.id });
+            // Call the function immediately without timeout
+            const { data: newTaskId, error: recurringError } = await supabase
+              .rpc('generate_next_recurring_task', { completed_task_id: updatedTask.id });
 
-              if (recurringError) {
-                console.error("useTaskUpdate: Recurring generation error:", recurringError);
-                toast({
-                  title: "Warning",
-                  description: `Task updated but recurring task generation failed: ${recurringError.message}`,
-                  variant: "destructive"
-                });
-              } else if (newTaskId) {
-                console.log("useTaskUpdate: Generated new recurring task:", newTaskId);
-                toast({
-                  title: "Success",
-                  description: `Task completed and new recurring instance generated!`,
-                });
-                // Refresh the tasks list to show the new task
-                queryClient.invalidateQueries({ queryKey: ['tasks'] });
-              } else {
-                console.log("useTaskUpdate: No new recurring task generated");
-                toast({
-                  title: "Task Updated",
-                  description: "Task marked as completed.",
-                });
-              }
-            }, 500);
+            if (recurringError) {
+              console.error("useTaskUpdate: Recurring generation error:", recurringError);
+              toast({
+                title: "Warning",
+                description: `Task updated but recurring task generation failed: ${recurringError.message}`,
+                variant: "destructive"
+              });
+            } else if (newTaskId) {
+              console.log("useTaskUpdate: Generated new recurring task immediately:", newTaskId);
+              toast({
+                title: "Success",
+                description: `Task completed and new recurring instance generated!`,
+              });
+              // Refresh the tasks list immediately to show the new task
+              await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            } else {
+              console.log("useTaskUpdate: No new recurring task generated (conditions not met)");
+              toast({
+                title: "Task Updated",
+                description: "Task marked as completed.",
+              });
+            }
             
           } catch (recurringError) {
             console.error("useTaskUpdate: Exception in recurring generation:", recurringError);
@@ -231,7 +229,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       }
 
       // Invalidate the tasks query to refetch data
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      await queryClient.invalidateQueries({ queryKey: ['tasks'] });
 
       setIsEditDialogOpen(false);
     } catch (error: any) {
