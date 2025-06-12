@@ -104,7 +104,7 @@ DECLARE
      WHEN 'monthly' THEN expected_next_date := completed_task.start_date + INTERVAL '1 month';
      WHEN 'quarterly' THEN expected_next_date := completed_task.start_date + INTERVAL '3 months';
      WHEN 'annually' THEN expected_next_date := completed_task.start_date + INTERVAL '1 year';
-     ELSE
+     ELSE 
        RAISE NOTICE 'Unknown recurring_frequency for parent task ID %: %', parent_task.id, parent_task.recurring_frequency;
        RETURN NULL;
    END CASE;
@@ -175,14 +175,14 @@ DECLARE
    END IF;
    
    -- Get next sequential count for this period (resets monthly/annually)
-   SELECT COALESCE(MAX(recurrence_count_in_period), 0) + 1
+   SELECT COALESCE(MAX(recurrence_count_in_period), 0) + 1 
    INTO next_count
-   FROM tasks
+   FROM tasks 
    WHERE parent_task_id = parent_task.id
      AND (
-           (parent_task.recurring_frequency IN ('daily', 'weekly', 'bi-weekly')
+           (parent_task.recurring_frequency IN ('daily', 'weekly', 'bi-weekly') 
             AND DATE_TRUNC('month', start_date) = DATE_TRUNC('month', current_date_val))
-           OR
+           OR 
            (parent_task.recurring_frequency IN ('monthly', 'quarterly', 'annually')
             AND DATE_TRUNC('year', start_date) = DATE_TRUNC('year', current_date_val))
          );
@@ -242,8 +242,8 @@ DECLARE
    RAISE NOTICE 'Created new task instance with ID: %', new_task_id;
    
    -- Update parent task's last generated date
-   UPDATE tasks
-   SET last_generated_date = current_date_val
+   UPDATE tasks 
+   SET last_generated_date = current_date_val 
    WHERE id = parent_task.id;
    
    RAISE NOTICE 'Updated parent task last_generated_date to: %', current_date_val;
