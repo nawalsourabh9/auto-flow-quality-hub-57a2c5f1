@@ -38,7 +38,13 @@ const TaskForm: React.FC<TaskFormProps> = ({
       console.log("TaskForm is in CREATE mode");
     }
     
-    console.log("Initial data in TaskForm:", initialData);
+    console.log("Initial data in TaskForm:", {
+      ...initialData,
+      recurrenceCountInPeriod: {
+        value: initialData.recurrenceCountInPeriod,
+        type: typeof initialData.recurrenceCountInPeriod
+      }
+    });
     
     if (initialData.assignee) {
       console.log("Setting initial assignee from props:", initialData.assignee);
@@ -49,7 +55,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
   // Create a submit handler that uses the form state
   const onFormSubmit = (e: React.FormEvent) => {
-    handleSubmit(e, {
+    // Ensure we never pass invalid recurrence count data from the form
+    const formData = {
       title: formState.title,
       description: formState.description,
       department: formState.department,
@@ -64,7 +71,11 @@ const TaskForm: React.FC<TaskFormProps> = ({
       customerName: formState.customerName,
       attachmentsRequired: formState.attachmentsRequired,
       documentUploads: formState.documentUploads
-    });
+    };
+
+    console.log("TaskForm submitting clean form data (no recurrenceCountInPeriod):", formData);
+    
+    handleSubmit(e, formData);
   };
 
   return (

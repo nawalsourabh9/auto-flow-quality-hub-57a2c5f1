@@ -36,7 +36,8 @@ export const useTaskFormState = (initialData: Partial<Task>) => {
       dueDate: initialData?.dueDate,
       startDate: initialData?.startDate,
       endDate: initialData?.endDate,
-      isRecurring: initialData?.isRecurring
+      isRecurring: initialData?.isRecurring,
+      recurrenceCountInPeriod: initialData?.recurrenceCountInPeriod
     });
 
     // Always update form state when initialData changes, regardless of ID
@@ -67,6 +68,15 @@ export const useTaskFormState = (initialData: Partial<Task>) => {
       setDueDate(formattedDueDate);
       setStartDate(formattedStartDate);
       setEndDate(formattedEndDate);
+
+      // Log recurrence count to ensure it's not contaminated
+      if (initialData.recurrenceCountInPeriod !== undefined) {
+        console.log("Initial recurrenceCountInPeriod:", {
+          value: initialData.recurrenceCountInPeriod,
+          type: typeof initialData.recurrenceCountInPeriod,
+          isNumber: typeof initialData.recurrenceCountInPeriod === 'number'
+        });
+      }
     }
   }, [initialData]);
 

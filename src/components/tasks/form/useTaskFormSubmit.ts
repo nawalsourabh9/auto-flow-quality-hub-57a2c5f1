@@ -246,6 +246,7 @@ export const useTaskFormSubmit = (
     const documents = prepareDocuments(formData.documentUploads, assigneeDetails);
 
     // Create the task object with proper assignee value and strictly formatted dates
+    // IMPORTANT: Never include recurrenceCountInPeriod as this is managed by the backend
     const finalAssignee = formData.assignee === "unassigned" ? null : formData.assignee;
     
     const newTask: Task = {
@@ -267,9 +268,10 @@ export const useTaskFormSubmit = (
       attachmentsRequired: formData.attachmentsRequired,
       assigneeDetails,
       documents: documents.length > 0 ? documents : undefined
+      // NOTE: recurrenceCountInPeriod is intentionally excluded - backend manages this
     };
 
-    console.log("Submitting task with strict type formatting:", newTask);
+    console.log("Submitting task with strict type formatting (no recurrenceCountInPeriod):", newTask);
     
     // Submit the task first
     onSubmit(newTask);
