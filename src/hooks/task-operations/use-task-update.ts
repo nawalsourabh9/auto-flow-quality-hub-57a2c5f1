@@ -63,7 +63,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         isCustomerRelated: originalTaskData.is_customer_related,
         customerName: originalTaskData.customer_name,
         attachmentsRequired: originalTaskData.attachments_required as 'none' | 'optional' | 'required',
-        parentTaskId: originalTaskData.parent_task_id, // Use proper field name
+        parentTaskId: originalTaskData.parent_task_id,
         originalTaskName: originalTaskData.original_task_name
       };
       
@@ -97,7 +97,6 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         assignee: assigneeValue,
         status: updatedTask.status,
         comments: updatedTask.comments || null,
-        // Update original_task_name for recurring tasks
         original_task_name: updatedTask.isRecurring ? (updatedTask.originalTaskName || updatedTask.title) : null
       };
       
@@ -116,6 +115,29 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       }
 
       console.log("Task updated successfully:", data);
+
+      // Check if status changed to completed and handle recurring task generation
+      if (originalTask.status !== 'completed' && updatedTask.status === 'completed') {
+        console.log("Task marked as completed, checking if recurring task should be generated");
+        
+        // Try to generate next recurring task using the database function
+        try {
+          const { data: newTaskId, error: recurringError } = await supabase
+            .rpc('generate_next_recurring_task', { completed_task_id: updatedTask.id });
+
+          if (recurringError) {
+            console.error("Error generating recurring task:", recurringError);
+            // Don't throw error - let the task update succeed even if recurring generation fails
+          } else if (newTaskId) {
+            console.log("Generated new recurring task with ID:", newTaskId);
+          } else {
+            console.log("No new recurring task generated (conditions not met)");
+          }
+        } catch (recurringError) {
+          console.error("Exception generating recurring task:", recurringError);
+          // Don't throw error - let the task update succeed
+        }
+      }
       
       // Process document uploads if any
       if (updatedTask.documents && updatedTask.documents.length > 0) {
