@@ -175,6 +175,9 @@ DECLARE
    -- Calculate the due date for the new instance based on its start date and frequency
    new_due_date := public.calculate_due_date(next_start_date, parent_task.recurring_frequency);
 
+   RAISE NOTICE 'Attempting to insert new task with: title=%, due_date=%, start_date=%, recurrence_count_in_period=%', new_task_name, new_due_date, next_start_date, current_count;
+   RAISE NOTICE 'Parent task details: original_task_name=%, recurring_frequency=%', parent_task.original_task_name, parent_task.recurring_frequency;
+
    -- Create new task instance
    INSERT INTO tasks (
      title,
