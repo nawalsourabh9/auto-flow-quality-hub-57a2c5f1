@@ -7,19 +7,19 @@ import { useTaskDocumentUpload } from "@/hooks/use-task-document-upload";
 import { formatDateForInput } from "@/utils/dateUtils";
 
 interface TaskUpdatePayload {
-  title: string;
-  description: string | null;
-  department: string;
-  priority: 'low' | 'medium' | 'high';
-  due_date: string | null;
-  is_recurring: boolean;
-  is_customer_related: boolean;
+  title?: string;
+  description?: string | null;
+  department?: string;
+  priority?: 'low' | 'medium' | 'high';
+  due_date?: string | null;
+  is_recurring?: boolean;
+  is_customer_related?: boolean;
   customer_name?: string | null;
   recurring_frequency?: string | null;
   start_date?: string | null;
   end_date?: string | null;
-  attachments_required: 'none' | 'optional' | 'required';
-  assignee: string | null;
+  attachments_required?: 'none' | 'optional' | 'required';
+  assignee?: string | null;
   status?: 'not-started' | 'in-progress' | 'completed' | 'overdue';
   comments?: string | null;
   original_task_name?: string | null;
@@ -31,12 +31,8 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
 
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
-      console.log("useTaskUpdate: Starting task update with clean data:", {
-        id: updatedTask.id,
-        status: updatedTask.status,
-        hasRecurrenceCount: 'recurrenceCountInPeriod' in updatedTask,
-        taskKeys: Object.keys(updatedTask)
-      });
+      console.log("useTaskUpdate: Starting task update with task ID:", updatedTask.id);
+      console.log("useTaskUpdate: Task object keys:", Object.keys(updatedTask));
       
       // Get original task data to compare changes
       const { data: originalTaskData, error: fetchError } = await supabase
@@ -50,29 +46,6 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         throw fetchError;
       }
 
-      // Convert original task data to Task format for comparison - EXCLUDE problematic fields
-      const originalTask: Task = {
-        id: originalTaskData.id,
-        title: originalTaskData.title,
-        description: originalTaskData.description,
-        department: originalTaskData.department,
-        priority: originalTaskData.priority as 'low' | 'medium' | 'high',
-        dueDate: originalTaskData.due_date,
-        assignee: originalTaskData.assignee,
-        status: originalTaskData.status as 'completed' | 'in-progress' | 'overdue' | 'not-started',
-        createdAt: originalTaskData.created_at,
-        isRecurring: originalTaskData.is_recurring,
-        recurringFrequency: originalTaskData.recurring_frequency,
-        startDate: originalTaskData.start_date,
-        endDate: originalTaskData.end_date,
-        isCustomerRelated: originalTaskData.is_customer_related,
-        customerName: originalTaskData.customer_name,
-        attachmentsRequired: originalTaskData.attachments_required as 'none' | 'optional' | 'required',
-        parentTaskId: originalTaskData.parent_task_id,
-        originalTaskName: originalTaskData.original_task_name
-        // NOTE: Intentionally excluding recurrenceCountInPeriod
-      };
-      
       // Format all dates consistently as YYYY-MM-DD strings
       const formattedDueDate = updatedTask.dueDate ? formatDateForInput(updatedTask.dueDate) : null;
       const formattedStartDate = updatedTask.startDate ? formatDateForInput(updatedTask.startDate) : null;
@@ -86,33 +59,95 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       // Ensure assignee is properly converted
       const assigneeValue = updatedTask.assignee === "unassigned" ? null : updatedTask.assignee;
       
-      // Create the update payload with strict type checking - NEVER include recurrenceCountInPeriod
-      const updatePayload: TaskUpdatePayload = {
-        title: updatedTask.title,
-        description: updatedTask.description || null,
-        department: updatedTask.department,
-        priority: updatedTask.priority,
-        due_date: formattedDueDate,
-        is_recurring: Boolean(updatedTask.isRecurring),
-        is_customer_related: Boolean(updatedTask.isCustomerRelated),
-        customer_name: updatedTask.customerName || null,
-        recurring_frequency: updatedTask.isRecurring ? updatedTask.recurringFrequency || null : null,
-        start_date: updatedTask.isRecurring ? formattedStartDate : null,
-        end_date: updatedTask.isRecurring ? formattedEndDate : null,
-        attachments_required: updatedTask.attachmentsRequired,
-        assignee: assigneeValue,
-        status: updatedTask.status,
-        comments: updatedTask.comments || null,
-        original_task_name: updatedTask.isRecurring ? (updatedTask.originalTaskName || updatedTask.title) : null
-        // NOTE: recurrenceCountInPeriod is NEVER included - backend manages this
-      };
+      // Create a minimal update payload with only the fields that can be updated
+      const updatePayload: TaskUpdatePayload = {};
       
-      console.log("useTaskUpdate: Final update payload (guaranteed no recurrenceCountInPeriod):", {
-        ...updatePayload,
-        hasRecurrenceCount: 'recurrence_count_in_period' in updatePayload
-      });
+      // Only include fields that have actually changed and are safe to update
+      if (updatedTask.title !== originalTaskData.title) {
+        updatePayload.title = updatedTask.title;
+      }
+      
+      if (updatedTask.description !== originalTaskData.description) {
+        updatePayload.description = updatedTask.description || null;
+      }
+      
+      if (updatedTask.department !== originalTaskData.department) {
+        updatePayload.department = updatedTask.department;
+      }
+      
+      if (updatedTask.priority !== originalTaskData.priority) {
+        updatePayload.priority = updatedTask.priority;
+      }
+      
+      if (formattedDueDate !== originalTaskData.due_date) {
+        updatePayload.due_date = formattedDueDate;
+      }
+      
+      if (assigneeValue !== originalTaskData.assignee) {
+        updatePayload.assignee = assigneeValue;
+      }
+      
+      if (updatedTask.status !== originalTaskData.status) {
+        updatePayload.status = updatedTask.status;
+      }
+      
+      if (updatedTask.comments !== originalTaskData.comments) {
+        updatePayload.comments = updatedTask.comments || null;
+      }
+      
+      if (updatedTask.attachmentsRequired !== originalTaskData.attachments_required) {
+        updatePayload.attachments_required = updatedTask.attachmentsRequired;
+      }
+      
+      if (Boolean(updatedTask.isRecurring) !== Boolean(originalTaskData.is_recurring)) {
+        updatePayload.is_recurring = Boolean(updatedTask.isRecurring);
+        
+        // Only update recurring-related fields if the task is recurring
+        if (updatedTask.isRecurring) {
+          updatePayload.recurring_frequency = updatedTask.recurringFrequency || null;
+          updatePayload.start_date = formattedStartDate;
+          updatePayload.end_date = formattedEndDate;
+          updatePayload.original_task_name = updatedTask.originalTaskName || updatedTask.title;
+        } else {
+          updatePayload.recurring_frequency = null;
+          updatePayload.start_date = null;
+          updatePayload.end_date = null;
+          updatePayload.original_task_name = null;
+        }
+      } else if (updatedTask.isRecurring) {
+        // Update recurring fields if they changed
+        if (updatedTask.recurringFrequency !== originalTaskData.recurring_frequency) {
+          updatePayload.recurring_frequency = updatedTask.recurringFrequency || null;
+        }
+        if (formattedStartDate !== originalTaskData.start_date) {
+          updatePayload.start_date = formattedStartDate;
+        }
+        if (formattedEndDate !== originalTaskData.end_date) {
+          updatePayload.end_date = formattedEndDate;
+        }
+      }
+      
+      if (Boolean(updatedTask.isCustomerRelated) !== Boolean(originalTaskData.is_customer_related)) {
+        updatePayload.is_customer_related = Boolean(updatedTask.isCustomerRelated);
+        updatePayload.customer_name = updatedTask.isCustomerRelated ? (updatedTask.customerName || null) : null;
+      } else if (updatedTask.isCustomerRelated && updatedTask.customerName !== originalTaskData.customer_name) {
+        updatePayload.customer_name = updatedTask.customerName || null;
+      }
+      
+      console.log("useTaskUpdate: Final update payload (only changed fields):", updatePayload);
 
-      // Update the task with the properly constructed payload
+      // Only proceed with update if there are actual changes
+      if (Object.keys(updatePayload).length === 0) {
+        console.log("useTaskUpdate: No changes detected, skipping database update");
+        toast({
+          title: "No Changes",
+          description: "No changes were detected in the task.",
+        });
+        setIsEditDialogOpen(false);
+        return;
+      }
+
+      // Update the task with the minimal payload
       const { data, error } = await supabase
         .from('tasks')
         .update(updatePayload)
@@ -127,11 +162,11 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       console.log("useTaskUpdate: Task updated successfully:", data);
 
       // Check if status changed to completed and handle recurring task generation
-      if (originalTask.status !== 'completed' && updatedTask.status === 'completed') {
+      if (originalTaskData.status !== 'completed' && updatedTask.status === 'completed') {
         console.log("useTaskUpdate: Task marked as completed, checking recurring generation");
         
         // Only try to generate next recurring task if this is a recurring task or task instance
-        const isRecurringCandidate = originalTask.isRecurring || originalTask.parentTaskId;
+        const isRecurringCandidate = originalTaskData.is_recurring || originalTaskData.parent_task_id;
         
         if (isRecurringCandidate) {
           console.log("useTaskUpdate: Triggering recurring task generation");
