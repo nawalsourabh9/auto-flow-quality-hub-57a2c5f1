@@ -67,8 +67,8 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         originalTaskName: originalTaskData.original_task_name
       };
       
-      // Format all dates consistently
-      const formattedDueDate = formatDateForInput(updatedTask.dueDate);
+      // Format all dates consistently as YYYY-MM-DD strings
+      const formattedDueDate = updatedTask.dueDate ? formatDateForInput(updatedTask.dueDate) : null;
       const formattedStartDate = updatedTask.startDate ? formatDateForInput(updatedTask.startDate) : null;
       const formattedEndDate = updatedTask.endDate ? formatDateForInput(updatedTask.endDate) : null;
       
@@ -77,18 +77,18 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         formatted: { due: formattedDueDate, start: formattedStartDate, end: formattedEndDate }
       });
       
-      // assignee is already properly converted at the form level
+      // Ensure assignee is properly converted
       const assigneeValue = updatedTask.assignee === "unassigned" ? null : updatedTask.assignee;
       
-      // Create the update payload with proper typing and formatted dates
+      // Create the update payload with strict type checking to prevent string/integer conflicts
       const updatePayload: TaskUpdatePayload = {
         title: updatedTask.title,
         description: updatedTask.description || null,
         department: updatedTask.department,
         priority: updatedTask.priority,
-        due_date: formattedDueDate || null,
-        is_recurring: updatedTask.isRecurring || false,
-        is_customer_related: updatedTask.isCustomerRelated || false,
+        due_date: formattedDueDate,
+        is_recurring: Boolean(updatedTask.isRecurring),
+        is_customer_related: Boolean(updatedTask.isCustomerRelated),
         customer_name: updatedTask.customerName || null,
         recurring_frequency: updatedTask.isRecurring ? updatedTask.recurringFrequency || null : null,
         start_date: updatedTask.isRecurring ? formattedStartDate : null,
@@ -100,7 +100,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         original_task_name: updatedTask.isRecurring ? (updatedTask.originalTaskName || updatedTask.title) : null
       };
       
-      console.log("Final update payload with enhanced recurring fields:", updatePayload);
+      console.log("Final update payload with strict typing:", updatePayload);
 
       // Update the task with the properly constructed payload
       const { data, error } = await supabase

@@ -227,7 +227,7 @@ export const useTaskFormSubmit = (
     }
     
     // Log form values before submission
-    console.log("Form submitted with backend-compatible data:", {
+    console.log("Form submitted with strict type validation:", {
       ...formData,
       recurringValidation: recurringValidation,
       formattedDates: {
@@ -245,7 +245,7 @@ export const useTaskFormSubmit = (
     // Prepare documents
     const documents = prepareDocuments(formData.documentUploads, assigneeDetails);
 
-    // Create the task object with proper assignee value and formatted dates
+    // Create the task object with proper assignee value and strictly formatted dates
     const finalAssignee = formData.assignee === "unassigned" ? null : formData.assignee;
     
     const newTask: Task = {
@@ -258,18 +258,18 @@ export const useTaskFormSubmit = (
       dueDate: formatDateForInput(formData.dueDate),
       status: initialData.status || "not-started",
       createdAt: initialData.createdAt || new Date().toISOString().split("T")[0],
-      isRecurring: formData.isRecurring,
+      isRecurring: Boolean(formData.isRecurring),
       recurringFrequency: formData.isRecurring ? formData.recurringFrequency : undefined,
       startDate: formData.isRecurring ? formatDateForInput(formData.startDate) : undefined,
       endDate: formData.isRecurring ? formatDateForInput(formData.endDate) : undefined,
-      isCustomerRelated: formData.isCustomerRelated,
+      isCustomerRelated: Boolean(formData.isCustomerRelated),
       customerName: formData.isCustomerRelated ? formData.customerName : undefined,
       attachmentsRequired: formData.attachmentsRequired,
       assigneeDetails,
       documents: documents.length > 0 ? documents : undefined
     };
 
-    console.log("Submitting task with backend-compatible formatting:", newTask);
+    console.log("Submitting task with strict type formatting:", newTask);
     
     // Submit the task first
     onSubmit(newTask);
