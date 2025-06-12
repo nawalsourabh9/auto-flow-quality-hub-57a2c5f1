@@ -69,7 +69,6 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
           <div className="flex flex-wrap gap-1">
             <TaskRecurringBadge task={task} />
             <TaskCustomerBadge isCustomerRelated={task.isCustomerRelated} customerName={task.customerName} />
-            <TaskAttachmentBadge attachmentsRequired={task.attachmentsRequired} />
           </div>
         </div>
       </TableCell>
@@ -114,13 +113,13 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
           <TaskAttachmentBadge attachmentsRequired={task.attachmentsRequired} />
         </div>
       </TableCell>
-      <TableCell className="min-w-[150px]">
+      <TableCell className="min-w-[200px]">
         <div className="flex items-center gap-1">
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => onViewTask(task)}
-            className="h-8 px-2"
+            className="h-8 px-3"
           >
             <Eye className="h-3 w-3 mr-1" />
             Update
@@ -129,7 +128,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             variant="ghost" 
             size="sm"
             onClick={() => onEditTask(task)}
-            className="h-8 px-2"
+            className="h-8 px-3"
           >
             <Edit className="h-3 w-3 mr-1" />
             Edit
@@ -139,7 +138,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => onDeleteTask(task.id)}
-              className="h-8 px-2 text-destructive hover:text-destructive"
+              className="h-8 px-3 text-destructive hover:text-destructive"
             >
               <Trash2 className="h-3 w-3 mr-1" />
               Delete

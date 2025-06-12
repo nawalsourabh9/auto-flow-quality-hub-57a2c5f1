@@ -47,8 +47,8 @@ serve(async (req) => {
       console.log(`Marked ${overdueTasks.length} tasks as overdue`)
     }
 
-    // 2. Handle recurring tasks - Find completed recurring tasks that need next instances
-    const { data: completedRecurringTasks, error: recurringError } = await supabase
+    // 2. Handle recurring tasks - Find all completed tasks (both parent and child) that might need processing
+    const { data: completedTasks, error: completedError } = await supabase
       .from('tasks')
       .select(`
         id, title, description, department, priority, assignee,
@@ -57,104 +57,80 @@ serve(async (req) => {
         due_date, status, parent_task_id, original_task_name
       `)
       .eq('status', 'completed')
-      .eq('is_recurring', true)
-      .is('parent_task_id', null) // Only parent tasks
-      .not('recurring_frequency', 'is', null)
 
-    if (recurringError) {
-      console.error('Error fetching completed recurring tasks:', recurringError)
-      results.errors.push(`Recurring fetch error: ${recurringError.message}`)
-    } else if (completedRecurringTasks && completedRecurringTasks.length > 0) {
-      console.log(`Found ${completedRecurringTasks.length} completed recurring tasks`)
+    if (completedError) {
+      console.error('Error fetching completed tasks:', completedError)
+      results.errors.push(`Completed tasks fetch error: ${completedError.message}`)
+    } else if (completedTasks && completedTasks.length > 0) {
+      console.log(`Found ${completedTasks.length} completed tasks to process`)
 
-      for (const task of completedRecurringTasks) {
+      for (const task of completedTasks) {
         try {
-          const taskStartDate = new Date(task.start_date || task.due_date)
-          const currentISTDate = new Date(istNow)
+          // Check if this task can trigger recurring generation
+          let shouldProcess = false
+          let taskStartDate: Date
           
-          // Check if current date is greater than start date by at least 1 day
-          const daysDifference = Math.floor((currentISTDate.getTime() - taskStartDate.getTime()) / (1000 * 60 * 60 * 24))
-          
-          if (daysDifference >= 1) {
-            console.log(`Processing recurring task: ${task.title}, days difference: ${daysDifference}`)
-            
-            // Generate next recurring task using the database function
-            const { data: newTaskData, error: generateError } = await supabase
-              .rpc('generate_next_recurring_task', { completed_task_id: task.id })
-
-            if (generateError) {
-              console.error(`Error generating next task for ${task.title}:`, generateError)
-              results.errors.push(`Generate error for ${task.title}: ${generateError.message}`)
-            } else if (newTaskData) {
-              results.recurringCreated++
-              console.log(`Generated next task ID ${newTaskData} for ${task.title}`)
+          if (task.is_recurring && !task.parent_task_id) {
+            // This is a parent recurring task
+            shouldProcess = true
+            taskStartDate = new Date(task.start_date || task.due_date)
+          } else if (task.parent_task_id) {
+            // This is a child task - get parent to check if it's recurring
+            const { data: parentTask } = await supabase
+              .from('tasks')
+              .select('is_recurring, recurring_frequency')
+              .eq('id', task.parent_task_id)
+              .single()
               
-              // Reset the parent task status to not-started for next cycle
-              const { error: resetError } = await supabase
-                .from('tasks')
-                .update({ status: 'not-started' })
-                .eq('id', task.id)
+            if (parentTask && parentTask.is_recurring) {
+              shouldProcess = true
+              taskStartDate = new Date(task.start_date || task.due_date)
+            }
+          }
+          
+          if (shouldProcess) {
+            const currentISTDate = new Date(istNow)
+            
+            // Check if current date is greater than start date by at least 1 day
+            const daysDifference = Math.floor((currentISTDate.getTime() - taskStartDate.getTime()) / (1000 * 60 * 60 * 24))
+            
+            if (daysDifference >= 1) {
+              console.log(`Processing task: ${task.title}, days difference: ${daysDifference}`)
+              
+              // Use the completed task ID (whether parent or child) to generate next instance
+              const { data: newTaskData, error: generateError } = await supabase
+                .rpc('generate_next_recurring_task', { completed_task_id: task.id })
+
+              if (generateError) {
+                console.error(`Error generating next task for ${task.title}:`, generateError)
+                results.errors.push(`Generate error for ${task.title}: ${generateError.message}`)
+              } else if (newTaskData) {
+                results.recurringCreated++
+                console.log(`Generated next task ID ${newTaskData} for ${task.title}`)
                 
-              if (resetError) {
-                console.error(`Error resetting parent task status for ${task.title}:`, resetError)
+                // If this was a parent task, reset its status for next cycle
+                if (task.is_recurring && !task.parent_task_id) {
+                  const { error: resetError } = await supabase
+                    .from('tasks')
+                    .update({ status: 'not-started' })
+                    .eq('id', task.id)
+                    
+                  if (resetError) {
+                    console.error(`Error resetting parent task status for ${task.title}:`, resetError)
+                  } else {
+                    console.log(`Reset parent task status for ${task.title}`)
+                  }
+                }
+              } else {
+                console.log(`No new task generated for ${task.title} (conditions not met)`)
               }
             } else {
-              console.log(`No new task generated for ${task.title} (likely beyond end date or not due yet)`)
+              console.log(`Task ${task.title} does not meet the 1-day criteria, skipping (days difference: ${daysDifference})`)
             }
-          } else {
-            console.log(`Task ${task.title} does not meet the 1-day criteria, skipping (days difference: ${daysDifference})`)
           }
         } catch (taskError) {
           console.error(`Error processing task ${task.id}:`, taskError)
           results.errors.push(`Task ${task.id} processing error: ${taskError.message}`)
-        }
-      }
-    }
-
-    // 3. Also check for completed child tasks that might need to trigger next instances
-    const { data: completedChildTasks, error: childError } = await supabase
-      .from('tasks')
-      .select(`
-        id, title, parent_task_id, start_date, due_date
-      `)
-      .eq('status', 'completed')
-      .not('parent_task_id', 'is', null)
-
-    if (!childError && completedChildTasks && completedChildTasks.length > 0) {
-      for (const childTask of completedChildTasks) {
-        try {
-          // Get the parent task details
-          const { data: parentTask, error: parentError } = await supabase
-            .from('tasks')
-            .select('*')
-            .eq('id', childTask.parent_task_id)
-            .single()
-
-          if (!parentError && parentTask && parentTask.is_recurring) {
-            // Check if we need to generate the next instance
-            const childStartDate = new Date(childTask.start_date || childTask.due_date)
-            const currentISTDate = new Date(istNow)
-            
-            const daysDifference = Math.floor((currentISTDate.getTime() - childStartDate.getTime()) / (1000 * 60 * 60 * 24))
-            
-            if (daysDifference >= 1) {
-              console.log(`Processing completed child task: ${childTask.title}, days difference: ${daysDifference}`)
-              
-              const { data: newTaskData, error: generateError } = await supabase
-                .rpc('generate_next_recurring_task', { completed_task_id: childTask.parent_task_id })
-
-              if (generateError) {
-                console.error(`Error generating next task for child ${childTask.title}:`, generateError)
-                results.errors.push(`Generate error for child ${childTask.title}: ${generateError.message}`)
-              } else if (newTaskData) {
-                results.recurringCreated++
-                console.log(`Generated next task ID ${newTaskData} from child task ${childTask.title}`)
-              }
-            }
-          }
-        } catch (error) {
-          console.error(`Error processing child task ${childTask.id}:`, error)
-          results.errors.push(`Child task ${childTask.id} processing error: ${error.message}`)
         }
       }
     }

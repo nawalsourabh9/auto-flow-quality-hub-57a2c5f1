@@ -131,7 +131,7 @@ const TasksTable: React.FC<TasksTableProps> = ({
       <Card>
         <CardContent className="p-0">
           <div className="rounded-md border overflow-x-auto">
-            <Table className="min-w-[1200px]">
+            <Table className="min-w-[1400px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="border-r min-w-[250px]">Task</TableHead>
@@ -141,7 +141,7 @@ const TasksTable: React.FC<TasksTableProps> = ({
                   <TableHead className="border-r min-w-[80px]">Priority</TableHead>
                   <TableHead className="border-r min-w-[120px]">Status</TableHead>
                   <TableHead className="border-r min-w-[200px]">Documents</TableHead>
-                  <TableHead className="min-w-[150px]">Actions</TableHead>
+                  <TableHead className="min-w-[200px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -118,25 +118,48 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
 
       // Check if status changed to completed and handle recurring task generation
       if (originalTask.status !== 'completed' && updatedTask.status === 'completed') {
-        console.log("Task marked as completed, checking if recurring task should be generated");
+        console.log("Task marked as completed, triggering recurring task generation");
         
         // Try to generate next recurring task using the database function
         try {
+          console.log("Calling generate_next_recurring_task with task ID:", updatedTask.id);
           const { data: newTaskId, error: recurringError } = await supabase
             .rpc('generate_next_recurring_task', { completed_task_id: updatedTask.id });
 
           if (recurringError) {
             console.error("Error generating recurring task:", recurringError);
-            // Don't throw error - let the task update succeed even if recurring generation fails
+            toast({
+              title: "Warning",
+              description: `Task updated but recurring task generation failed: ${recurringError.message}`,
+              variant: "destructive"
+            });
           } else if (newTaskId) {
             console.log("Generated new recurring task with ID:", newTaskId);
+            toast({
+              title: "Success",
+              description: `Task completed and new recurring instance generated (ID: ${newTaskId})`,
+            });
           } else {
             console.log("No new recurring task generated (conditions not met)");
+            toast({
+              title: "Task Updated",
+              description: "Task marked as completed. No new recurring instance needed.",
+            });
           }
         } catch (recurringError) {
           console.error("Exception generating recurring task:", recurringError);
-          // Don't throw error - let the task update succeed
+          toast({
+            title: "Warning", 
+            description: "Task updated but recurring task generation encountered an error",
+            variant: "destructive"
+          });
         }
+      } else {
+        // Show normal success message for non-completion updates
+        toast({
+          title: "Task Updated",
+          description: `Task "${updatedTask.title}" has been updated successfully.`
+        });
       }
       
       // Process document uploads if any
@@ -149,17 +172,6 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
 
       // Invalidate the tasks query to refetch data
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-
-      // Show appropriate success message based on status change
-      let successMessage = `Task "${updatedTask.title}" has been updated successfully.`;
-      if (originalTask.status !== 'completed' && updatedTask.status === 'completed') {
-        successMessage += ' New recurring instance will be generated automatically if applicable.';
-      }
-
-      toast({
-        title: "Task Updated",
-        description: successMessage
-      });
 
       setIsEditDialogOpen(false);
     } catch (error: any) {
