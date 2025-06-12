@@ -56,7 +56,7 @@ DECLARE
   current_date_val DATE;
   expected_next_date DATE;
   period_end_date DATE;
-  current_count INTEGER;
+  next_count INTEGER; -- Renamed from current_count for clarity
   frequency_abbrev TEXT;
   period_identifier TEXT;
   new_task_name TEXT;
@@ -67,6 +67,8 @@ DECLARE
    ist_now := NOW() AT TIME ZONE 'UTC' + INTERVAL '5 hours 30 minutes';
    current_date_val := ist_now::DATE;
    
+   RAISE NOTICE 'Starting task generation for completed_task_id: %, current IST date: %', completed_task_id, current_date_val;
+   
    -- Get the completed task details
    SELECT * INTO completed_task FROM tasks WHERE id = completed_task_id;
    
@@ -74,22 +76,27 @@ DECLARE
      RAISE EXCEPTION 'Task not found: %', completed_task_id;
    END IF;
    
+   RAISE NOTICE 'Found completed task: %, is_recurring: %, parent_task_id: %, start_date: %', completed_task.title, completed_task.is_recurring, completed_task.parent_task_id, completed_task.start_date;
+   
    -- If this is not a recurring task instance, exit
    IF completed_task.parent_task_id IS NULL AND completed_task.is_recurring = false THEN
+     RAISE NOTICE 'Task is not recurring and has no parent. Exiting.';
      RETURN NULL;
    END IF;
    
    -- Get parent task details (either the completed task itself if it's the parent, or its parent)
    IF completed_task.parent_task_id IS NULL THEN
      parent_task := completed_task;
+     RAISE NOTICE 'Completed task is the parent task';
    ELSE
      SELECT * INTO parent_task FROM tasks WHERE id = completed_task.parent_task_id;
      IF NOT FOUND THEN
        RAISE EXCEPTION 'Parent task not found: %', completed_task.parent_task_id;
      END IF;
+     RAISE NOTICE 'Found parent task: %', parent_task.title;
    END IF;
    
-   -- Calculate expected next start date based on frequency
+   -- Calculate expected next start date based on frequency from the *completed task's start_date*
    CASE parent_task.recurring_frequency
      WHEN 'daily' THEN expected_next_date := completed_task.start_date + INTERVAL '1 day';
      WHEN 'weekly' THEN expected_next_date := completed_task.start_date + INTERVAL '7 days';
@@ -97,18 +104,23 @@ DECLARE
      WHEN 'monthly' THEN expected_next_date := completed_task.start_date + INTERVAL '1 month';
      WHEN 'quarterly' THEN expected_next_date := completed_task.start_date + INTERVAL '3 months';
      WHEN 'annually' THEN expected_next_date := completed_task.start_date + INTERVAL '1 year';
-     ELSE RETURN NULL;
+     ELSE
+       RAISE NOTICE 'Unknown recurring_frequency for parent task ID %: %', parent_task.id, parent_task.recurring_frequency;
+       RETURN NULL;
    END CASE;
    
+   RAISE NOTICE 'Expected next start date: %', expected_next_date;
+
    -- Determine the actual start date for the new instance.
    -- It should be the current date if the current date is on or after the expected next date based on frequency.
    IF current_date_val < expected_next_date THEN
-     -- Not enough time has passed since the previous instance's start date based on frequency
+     RAISE NOTICE 'Current date % is before expected next date %. Not generating.', current_date_val, expected_next_date;
      RETURN NULL;
    END IF;
 
    -- If current date is on or after the expected next date, the new task's start date is today
    next_start_date := current_date_val;
+   RAISE NOTICE 'New instance start date set to: %', next_start_date;
 
    -- Calculate implicit period end date based on frequency and the new instance's start date
    IF parent_task.recurring_frequency IN ('daily', 'weekly', 'bi-weekly') THEN
@@ -116,14 +128,17 @@ DECLARE
    ELSE -- monthly, quarterly, annually
      period_end_date := DATE_TRUNC('year', next_start_date) + INTERVAL '1 year' - INTERVAL '1 day';
    END IF;
+   RAISE NOTICE 'Implicit period end date: %', period_end_date;
 
    -- If the calculated next start date is beyond the parent task's explicit end date, don't generate
    IF parent_task.end_date IS NOT NULL AND next_start_date > parent_task.end_date THEN
+     RAISE NOTICE 'Next start date % is beyond parent explicit end date %. Not generating.', next_start_date, parent_task.end_date;
      RETURN NULL;
    END IF;
 
    -- If the calculated next start date is beyond the implicit period end date, don't generate
    IF next_start_date > period_end_date THEN
+     RAISE NOTICE 'Next start date % is beyond implicit period end date %. Not generating.', next_start_date, period_end_date;
      RETURN NULL;
    END IF;
    
@@ -136,7 +151,7 @@ DECLARE
    LIMIT 1;
 
    IF existing_task_id IS NOT NULL THEN
-     RAISE NOTICE 'Duplicate task instance for parent % with start date % already exists. Skipping.', parent_task.id, next_start_date;
+     RAISE NOTICE 'Duplicate task instance for parent % with start date % already exists (ID: %). Skipping.', parent_task.id, next_start_date, existing_task_id;
      RETURN existing_task_id; -- Return existing task ID to indicate it was found
    END IF;
    -- *** End Duplicate Check ***
@@ -159,24 +174,29 @@ DECLARE
      period_identifier := TO_CHAR(current_date_val, 'YYYY');
    END IF;
    
-   -- Get current count for this period
-   SELECT COALESCE(MAX(recurrence_count_in_period), 0) + 1 
-   INTO current_count
-   FROM tasks 
+   -- Get next sequential count for this period (resets monthly/annually)
+   SELECT COALESCE(MAX(recurrence_count_in_period), 0) + 1
+   INTO next_count
+   FROM tasks
    WHERE parent_task_id = parent_task.id
-     AND ((parent_task.recurring_frequency IN ('daily', 'weekly', 'bi-weekly') 
-           AND DATE_TRUNC('month', start_date) = DATE_TRUNC('month', current_date_val))
-          OR (parent_task.recurring_frequency IN ('monthly', 'quarterly', 'annually')
-           AND DATE_TRUNC('year', start_date) = DATE_TRUNC('year', current_date_val)));
+     AND (
+           (parent_task.recurring_frequency IN ('daily', 'weekly', 'bi-weekly')
+            AND DATE_TRUNC('month', start_date) = DATE_TRUNC('month', current_date_val))
+           OR
+           (parent_task.recurring_frequency IN ('monthly', 'quarterly', 'annually')
+            AND DATE_TRUNC('year', start_date) = DATE_TRUNC('year', current_date_val))
+         );
+   
+   RAISE NOTICE 'Next sequential count will be: % (type: INTEGER)', next_count;
    
    -- Generate new task name with proper format
-   new_task_name := parent_task.original_task_name || ' (' || frequency_abbrev || current_count || '-' || period_identifier || ')';
+   new_task_name := parent_task.original_task_name || ' (' || frequency_abbrev || next_count || '-' || period_identifier || ')';
+   
+   RAISE NOTICE 'Generated new task name: %', new_task_name;
    
    -- Calculate the due date for the new instance based on its start date and frequency
    new_due_date := public.calculate_due_date(next_start_date, parent_task.recurring_frequency);
-
-   RAISE NOTICE 'Attempting to insert new task with: title=%, due_date=%, start_date=%, recurrence_count_in_period=%', new_task_name, new_due_date, next_start_date, current_count;
-   RAISE NOTICE 'Parent task details: original_task_name=%, recurring_frequency=%', parent_task.original_task_name, parent_task.recurring_frequency;
+   RAISE NOTICE 'New due date: %', new_due_date;
 
    -- Create new task instance
    INSERT INTO tasks (
@@ -203,26 +223,30 @@ DECLARE
      parent_task.description,
      parent_task.department,
      parent_task.priority,
-     new_due_date, -- Use the calculated new_due_date
+     new_due_date,
      parent_task.assignee,
      'not-started',
      false, -- Instance tasks are not recurring themselves
-     NULL,
+     NULL, -- recurring_frequency is NULL for instances
      next_start_date,
-     NULL,
+     NULL, -- end_date is NULL for instances
      parent_task.is_customer_related,
      parent_task.customer_name,
      parent_task.attachments_required,
      'approved',
      parent_task.id,
      parent_task.original_task_name,
-     current_count
+     next_count -- next_count is already INTEGER
    ) RETURNING id INTO new_task_id;
    
+   RAISE NOTICE 'Created new task instance with ID: %', new_task_id;
+   
    -- Update parent task's last generated date
-   UPDATE tasks 
-   SET last_generated_date = current_date_val 
+   UPDATE tasks
+   SET last_generated_date = current_date_val
    WHERE id = parent_task.id;
+   
+   RAISE NOTICE 'Updated parent task last_generated_date to: %', current_date_val;
    
    RETURN new_task_id;
  END;
