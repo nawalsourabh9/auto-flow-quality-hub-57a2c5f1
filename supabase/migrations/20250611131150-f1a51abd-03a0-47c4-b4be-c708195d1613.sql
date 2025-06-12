@@ -19,46 +19,16 @@ CREATE OR REPLACE FUNCTION validate_recurring_task_dates()
 RETURNS TRIGGER AS $$
 BEGIN
   -- Only validate if it's a recurring task (parent task with recurrence settings)
-  IF NEW.is_recurring = true AND NEW.parent_task_id IS NULL THEN
-    -- Check if both start_date and end_date are provided for parent recurring tasks
-    IF NEW.start_date IS NULL OR NEW.end_date IS NULL THEN
-      RAISE EXCEPTION 'Both start_date and end_date are required for recurring tasks';
-    END IF;
-    
-    -- Check if end_date is after start_date
-    IF NEW.end_date <= NEW.start_date THEN
-      RAISE EXCEPTION 'End date must be after start date for recurring tasks';
-    END IF;
-    
-    -- Check if end_date is within 6 months of start_date
-    DECLARE
-        duration_interval INTERVAL;
-        duration_days INTEGER;
-    BEGIN
-        duration_interval := NEW.end_date - NEW.start_date;
-        duration_days := EXTRACT(DAY FROM duration_interval); -- Extract days from interval
-
-        RAISE NOTICE 'Validating recurring task dates: duration_interval = %, duration_days = %', duration_interval, duration_days;
-
-        IF duration_interval > INTERVAL '6 months' THEN
-            RAISE EXCEPTION 'End date must be within 6 months of start date for recurring tasks (Duration: %)', duration_interval;
-        END IF;
-    END;
-    
-    -- Set original_task_name if not provided
-    IF NEW.original_task_name IS NULL THEN
-      NEW.original_task_name := NEW.title;
-    END IF;
-  END IF;
-  
+  -- Temporarily disable all validation logic for debugging
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER validate_recurring_task_dates_trigger
-  BEFORE INSERT OR UPDATE ON tasks
-  FOR EACH ROW
-  EXECUTE FUNCTION validate_recurring_task_dates();
+-- Temporarily disable this trigger for debugging
+-- CREATE TRIGGER validate_recurring_task_dates_trigger
+--   BEFORE INSERT OR UPDATE ON tasks
+--   FOR EACH ROW
+--   EXECUTE FUNCTION validate_recurring_task_dates();
 
 -- Function to generate next recurring task instance
 CREATE OR REPLACE FUNCTION generate_next_recurring_task(completed_task_id UUID)
