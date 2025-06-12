@@ -31,7 +31,12 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
 
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
-      console.log("Updating task with enhanced recurring support:", updatedTask);
+      console.log("useTaskUpdate: Starting task update with clean data:", {
+        id: updatedTask.id,
+        status: updatedTask.status,
+        hasRecurrenceCount: 'recurrenceCountInPeriod' in updatedTask,
+        taskKeys: Object.keys(updatedTask)
+      });
       
       // Get original task data to compare changes
       const { data: originalTaskData, error: fetchError } = await supabase
@@ -45,7 +50,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         throw fetchError;
       }
 
-      // Convert original task data to Task format for comparison
+      // Convert original task data to Task format for comparison - EXCLUDE problematic fields
       const originalTask: Task = {
         id: originalTaskData.id,
         title: originalTaskData.title,
@@ -65,6 +70,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         attachmentsRequired: originalTaskData.attachments_required as 'none' | 'optional' | 'required',
         parentTaskId: originalTaskData.parent_task_id,
         originalTaskName: originalTaskData.original_task_name
+        // NOTE: Intentionally excluding recurrenceCountInPeriod
       };
       
       // Format all dates consistently as YYYY-MM-DD strings
@@ -72,7 +78,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       const formattedStartDate = updatedTask.startDate ? formatDateForInput(updatedTask.startDate) : null;
       const formattedEndDate = updatedTask.endDate ? formatDateForInput(updatedTask.endDate) : null;
       
-      console.log("Formatted dates for database:", {
+      console.log("useTaskUpdate: Formatted dates for database:", {
         original: { due: updatedTask.dueDate, start: updatedTask.startDate, end: updatedTask.endDate },
         formatted: { due: formattedDueDate, start: formattedStartDate, end: formattedEndDate }
       });
@@ -80,7 +86,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       // Ensure assignee is properly converted
       const assigneeValue = updatedTask.assignee === "unassigned" ? null : updatedTask.assignee;
       
-      // Create the update payload with strict type checking to prevent string/integer conflicts
+      // Create the update payload with strict type checking - NEVER include recurrenceCountInPeriod
       const updatePayload: TaskUpdatePayload = {
         title: updatedTask.title,
         description: updatedTask.description || null,
@@ -98,9 +104,13 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         status: updatedTask.status,
         comments: updatedTask.comments || null,
         original_task_name: updatedTask.isRecurring ? (updatedTask.originalTaskName || updatedTask.title) : null
+        // NOTE: recurrenceCountInPeriod is NEVER included - backend manages this
       };
       
-      console.log("Final update payload with strict typing:", updatePayload);
+      console.log("useTaskUpdate: Final update payload (guaranteed no recurrenceCountInPeriod):", {
+        ...updatePayload,
+        hasRecurrenceCount: 'recurrence_count_in_period' in updatePayload
+      });
 
       // Update the task with the properly constructed payload
       const { data, error } = await supabase
@@ -110,21 +120,21 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         .select();
 
       if (error) {
-        console.error("Update error:", error);
+        console.error("useTaskUpdate: Database update error:", error);
         throw error;
       }
 
-      console.log("Task updated successfully:", data);
+      console.log("useTaskUpdate: Task updated successfully:", data);
 
       // Check if status changed to completed and handle recurring task generation
       if (originalTask.status !== 'completed' && updatedTask.status === 'completed') {
-        console.log("Task marked as completed, checking if recurring task generation is needed");
+        console.log("useTaskUpdate: Task marked as completed, checking recurring generation");
         
         // Only try to generate next recurring task if this is a recurring task or task instance
         const isRecurringCandidate = originalTask.isRecurring || originalTask.parentTaskId;
         
         if (isRecurringCandidate) {
-          console.log("Task is a recurring candidate. Triggering recurring task generation with task ID:", updatedTask.id);
+          console.log("useTaskUpdate: Triggering recurring task generation");
           
           try {
             // Use a timeout to prevent multiple rapid calls
@@ -133,14 +143,14 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
                 .rpc('generate_next_recurring_task', { completed_task_id: updatedTask.id });
 
               if (recurringError) {
-                console.error("Error generating recurring task:", recurringError);
+                console.error("useTaskUpdate: Recurring generation error:", recurringError);
                 toast({
                   title: "Warning",
                   description: `Task updated but recurring task generation failed: ${recurringError.message}`,
                   variant: "destructive"
                 });
               } else if (newTaskId) {
-                console.log("Generated new recurring task with ID:", newTaskId);
+                console.log("useTaskUpdate: Generated new recurring task:", newTaskId);
                 toast({
                   title: "Success",
                   description: `Task completed and new recurring instance generated!`,
@@ -148,16 +158,16 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
                 // Refresh the tasks list to show the new task
                 queryClient.invalidateQueries({ queryKey: ['tasks'] });
               } else {
-                console.log("No new recurring task generated (conditions not met or already exists)");
+                console.log("useTaskUpdate: No new recurring task generated");
                 toast({
                   title: "Task Updated",
                   description: "Task marked as completed.",
                 });
               }
-            }, 500); // 500ms delay to prevent rapid successive calls
+            }, 500);
             
           } catch (recurringError) {
-            console.error("Exception generating recurring task:", recurringError);
+            console.error("useTaskUpdate: Exception in recurring generation:", recurringError);
             toast({
               title: "Warning", 
               description: "Task updated but recurring task generation encountered an error",
@@ -165,7 +175,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
             });
           }
         } else {
-          console.log("Task is not a recurring task or instance. No generation needed.");
+          console.log("useTaskUpdate: Task is not recurring, no generation needed");
           toast({
             title: "Task Updated",
             description: "Task marked as completed.",
@@ -181,10 +191,8 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       
       // Process document uploads if any
       if (updatedTask.documents && updatedTask.documents.length > 0) {
-        console.log("Processing document uploads for updated task");
+        console.log("useTaskUpdate: Processing document uploads");
         await processTaskDocuments(updatedTask.id, updatedTask.documents);
-      } else {
-        console.log("No documents to process for updated task");
       }
 
       // Invalidate the tasks query to refetch data
@@ -192,7 +200,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
 
       setIsEditDialogOpen(false);
     } catch (error: any) {
-      console.error('Error updating task:', error);
+      console.error('useTaskUpdate: Task update failed:', error);
       toast({
         title: "Error",
         description: `Failed to update task: ${error.message || 'Unknown error'}`,

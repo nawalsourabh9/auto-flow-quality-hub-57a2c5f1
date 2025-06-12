@@ -6,7 +6,7 @@ export const useTasks = () => {
   return useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
-      console.log("Fetching tasks from database...");
+      console.log("useTasks: Fetching tasks from database...");
       
       // Fetch tasks with new fields
       const { data: tasksData, error: tasksError } = await supabase
@@ -15,20 +15,18 @@ export const useTasks = () => {
         .order("created_at", { ascending: false });
 
       if (tasksError) {
-        console.error("Error fetching tasks:", tasksError);
+        console.error("useTasks: Error fetching tasks:", tasksError);
         throw tasksError;
       }
 
-      console.log(`Retrieved ${tasksData.length} tasks`);
-      console.log("Task assignee data:", tasksData.map(task => ({ id: task.id, assignee: task.assignee })));
-      console.log("Task comments data:", tasksData.map(task => ({ id: task.id, comments: task.comments })));
+      console.log(`useTasks: Retrieved ${tasksData.length} tasks`);
 
       // Get unique employee IDs from tasks, filtering out null or empty values
       const employeeIds = tasksData
         .map(task => task.assignee)
         .filter(id => id && typeof id === 'string');
       
-      console.log(`Found ${employeeIds.length} unique assignees:`, employeeIds);
+      console.log(`useTasks: Found ${employeeIds.length} unique assignees:`, employeeIds);
       
       // Fetch employee details if there are assignees
       let employeesData = [];
@@ -39,10 +37,10 @@ export const useTasks = () => {
           .in("id", employeeIds);
           
         if (empError) {
-          console.error("Error fetching employees:", empError);
+          console.error("useTasks: Error fetching employees:", empError);
         } else {
           employeesData = empData || [];
-          console.log(`Retrieved ${employeesData.length} employee records:`, employeesData.map(emp => ({ id: emp.id, name: emp.name })));
+          console.log(`useTasks: Retrieved ${employeesData.length} employee records`);
         }
       }
 
@@ -60,10 +58,10 @@ export const useTasks = () => {
           .in("task_id", taskIds);
           
         if (docsError) {
-          console.error("Error fetching documents:", docsError);
+          console.error("useTasks: Error fetching documents:", docsError);
         } else {
           documentsData = docs || [];
-          console.log(`Retrieved ${documentsData.length} documents for tasks`);
+          console.log(`useTasks: Retrieved ${documentsData.length} documents for tasks`);
           
           // Get all document IDs to fetch their revisions
           const documentIds = documentsData.map(doc => doc.id);
@@ -76,10 +74,10 @@ export const useTasks = () => {
               .in("document_id", documentIds);
               
             if (revisionsError) {
-              console.error("Error fetching document revisions:", revisionsError);
+              console.error("useTasks: Error fetching document revisions:", revisionsError);
             } else {
               documentRevisions = revisions || [];
-              console.log(`Retrieved ${documentRevisions.length} document revisions`);
+              console.log(`useTasks: Retrieved ${documentRevisions.length} document revisions`);
             }
             
             // Fetch approval hierarchies
@@ -89,20 +87,19 @@ export const useTasks = () => {
               .in("document_id", documentIds);
               
             if (approvalsError) {
-              console.error("Error fetching approval hierarchies:", approvalsError);
+              console.error("useTasks: Error fetching approval hierarchies:", approvalsError);
             } else {
               approvalHierarchies = approvals || [];
-              console.log(`Retrieved ${approvalHierarchies.length} approval hierarchies`);
+              console.log(`useTasks: Retrieved ${approvalHierarchies.length} approval hierarchies`);
             }
           }
         }
       }
 
-      // Map the database fields to our Task interface with new recurring fields
+      // Map the database fields to our Task interface - EXCLUDE recurrenceCountInPeriod
       const tasks: Task[] = tasksData.map(item => {
         // Find employee details
         const employee = employeesData.find(emp => emp.id === item.assignee);
-        console.log(`For task ${item.id}, assignee ${item.assignee}, found employee:`, employee || "Not found");
         
         // Generate assignee details
         let assigneeDetails = undefined;
@@ -178,12 +175,13 @@ export const useTasks = () => {
             };
           });
 
-        return {
+        // Create clean task object - NEVER include recurrenceCountInPeriod
+        const cleanTask: Task = {
           id: item.id,
           title: item.title,
           description: item.description || "",
           department: item.department,
-          assignee: item.assignee || "unassigned", // Use "unassigned" for null values
+          assignee: item.assignee || "unassigned",
           priority: item.priority as 'low' | 'medium' | 'high',
           dueDate: item.due_date || "",
           status: item.status as 'completed' | 'in-progress' | 'overdue' | 'not-started',
@@ -195,11 +193,9 @@ export const useTasks = () => {
           startDate: item.start_date,
           endDate: item.end_date,
           attachmentsRequired: item.attachments_required as 'none' | 'optional' | 'required',
-          recurringParentId: item.recurring_parent_id, // Legacy field
-          parentTaskId: item.parent_task_id, // New field
-          originalTaskName: item.original_task_name, // New field
-          recurrenceCountInPeriod: item.recurrence_count_in_period, // New field
-          lastGeneratedDate: item.last_generated_date, // New field
+          parentTaskId: item.parent_task_id,
+          originalTaskName: item.original_task_name,
+          lastGeneratedDate: item.last_generated_date,
           assigneeDetails,
           documents: taskDocuments.length > 0 ? taskDocuments : undefined,
           approvalStatus: item.approval_status as 'pending' | 'approved' | 'rejected' | undefined,
@@ -210,10 +206,18 @@ export const useTasks = () => {
           rejectionReason: item.rejection_reason,
           departmentHeadId: item.department_head_id,
           comments: item.comments
+          // NOTE: recurrenceCountInPeriod is intentionally excluded to prevent frontend issues
         };
+
+        console.log(`useTasks: Processed task ${item.id} (no recurrenceCountInPeriod):`, {
+          id: cleanTask.id,
+          hasRecurrenceCount: 'recurrenceCountInPeriod' in cleanTask
+        });
+
+        return cleanTask;
       });
 
-      console.log("Tasks processed successfully with new recurring fields");
+      console.log("useTasks: All tasks processed successfully (recurrenceCountInPeriod excluded)");
       return tasks;
     }
   });

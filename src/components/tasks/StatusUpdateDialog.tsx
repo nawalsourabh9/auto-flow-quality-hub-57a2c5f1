@@ -44,7 +44,7 @@ const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
           return;
         }
 
-        // Convert database format to Task format
+        // Convert database format to Task format - EXCLUDE recurrenceCountInPeriod
         const completeTask: Task = {
           id: data.id,
           title: data.title,
@@ -62,9 +62,14 @@ const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
           isCustomerRelated: data.is_customer_related || false,
           customerName: data.customer_name,
           attachmentsRequired: data.attachments_required as 'none' | 'optional' | 'required',
-          comments: data.comments || ''
+          comments: data.comments || '',
+          // Exclude problematic fields that should be backend-managed
+          parentTaskId: data.parent_task_id,
+          originalTaskName: data.original_task_name
+          // NOTE: Intentionally excluding recurrenceCountInPeriod to prevent type errors
         };
 
+        console.log('StatusUpdateDialog: Fetched complete task data (no recurrenceCountInPeriod):', completeTask);
         setFullTaskData(completeTask);
         setStatus(completeTask.status);
         setComments(completeTask.comments || '');
@@ -86,13 +91,21 @@ const StatusUpdateDialog: React.FC<StatusUpdateDialogProps> = ({
 
     setIsLoading(true);
     try {
+      // Create a clean task object for update - ensure no problematic fields
       const updatedTask: Task = {
         ...fullTaskData,
         status,
         comments
+        // NOTE: recurrenceCountInPeriod is intentionally excluded
       };
 
-      console.log('Updating task status with complete data:', updatedTask);
+      console.log('StatusUpdateDialog: Updating task status with clean data (no recurrenceCountInPeriod):', {
+        id: updatedTask.id,
+        status: updatedTask.status,
+        comments: updatedTask.comments,
+        hasRecurrenceCount: 'recurrenceCountInPeriod' in updatedTask
+      });
+      
       await onUpdateTask(updatedTask);
       onClose();
     } catch (error) {
