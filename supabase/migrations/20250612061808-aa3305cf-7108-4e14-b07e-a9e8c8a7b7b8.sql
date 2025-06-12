@@ -61,6 +61,7 @@ DECLARE
   period_identifier TEXT;
   new_task_name TEXT;
   ist_now TIMESTAMP WITH TIME ZONE;
+  existing_task_id UUID; -- Variable to check for duplicates
  BEGIN
    -- Get current IST time (UTC+5:30)
    ist_now := NOW() AT TIME ZONE 'UTC' + INTERVAL '5 hours 30 minutes';
@@ -126,6 +127,20 @@ DECLARE
      RETURN NULL;
    END IF;
    
+   -- *** Duplicate Check ***
+   -- Check if a task with the same parent and next_start_date already exists
+   SELECT id INTO existing_task_id
+   FROM tasks
+   WHERE parent_task_id = parent_task.id
+     AND start_date = next_start_date
+   LIMIT 1;
+
+   IF existing_task_id IS NOT NULL THEN
+     RAISE NOTICE 'Duplicate task instance for parent % with start date % already exists. Skipping.', parent_task.id, next_start_date;
+     RETURN existing_task_id; -- Return existing task ID to indicate it was found
+   END IF;
+   -- *** End Duplicate Check ***
+
    -- Get frequency abbreviation
    CASE parent_task.recurring_frequency
      WHEN 'daily' THEN frequency_abbrev := 'D';
@@ -140,7 +155,7 @@ DECLARE
    -- Get period identifier (3-letter month abbreviation or year)
    IF parent_task.recurring_frequency IN ('daily', 'weekly', 'bi-weekly') THEN
      period_identifier := TO_CHAR(current_date_val, 'Mon');
-   ELSE
+   ELSE -- monthly, quarterly, annually
      period_identifier := TO_CHAR(current_date_val, 'YYYY');
    END IF;
    
