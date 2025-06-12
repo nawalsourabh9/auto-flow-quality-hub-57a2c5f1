@@ -123,7 +123,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             className="h-8 px-2"
           >
             <Eye className="h-3 w-3 mr-1" />
-            View
+            Update
           </Button>
           <Button 
             variant="ghost" 

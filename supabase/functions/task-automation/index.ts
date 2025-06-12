@@ -23,9 +23,15 @@ serve(async (req) => {
       errors: []
     }
 
-    // 1. Mark overdue tasks
-    const today = new Date().toISOString().split('T')[0]
+    // Get current IST time
+    const now = new Date()
+    const istOffset = 5.5 * 60 * 60 * 1000 // IST is UTC+5:30
+    const istNow = new Date(now.getTime() + istOffset)
+    const today = istNow.toISOString().split('T')[0]
     
+    console.log('Current IST date:', today)
+
+    // 1. Mark overdue tasks
     const { data: overdueTasks, error: overdueError } = await supabase
       .from('tasks')
       .update({ status: 'overdue' })
@@ -63,14 +69,16 @@ serve(async (req) => {
 
       for (const task of completedRecurringTasks) {
         try {
-          // Check if start_date is in the past
           const taskStartDate = new Date(task.start_date || task.due_date)
-          const currentDate = new Date()
+          const currentISTDate = new Date(istNow)
           
-          if (taskStartDate < currentDate) {
-            console.log(`Processing recurring task: ${task.title}`)
+          // Check if current date is greater than start date by at least 1 day
+          const daysDifference = Math.floor((currentISTDate.getTime() - taskStartDate.getTime()) / (1000 * 60 * 60 * 24))
+          
+          if (daysDifference >= 1) {
+            console.log(`Processing recurring task: ${task.title}, days difference: ${daysDifference}`)
             
-            // Use the database function to generate the next recurring task
+            // Generate next recurring task using the database function
             const { data: newTaskData, error: generateError } = await supabase
               .rpc('generate_next_recurring_task', { completed_task_id: task.id })
 
@@ -94,7 +102,7 @@ serve(async (req) => {
               console.log(`No new task generated for ${task.title} (likely beyond end date or not due yet)`)
             }
           } else {
-            console.log(`Task ${task.title} start date is not yet past, skipping`)
+            console.log(`Task ${task.title} does not meet the 1-day criteria, skipping (days difference: ${daysDifference})`)
           }
         } catch (taskError) {
           console.error(`Error processing task ${task.id}:`, taskError)
@@ -125,16 +133,19 @@ serve(async (req) => {
           if (!parentError && parentTask && parentTask.is_recurring) {
             // Check if we need to generate the next instance
             const childStartDate = new Date(childTask.start_date || childTask.due_date)
-            const currentDate = new Date()
+            const currentISTDate = new Date(istNow)
             
-            if (childStartDate < currentDate) {
-              console.log(`Processing completed child task: ${childTask.title}`)
+            const daysDifference = Math.floor((currentISTDate.getTime() - childStartDate.getTime()) / (1000 * 60 * 60 * 24))
+            
+            if (daysDifference >= 1) {
+              console.log(`Processing completed child task: ${childTask.title}, days difference: ${daysDifference}`)
               
               const { data: newTaskData, error: generateError } = await supabase
                 .rpc('generate_next_recurring_task', { completed_task_id: childTask.parent_task_id })
 
               if (generateError) {
                 console.error(`Error generating next task for child ${childTask.title}:`, generateError)
+                results.errors.push(`Generate error for child ${childTask.title}: ${generateError.message}`)
               } else if (newTaskData) {
                 results.recurringCreated++
                 console.log(`Generated next task ID ${newTaskData} from child task ${childTask.title}`)
@@ -143,6 +154,7 @@ serve(async (req) => {
           }
         } catch (error) {
           console.error(`Error processing child task ${childTask.id}:`, error)
+          results.errors.push(`Child task ${childTask.id} processing error: ${error.message}`)
         }
       }
     }
