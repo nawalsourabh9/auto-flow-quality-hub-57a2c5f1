@@ -35,13 +35,15 @@ export const formatDateForInput = (dateValue: string | Date | null | undefined):
     
     if (!isValid(date)) {
       console.warn("Invalid date provided:", dateValue);
-      return null; // Return null for invalid dates
+      return null;
     }
 
-    return format(date, "yyyy-MM-dd");
+    const formattedDate = format(date, "yyyy-MM-dd");
+    console.log("formatDateForInput:", { input: dateValue, output: formattedDate });
+    return formattedDate;
   } catch (error) {
     console.error("Error formatting date:", error, "Input:", dateValue);
-    return null; // Return null on error
+    return null;
   }
 };
 

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useTasks } from "@/hooks/use-tasks";
 import { useTaskOperations } from "@/hooks/use-task-operations";
@@ -38,6 +39,8 @@ const Tasks = () => {
     setAssigneeFilter,
     dueDateFilter,
     setDueDateFilter,
+    frequencyFilter,
+    setFrequencyFilter,
     filteredTasks,
     departments,
     teamMembers
@@ -87,6 +90,8 @@ const Tasks = () => {
         setAssigneeFilter={setAssigneeFilter}
         dueDateFilter={dueDateFilter}
         setDueDateFilter={setDueDateFilter}
+        frequencyFilter={frequencyFilter}
+        setFrequencyFilter={setFrequencyFilter}
         departments={departments}
         teamMembers={teamMembers}
       />

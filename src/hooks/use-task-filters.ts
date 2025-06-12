@@ -10,6 +10,7 @@ export const useTaskFilters = (tasks: Task[]) => {
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
   const [dueDateFilter, setDueDateFilter] = useState<Date | null>(null);
+  const [frequencyFilter, setFrequencyFilter] = useState<string | null>(null);
 
   // Extract unique departments from tasks
   const departments = useMemo(() => {
@@ -52,25 +53,31 @@ export const useTaskFilters = (tasks: Task[]) => {
       // Priority filter
       const matchesPriority = !priorityFilter || task.priority === priorityFilter;
       
-      // Department filter (new)
+      // Department filter
       const matchesDepartment = !departmentFilter || task.department === departmentFilter;
       
-      // Assignee filter (new)
+      // Assignee filter
       const matchesAssignee = !assigneeFilter || 
         (assigneeFilter === "unassigned" ? !task.assignee : task.assignee === assigneeFilter);
       
-      // Due date filter (new)
+      // Due date filter
       const matchesDueDate = !dueDateFilter || 
         (task.dueDate && isSameDay(new Date(task.dueDate), dueDateFilter));
+      
+      // Frequency filter
+      const matchesFrequency = !frequencyFilter || 
+        (frequencyFilter === "non-recurring" ? !task.isRecurring : 
+         task.recurringFrequency === frequencyFilter);
       
       return matchesSearch && 
              matchesStatus && 
              matchesPriority && 
              matchesDepartment && 
              matchesAssignee && 
-             matchesDueDate;
+             matchesDueDate &&
+             matchesFrequency;
     });
-  }, [tasks, searchTerm, statusFilter, priorityFilter, departmentFilter, assigneeFilter, dueDateFilter]);
+  }, [tasks, searchTerm, statusFilter, priorityFilter, departmentFilter, assigneeFilter, dueDateFilter, frequencyFilter]);
 
   return {
     searchTerm,
@@ -85,6 +92,8 @@ export const useTaskFilters = (tasks: Task[]) => {
     setAssigneeFilter,
     dueDateFilter,
     setDueDateFilter,
+    frequencyFilter,
+    setFrequencyFilter,
     filteredTasks,
     departments,
     teamMembers

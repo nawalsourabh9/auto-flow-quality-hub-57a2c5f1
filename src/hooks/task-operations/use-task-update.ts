@@ -22,7 +22,7 @@ interface TaskUpdatePayload {
   assignee: string | null;
   status?: 'not-started' | 'in-progress' | 'completed' | 'overdue';
   comments?: string | null;
-  original_task_name?: string | null; // New field
+  original_task_name?: string | null;
 }
 
 export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) => {
@@ -63,7 +63,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         isCustomerRelated: originalTaskData.is_customer_related,
         customerName: originalTaskData.customer_name,
         attachmentsRequired: originalTaskData.attachments_required as 'none' | 'optional' | 'required',
-        parentTaskId: originalTaskData.parent_task_id,
+        parentTaskId: originalTaskData.parent_task_id, // Use proper field name
         originalTaskName: originalTaskData.original_task_name
       };
       

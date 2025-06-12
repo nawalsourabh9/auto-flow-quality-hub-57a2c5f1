@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Task } from "@/types/task";
 import { useEmployeeData } from "./useEmployeeData";
 import { useDocumentUploads } from "./useDocumentUploads";
-import { formatDateForInput } from "@/utils/dateUtils";
+import { formatDateForInput, parseInputDate } from "@/utils/dateUtils";
 
 export const useTaskFormState = (initialData: Partial<Task>) => {
   const [title, setTitle] = useState(initialData?.title || "");
@@ -14,7 +14,6 @@ export const useTaskFormState = (initialData: Partial<Task>) => {
   const [assignee, setAssignee] = useState(initialData?.assignee || "unassigned");
   const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring || false);
   const [recurringFrequency, setRecurringFrequency] = useState(initialData?.recurringFrequency || "weekly");
-  // Initialize with null if formatDateForInput returns null
   const [startDate, setStartDate] = useState<string | null>(formatDateForInput(initialData?.startDate));
   const [endDate, setEndDate] = useState<string | null>(formatDateForInput(initialData?.endDate));
   const [isCustomerRelated, setIsCustomerRelated] = useState(initialData?.isCustomerRelated || false);
@@ -55,7 +54,7 @@ export const useTaskFormState = (initialData: Partial<Task>) => {
       setCustomerName(initialData.customerName || "");
       setAttachmentsRequired(initialData.attachmentsRequired || "none");
 
-      // Handle dates with proper formatting
+      // Handle dates with proper formatting - ensure they're properly converted
       const formattedDueDate = formatDateForInput(initialData.dueDate);
       const formattedStartDate = formatDateForInput(initialData.startDate);
       const formattedEndDate = formatDateForInput(initialData.endDate);
@@ -66,11 +65,10 @@ export const useTaskFormState = (initialData: Partial<Task>) => {
       });
 
       setDueDate(formattedDueDate);
-      // Ensure state can be null
       setStartDate(formattedStartDate);
       setEndDate(formattedEndDate);
     }
-  }, [initialData]); // Remove the ID dependency to ensure all updates trigger
+  }, [initialData]);
 
   return {
     title,
