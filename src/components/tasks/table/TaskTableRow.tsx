@@ -54,7 +54,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
     <TableRow 
       className={`hover:bg-muted/50 ${isInstanceTask ? 'bg-muted/20 border-l-4 border-l-blue-200' : ''}`}
     >
-      <TableCell className="font-medium">
+      <TableCell className="font-medium min-w-[250px]">
         <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : ''}`}>
           <div className="flex items-center gap-2">
             <span className={isInstanceTask ? 'text-sm text-muted-foreground' : ''}>
@@ -70,11 +70,10 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             <TaskRecurringBadge task={task} />
             <TaskCustomerBadge isCustomerRelated={task.isCustomerRelated} customerName={task.customerName} />
             <TaskAttachmentBadge attachmentsRequired={task.attachmentsRequired} />
-            <TaskDocumentBadges task={task} setViewingDocument={setViewingDocument} />
           </div>
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell className="min-w-[120px]">
         <div className="flex items-center gap-2">
           {task.assigneeDetails ? (
             <>
@@ -90,10 +89,10 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
           )}
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell className="min-w-[100px]">
         <span className="text-sm">{task.department}</span>
       </TableCell>
-      <TableCell>
+      <TableCell className="min-w-[120px]">
         <div className="flex flex-col gap-1">
           <span className="text-sm">{formatDateForDisplay(task.dueDate)}</span>
           {isInstanceTask && task.startDate && (
@@ -103,43 +102,50 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
           )}
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell className="min-w-[80px]">
         <TaskPriorityBadge priority={task.priority} />
       </TableCell>
-      <TableCell>
+      <TableCell className="min-w-[120px]">
         <TaskStatusBadge status={task.status} comments={task.comments} />
       </TableCell>
-      <TableCell>
-        <TaskDocumentBadges task={task} setViewingDocument={setViewingDocument} />
+      <TableCell className="min-w-[200px]">
+        <div className="flex flex-wrap gap-1">
+          <TaskDocumentBadges task={task} setViewingDocument={setViewingDocument} />
+          <TaskAttachmentBadge attachmentsRequired={task.attachmentsRequired} />
+        </div>
       </TableCell>
-      <TableCell>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
+      <TableCell className="min-w-[150px]">
+        <div className="flex items-center gap-1">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => onViewTask(task)}
+            className="h-8 px-2"
+          >
+            <Eye className="h-3 w-3 mr-1" />
+            View
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => onEditTask(task)}
+            className="h-8 px-2"
+          >
+            <Edit className="h-3 w-3 mr-1" />
+            Edit
+          </Button>
+          {(isAdmin || currentUserId === task.assignee) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDeleteTask(task.id)}
+              className="h-8 px-2 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              Delete
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onViewTask(task)}>
-              <Eye className="mr-2 h-4 w-4" />
-              View
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEditTask(task)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            {(isAdmin || currentUserId === task.assignee) && (
-              <DropdownMenuItem
-                onClick={() => onDeleteTask(task.id)}
-                className="text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          )}
+        </div>
       </TableCell>
     </TableRow>
   );

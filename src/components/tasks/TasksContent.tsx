@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import TaskTable from "./TaskTable";
 import { Task, TeamMember } from "@/types/task";
 
@@ -73,6 +74,35 @@ const TasksContent: React.FC<TasksContentProps> = ({
             {groupedTasks.taskGroups.filter(g => g.parent.isRecurring).length} recurring series
           </div>
         </CardTitle>
+        {/* Legend for recurring task naming */}
+        <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg border">
+          <div className="text-sm font-medium text-muted-foreground mb-2 w-full">
+            Recurring Task Legend:
+          </div>
+          <Badge variant="outline" className="bg-purple-50 text-purple-700">
+            D → Daily
+          </Badge>
+          <Badge variant="outline" className="bg-purple-50 text-purple-700">
+            W → Weekly  
+          </Badge>
+          <Badge variant="outline" className="bg-purple-50 text-purple-700">
+            BW → Bi-weekly
+          </Badge>
+          <Badge variant="outline" className="bg-purple-50 text-purple-700">
+            M → Monthly
+          </Badge>
+          <Badge variant="outline" className="bg-purple-50 text-purple-700">
+            Q → Quarterly
+          </Badge>
+          <Badge variant="outline" className="bg-purple-50 text-purple-700">
+            A → Annually
+          </Badge>
+          <div className="w-full mt-1">
+            <span className="text-xs text-muted-foreground">
+              D1-Jan, D2-Jan → Instance numbers within the period (1st Daily in January, 2nd Daily in January)
+            </span>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <TaskTable
