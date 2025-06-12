@@ -837,6 +837,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_due_date: {
+        Args: { start_date: string; frequency: string }
+        Returns: string
+      }
       generate_next_recurring_task: {
         Args: { completed_task_id: string }
         Returns: string
