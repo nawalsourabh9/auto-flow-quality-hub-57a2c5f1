@@ -14,6 +14,7 @@ export const useTaskFormState = (initialData: Partial<Task>) => {
   const [assignee, setAssignee] = useState(initialData?.assignee || "unassigned");
   const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring || false);
   const [recurringFrequency, setRecurringFrequency] = useState(initialData?.recurringFrequency || "weekly");
+  // Initialize with null if formatDateForInput returns null
   const [startDate, setStartDate] = useState<string | null>(formatDateForInput(initialData?.startDate));
   const [endDate, setEndDate] = useState<string | null>(formatDateForInput(initialData?.endDate));
   const [isCustomerRelated, setIsCustomerRelated] = useState(initialData?.isCustomerRelated || false);
@@ -36,9 +37,7 @@ export const useTaskFormState = (initialData: Partial<Task>) => {
       dueDate: initialData?.dueDate,
       startDate: initialData?.startDate,
       endDate: initialData?.endDate,
-      isRecurring: initialData?.isRecurring,
-      rawStartDate: initialData?.startDate,
-      rawEndDate: initialData?.endDate
+      isRecurring: initialData?.isRecurring
     });
 
     // Always update form state when initialData changes, regardless of ID
@@ -56,51 +55,22 @@ export const useTaskFormState = (initialData: Partial<Task>) => {
       setCustomerName(initialData.customerName || "");
       setAttachmentsRequired(initialData.attachmentsRequired || "none");
 
-      // Handle dates with proper formatting and debugging
+      // Handle dates with proper formatting
       const formattedDueDate = formatDateForInput(initialData.dueDate);
       const formattedStartDate = formatDateForInput(initialData.startDate);
       const formattedEndDate = formatDateForInput(initialData.endDate);
 
-      console.log("Date formatting debug:", {
-        original: { 
-          due: initialData.dueDate, 
-          start: initialData.startDate, 
-          end: initialData.endDate 
-        },
-        formatted: { 
-          due: formattedDueDate, 
-          start: formattedStartDate, 
-          end: formattedEndDate 
-        },
-        types: {
-          originalStart: typeof initialData.startDate,
-          originalEnd: typeof initialData.endDate,
-          formattedStart: typeof formattedStartDate,
-          formattedEnd: typeof formattedEndDate
-        }
+      console.log("Setting formatted dates:", {
+        original: { due: initialData.dueDate, start: initialData.startDate, end: initialData.endDate },
+        formatted: { due: formattedDueDate, start: formattedStartDate, end: formattedEndDate }
       });
 
       setDueDate(formattedDueDate);
+      // Ensure state can be null
       setStartDate(formattedStartDate);
       setEndDate(formattedEndDate);
-
-      console.log("Form state updated - dates set to:", {
-        startDate: formattedStartDate,
-        endDate: formattedEndDate
-      });
-    } else {
-      console.log("No initial data provided or empty object, using defaults");
     }
   }, [initialData]); // Remove the ID dependency to ensure all updates trigger
-
-  // Debug effect to track state changes
-  useEffect(() => {
-    console.log("Form state changed - current values:", {
-      startDate,
-      endDate,
-      isRecurring
-    });
-  }, [startDate, endDate, isRecurring]);
 
   return {
     title,

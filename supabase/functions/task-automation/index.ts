@@ -41,12 +41,20 @@ serve(async (req) => {
       console.log(`Marked ${overdueTasks.length} tasks as overdue`)
     }
 
-    // 2. Handle recurring tasks - Use the database function for completed tasks
+    // 2. Handle recurring tasks - Only create next task when current one is completed
     const { data: completedRecurringTasks, error: recurringError } = await supabase
       .from('tasks')
-      .select('id, title, is_recurring, parent_task_id')
+      .select(`
+        id, title, description, department, priority, assignee,
+        is_recurring, recurring_frequency, start_date, end_date,
+        is_customer_related, customer_name, attachments_required,
+        due_date, status
+      `)
       .eq('status', 'completed')
-      .or('is_recurring.eq.true,parent_task_id.not.is.null')
+      .eq('is_recurring', true)
+      .not('recurring_frequency', 'is', null)
+      .not('start_date', 'is', null)
+      .not('end_date', 'is', null)
 
     if (recurringError) {
       console.error('Error fetching completed recurring tasks:', recurringError)
@@ -56,20 +64,57 @@ serve(async (req) => {
 
       for (const task of completedRecurringTasks) {
         try {
-          // Use the database function to generate next recurring task
-          const { data: newTaskId, error: generateError } = await supabase
-            .rpc('generate_next_recurring_task', { 
-              completed_task_id: task.id 
-            })
+          // Check if next task already exists
+          const { data: existingNextTask } = await supabase
+            .from('tasks')
+            .select('id')
+            .eq('recurring_parent_id', task.id)
+            .eq('status', 'not-started')
+            .limit(1)
 
-          if (generateError) {
-            console.error(`Error generating next task for ${task.title}:`, generateError)
-            results.errors.push(`Generate error for ${task.title}: ${generateError.message}`)
-          } else if (newTaskId) {
-            results.recurringCreated++
-            console.log(`Generated new recurring task ${newTaskId} for completed task ${task.title}`)
+          if (existingNextTask && existingNextTask.length > 0) {
+            console.log(`Next task already exists for ${task.title}, skipping`)
+            continue
+          }
+
+          // Calculate next due date
+          const currentDueDate = new Date(task.due_date)
+          const nextDueDate = getNextDate(currentDueDate, task.recurring_frequency)
+          const endDate = new Date(task.end_date)
+
+          // Only create if next date is within the end date
+          if (nextDueDate <= endDate) {
+            const nextDateStr = nextDueDate.toISOString().split('T')[0]
+            
+            const newTask = {
+              title: `${task.title} (${formatDate(nextDueDate)})`,
+              description: task.description,
+              department: task.department,
+              priority: task.priority,
+              due_date: nextDateStr,
+              assignee: task.assignee,
+              is_recurring: false, // Individual instances are not recurring
+              is_customer_related: task.is_customer_related,
+              customer_name: task.customer_name,
+              attachments_required: task.attachments_required,
+              status: 'not-started',
+              approval_status: 'approved',
+              recurring_parent_id: task.id
+            }
+
+            const { error: createError } = await supabase
+              .from('tasks')
+              .insert(newTask)
+
+            if (createError) {
+              console.error(`Error creating next task for ${task.title}:`, createError)
+              results.errors.push(`Create error for ${task.title}: ${createError.message}`)
+            } else {
+              results.recurringCreated++
+              console.log(`Created next task for ${task.title} with due date ${nextDateStr}`)
+            }
           } else {
-            console.log(`No new task generated for ${task.title} (might be beyond end date or not due yet)`)
+            console.log(`Next date ${nextDueDate.toISOString()} is beyond end date ${task.end_date} for ${task.title}`)
           }
         } catch (taskError) {
           console.error(`Error processing task ${task.id}:`, taskError)
@@ -99,3 +144,42 @@ serve(async (req) => {
     })
   }
 })
+
+// Helper function to calculate next date
+function getNextDate(currentDate: Date, frequency: string): Date {
+  const date = new Date(currentDate)
+  
+  switch (frequency) {
+    case 'daily':
+      date.setDate(date.getDate() + 1)
+      break
+    case 'weekly':
+      date.setDate(date.getDate() + 7)
+      break
+    case 'bi-weekly':
+      date.setDate(date.getDate() + 14)
+      break
+    case 'monthly':
+      date.setMonth(date.getMonth() + 1)
+      break
+    case 'quarterly':
+      date.setMonth(date.getMonth() + 3)
+      break
+    case 'annually':
+      date.setFullYear(date.getFullYear() + 1)
+      break
+    default:
+      date.setDate(date.getDate() + 7) // default to weekly
+  }
+  
+  return date
+}
+
+// Helper function to format date for display
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: '2-digit', 
+    year: 'numeric' 
+  })
+}

@@ -22,7 +22,7 @@ interface TaskUpdatePayload {
   assignee: string | null;
   status?: 'not-started' | 'in-progress' | 'completed' | 'overdue';
   comments?: string | null;
-  original_task_name?: string | null;
+  original_task_name?: string | null; // New field
 }
 
 export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) => {
@@ -77,6 +77,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         formatted: { due: formattedDueDate, start: formattedStartDate, end: formattedEndDate }
       });
       
+      // assignee is already properly converted at the form level
       const assigneeValue = updatedTask.assignee === "unassigned" ? null : updatedTask.assignee;
       
       // Create the update payload with proper typing and formatted dates
@@ -96,12 +97,13 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         assignee: assigneeValue,
         status: updatedTask.status,
         comments: updatedTask.comments || null,
+        // Update original_task_name for recurring tasks
         original_task_name: updatedTask.isRecurring ? (updatedTask.originalTaskName || updatedTask.title) : null
       };
       
       console.log("Final update payload with enhanced recurring fields:", updatePayload);
 
-      // Update the task - the database trigger will handle recurring task generation
+      // Update the task with the properly constructed payload
       const { data, error } = await supabase
         .from('tasks')
         .update(updatePayload)
@@ -129,7 +131,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       // Show appropriate success message based on status change
       let successMessage = `Task "${updatedTask.title}" has been updated successfully.`;
       if (originalTask.status !== 'completed' && updatedTask.status === 'completed') {
-        successMessage += ' Database trigger will automatically generate the next recurring instance if applicable.';
+        successMessage += ' New recurring instance will be generated automatically if applicable.';
       }
 
       toast({
