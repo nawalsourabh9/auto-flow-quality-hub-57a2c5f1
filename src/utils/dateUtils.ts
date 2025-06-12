@@ -25,6 +25,10 @@ export const formatDateForInput = (dateValue: string | Date | null | undefined):
       else if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
         date = parse(dateValue, "yyyy-MM-dd", new Date());
       }
+      // Handle timestamp format (PostgreSQL timestamp without timezone)
+      else if (dateValue.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)) {
+        date = parse(dateValue, "yyyy-MM-dd HH:mm:ss", new Date());
+      }
       // Handle other date string formats
       else {
         date = new Date(dateValue);
@@ -38,7 +42,9 @@ export const formatDateForInput = (dateValue: string | Date | null | undefined):
       return null; // Return null for invalid dates
     }
 
-    return format(date, "yyyy-MM-dd");
+    const result = format(date, "yyyy-MM-dd");
+    console.log("formatDateForInput:", { input: dateValue, output: result });
+    return result;
   } catch (error) {
     console.error("Error formatting date:", error, "Input:", dateValue);
     return null; // Return null on error
@@ -61,6 +67,12 @@ export const parseInputDate = (dateStr: string): Date | undefined => {
     // If it's an ISO string
     if (dateStr.includes('T')) {
       const parsedDate = parseISO(dateStr);
+      return isValid(parsedDate) ? parsedDate : undefined;
+    }
+    
+    // Handle timestamp format
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)) {
+      const parsedDate = parse(dateStr, "yyyy-MM-dd HH:mm:ss", new Date());
       return isValid(parsedDate) ? parsedDate : undefined;
     }
     
