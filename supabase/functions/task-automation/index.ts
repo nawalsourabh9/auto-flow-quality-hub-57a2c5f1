@@ -29,22 +29,16 @@ serve(async (req) => {
     const istNow = new Date(now.getTime() + istOffset)
     const today = istNow.toISOString().split('T')[0]
     
-    console.log('Current IST date:', today)
-
-    // 1. Mark overdue tasks
-    const { data: overdueTasks, error: overdueError } = await supabase
-      .from('tasks')
-      .update({ status: 'overdue' })
-      .lt('due_date', today)
-      .in('status', ['not-started', 'in-progress'])
-      .select('id, title')
+    console.log('Current IST date:', today)    // 1. Mark overdue tasks using smart frequency-based logic
+    const { data: overdueResult, error: overdueError } = await supabase
+      .rpc('mark_tasks_overdue')
 
     if (overdueError) {
       console.error('Error updating overdue tasks:', overdueError)
       results.errors.push(`Overdue update error: ${overdueError.message}`)
-    } else if (overdueTasks) {
-      results.overdueUpdated = overdueTasks.length
-      console.log(`Marked ${overdueTasks.length} tasks as overdue`)
+    } else if (overdueResult) {
+      results.overdueUpdated = overdueResult
+      console.log(`Marked ${overdueResult} tasks as overdue using smart frequency logic`)
     }
 
     // 2. Handle recurring tasks - Find completed tasks that might need processing
