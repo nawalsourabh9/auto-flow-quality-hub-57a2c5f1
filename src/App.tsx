@@ -4,8 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import MainLayout from "@/components/layout/MainLayout";
+import { AuthProvider } from "@/providers/AuthProvider";
+import { MainLayout } from "@/components/layout/MainLayout";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
@@ -29,17 +29,15 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="tasks" element={<Tasks />} />
-              <Route path="documents" element={<Documents />} />
-              <Route path="audits" element={<Audits />} />
-              <Route path="non-conformance" element={<NonConformance />} />
-              <Route path="team" element={<TeamMembers />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="automation-test" element={<TaskAutomationTest />} />
-            </Route>
+            <Route path="/" element={<MainLayout><Navigate to="/dashboard" replace /></MainLayout>} />
+            <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
+            <Route path="/tasks" element={<MainLayout><Tasks /></MainLayout>} />
+            <Route path="/documents" element={<MainLayout><Documents /></MainLayout>} />
+            <Route path="/audits" element={<MainLayout><Audits /></MainLayout>} />
+            <Route path="/non-conformance" element={<MainLayout><NonConformance /></MainLayout>} />
+            <Route path="/team" element={<MainLayout><TeamMembers /></MainLayout>} />
+            <Route path="/settings" element={<MainLayout><Settings /></MainLayout>} />
+            <Route path="/automation-test" element={<MainLayout><TaskAutomationTest /></MainLayout>} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
