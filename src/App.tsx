@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { NotificationsProvider } from "@/hooks/use-notifications";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
@@ -23,23 +24,25 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/" element={<MainLayout><Navigate to="/dashboard" replace /></MainLayout>} />
-            <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
-            <Route path="/tasks" element={<MainLayout><Tasks /></MainLayout>} />
-            <Route path="/documents" element={<MainLayout><Documents /></MainLayout>} />
-            <Route path="/audits" element={<MainLayout><Audits /></MainLayout>} />
-            <Route path="/non-conformance" element={<MainLayout><NonConformance /></MainLayout>} />
-            <Route path="/team" element={<MainLayout><TeamMembers /></MainLayout>} />
-            <Route path="/settings" element={<MainLayout><Settings /></MainLayout>} />
-            <Route path="/automation-test" element={<MainLayout><TaskAutomationTest /></MainLayout>} />
-          </Routes>
-        </BrowserRouter>
+        <NotificationsProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/" element={<MainLayout><Navigate to="/dashboard" replace /></MainLayout>} />
+              <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
+              <Route path="/tasks" element={<MainLayout><Tasks /></MainLayout>} />
+              <Route path="/documents" element={<MainLayout><Documents /></MainLayout>} />
+              <Route path="/audits" element={<MainLayout><Audits /></MainLayout>} />
+              <Route path="/non-conformance" element={<MainLayout><NonConformance /></MainLayout>} />
+              <Route path="/team" element={<MainLayout><TeamMembers /></MainLayout>} />
+              <Route path="/settings" element={<MainLayout><Settings /></MainLayout>} />
+              <Route path="/automation-test" element={<MainLayout><TaskAutomationTest /></MainLayout>} />
+            </Routes>
+          </BrowserRouter>
+        </NotificationsProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
