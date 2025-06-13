@@ -49,7 +49,7 @@ export const useTaskAutomation = () => {
       console.log('Running background task automation...');
       
       // Run the automation function (no toast for background operations)
-      const { data, error } = await supabase.rpc('run_task_automation');
+      const { data, error } = await supabase.functions.invoke('task-automation');
       
       if (error) {
         console.error('Background automation error:', error);
