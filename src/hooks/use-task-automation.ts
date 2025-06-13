@@ -25,7 +25,9 @@ export const useTaskAutomation = () => {
           variant: "destructive"
         });
         return;
-      }      console.log("Automation result:", data);
+      }
+      
+      console.log("Automation result:", data);
       toast({
         title: "Success",
         description: "Task automation completed successfully"
@@ -48,8 +50,10 @@ export const useTaskAutomation = () => {
     try {
       console.log('Running background task automation...');
       
-      // Run the automation function (no toast for background operations)
-      const { data, error } = await supabase.rpc('run_task_automation');
+      // Call the Edge Function instead of RPC for consistency
+      const { data, error } = await supabase.functions.invoke('task-automation', {
+        body: { automated: true }
+      });
       
       if (error) {
         console.error('Background automation error:', error);
