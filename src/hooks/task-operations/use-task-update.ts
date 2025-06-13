@@ -31,7 +31,8 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
 
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
-      console.log("Task update: Starting with task ID:", updatedTask.id);
+      console.log("useTaskUpdate: Starting task update with task ID:", updatedTask.id);
+      console.log("useTaskUpdate: Task object keys:", Object.keys(updatedTask));
       
       // Get original task data to compare changes
       const { data: originalTaskData, error: fetchError } = await supabase
@@ -45,14 +46,23 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         throw fetchError;
       }
 
-      // Format dates consistently - ensure they're proper date strings, not intervals
+      // Format all dates consistently as YYYY-MM-DD strings
       const formattedDueDate = updatedTask.dueDate ? formatDateForInput(updatedTask.dueDate) : null;
       const formattedStartDate = updatedTask.startDate ? formatDateForInput(updatedTask.startDate) : null;
       const formattedEndDate = updatedTask.endDate ? formatDateForInput(updatedTask.endDate) : null;
       
-      // Create update payload with only changed fields
+      console.log("useTaskUpdate: Formatted dates for database:", {
+        original: { due: updatedTask.dueDate, start: updatedTask.startDate, end: updatedTask.endDate },
+        formatted: { due: formattedDueDate, start: formattedStartDate, end: formattedEndDate }
+      });
+      
+      // Ensure assignee is properly converted
+      const assigneeValue = updatedTask.assignee === "unassigned" ? null : updatedTask.assignee;
+      
+      // Create a minimal update payload with only the fields that can be updated
       const updatePayload: TaskUpdatePayload = {};
       
+      // Only include fields that have actually changed and are safe to update
       if (updatedTask.title !== originalTaskData.title) {
         updatePayload.title = updatedTask.title;
       }
@@ -73,7 +83,6 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         updatePayload.due_date = formattedDueDate;
       }
       
-      const assigneeValue = updatedTask.assignee === "unassigned" ? null : updatedTask.assignee;
       if (assigneeValue !== originalTaskData.assignee) {
         updatePayload.assignee = assigneeValue;
       }
@@ -90,10 +99,10 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         updatePayload.attachments_required = updatedTask.attachmentsRequired;
       }
       
-      // Handle recurring task fields - ensure no invalid date formats
       if (Boolean(updatedTask.isRecurring) !== Boolean(originalTaskData.is_recurring)) {
         updatePayload.is_recurring = Boolean(updatedTask.isRecurring);
         
+        // Only update recurring-related fields if the task is recurring
         if (updatedTask.isRecurring) {
           updatePayload.recurring_frequency = updatedTask.recurringFrequency || null;
           updatePayload.start_date = formattedStartDate;
@@ -106,6 +115,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
           updatePayload.original_task_name = null;
         }
       } else if (updatedTask.isRecurring) {
+        // Update recurring fields if they changed
         if (updatedTask.recurringFrequency !== originalTaskData.recurring_frequency) {
           updatePayload.recurring_frequency = updatedTask.recurringFrequency || null;
         }
@@ -117,7 +127,6 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         }
       }
       
-      // Handle customer related fields
       if (Boolean(updatedTask.isCustomerRelated) !== Boolean(originalTaskData.is_customer_related)) {
         updatePayload.is_customer_related = Boolean(updatedTask.isCustomerRelated);
         updatePayload.customer_name = updatedTask.isCustomerRelated ? (updatedTask.customerName || null) : null;
@@ -125,11 +134,11 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         updatePayload.customer_name = updatedTask.customerName || null;
       }
       
-      console.log("Task update: Payload with changed fields:", updatePayload);
+      console.log("useTaskUpdate: Final update payload (only changed fields):", updatePayload);
 
-      // Only proceed if there are actual changes
+      // Only proceed with update if there are actual changes
       if (Object.keys(updatePayload).length === 0) {
-        console.log("Task update: No changes detected");
+        console.log("useTaskUpdate: No changes detected, skipping database update");
         toast({
           title: "No Changes",
           description: "No changes were detected in the task.",
@@ -138,7 +147,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         return;
       }
 
-      // Update the task
+      // Update the task with the minimal payload
       const { data, error } = await supabase
         .from('tasks')
         .update(updatePayload)
@@ -146,62 +155,67 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         .select();
 
       if (error) {
-        console.error("Task update: Database error:", error);
+        console.error("useTaskUpdate: Database update error:", error);
         throw error;
       }
 
-      console.log("Task update: Successfully updated:", data);
+      console.log("useTaskUpdate: Task updated successfully:", data);
 
-      // Handle completion and recurring task generation
-      const statusChangedToCompleted = originalTaskData.status !== 'completed' && updatedTask.status === 'completed';
-      
-      if (statusChangedToCompleted) {
-        console.log("Task update: Status changed to completed, attempting recurring generation");
+      // Check if status changed to completed and handle recurring task generation IMMEDIATELY
+      if (originalTaskData.status !== 'completed' && updatedTask.status === 'completed') {
+        console.log("useTaskUpdate: Task marked as completed, generating recurring task immediately");
         
+        // Only try to generate next recurring task if this is a recurring task or task instance
         const isRecurringCandidate = originalTaskData.is_recurring || originalTaskData.parent_task_id;
         
         if (isRecurringCandidate) {
+          console.log("useTaskUpdate: Calling generate_next_recurring_task immediately");
+          
           try {
-            console.log("Task update: Calling generate_next_recurring_task");
-            
+            // Call the function immediately without timeout
             const { data: newTaskId, error: recurringError } = await supabase
               .rpc('generate_next_recurring_task', { completed_task_id: updatedTask.id });
 
             if (recurringError) {
-              console.error("Task update: Recurring generation error:", recurringError);
+              console.error("useTaskUpdate: Recurring generation error:", recurringError);
               toast({
                 title: "Warning",
-                description: `Task updated but recurring generation failed: ${recurringError.message}`,
+                description: `Task updated but recurring task generation failed: ${recurringError.message}`,
                 variant: "destructive"
               });
             } else if (newTaskId) {
-              console.log("Task update: Generated new recurring task:", newTaskId);
+              console.log("useTaskUpdate: Generated new recurring task immediately:", newTaskId);
               toast({
                 title: "Success",
-                description: "Task completed and new recurring instance generated!",
+                description: `Task completed and new recurring instance generated!`,
               });
+              // Refresh the tasks list immediately to show the new task
+              await queryClient.invalidateQueries({ queryKey: ['tasks'] });
             } else {
-              console.log("Task update: No new recurring task generated (conditions not met)");
+              console.log("useTaskUpdate: No new recurring task generated (conditions not met)");
               toast({
-                title: "Task Completed",
+                title: "Task Updated",
                 description: "Task marked as completed.",
               });
             }
+            
           } catch (recurringError) {
-            console.error("Task update: Exception in recurring generation:", recurringError);
+            console.error("useTaskUpdate: Exception in recurring generation:", recurringError);
             toast({
               title: "Warning", 
-              description: "Task updated but recurring generation encountered an error",
+              description: "Task updated but recurring task generation encountered an error",
               variant: "destructive"
             });
           }
         } else {
+          console.log("useTaskUpdate: Task is not recurring, no generation needed");
           toast({
-            title: "Task Completed",
+            title: "Task Updated",
             description: "Task marked as completed.",
           });
         }
       } else {
+        // Show normal success message for non-completion updates
         toast({
           title: "Task Updated",
           description: `Task "${updatedTask.title}" has been updated successfully.`
@@ -210,16 +224,16 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
       
       // Process document uploads if any
       if (updatedTask.documents && updatedTask.documents.length > 0) {
-        console.log("Task update: Processing document uploads");
+        console.log("useTaskUpdate: Processing document uploads");
         await processTaskDocuments(updatedTask.id, updatedTask.documents);
       }
 
-      // Refresh the tasks list
+      // Invalidate the tasks query to refetch data
       await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+
       setIsEditDialogOpen(false);
-      
     } catch (error: any) {
-      console.error('Task update failed:', error);
+      console.error('useTaskUpdate: Task update failed:', error);
       toast({
         title: "Error",
         description: `Failed to update task: ${error.message || 'Unknown error'}`,
