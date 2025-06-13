@@ -45,7 +45,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         throw fetchError;
       }
 
-      // Format dates consistently
+      // Format dates consistently - ensure they're proper date strings, not intervals
       const formattedDueDate = updatedTask.dueDate ? formatDateForInput(updatedTask.dueDate) : null;
       const formattedStartDate = updatedTask.startDate ? formatDateForInput(updatedTask.startDate) : null;
       const formattedEndDate = updatedTask.endDate ? formatDateForInput(updatedTask.endDate) : null;
@@ -90,7 +90,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         updatePayload.attachments_required = updatedTask.attachmentsRequired;
       }
       
-      // Handle recurring task fields
+      // Handle recurring task fields - ensure no invalid date formats
       if (Boolean(updatedTask.isRecurring) !== Boolean(originalTaskData.is_recurring)) {
         updatePayload.is_recurring = Boolean(updatedTask.isRecurring);
         

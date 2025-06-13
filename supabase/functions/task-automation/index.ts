@@ -23,13 +23,13 @@ serve(async (req) => {
       errors: []
     }
 
-    // Get current date
+    // Get current date in YYYY-MM-DD format
     const now = new Date()
     const today = now.toISOString().split('T')[0]
     
     console.log('Current date:', today)
 
-    // 1. Mark overdue tasks
+    // 1. Mark overdue tasks - using proper date comparison
     const { data: overdueTasks, error: overdueError } = await supabase
       .from('tasks')
       .update({ status: 'overdue' })
@@ -45,15 +45,14 @@ serve(async (req) => {
       console.log(`Marked ${overdueTasks.length} tasks as overdue`)
     }
 
-    // 2. Handle recurring tasks - Find completed tasks
+    // 2. Handle recurring tasks - Find completed tasks that might generate new instances
     const { data: completedTasks, error: completedError } = await supabase
       .from('tasks')
       .select(`
         id, title, description, department, priority, assignee,
         is_recurring, recurring_frequency, start_date, end_date,
         is_customer_related, customer_name, attachments_required,
-        due_date, status, parent_task_id, original_task_name,
-        recurrence_count_in_period
+        due_date, status, parent_task_id, original_task_name
       `)
       .eq('status', 'completed')
 
