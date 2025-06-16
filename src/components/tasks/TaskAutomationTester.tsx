@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,24 +44,41 @@ export const TaskAutomationTester = () => {
       i === index ? { ...result, status, message, count } : result
     ));
   };
+
   const testMarkOverdue = async () => {
     updateResult(0, 'running', 'Marking overdue tasks...');
     try {
-      console.log('Testing Supabase connection...');
-      console.log('Supabase URL:', supabase.supabaseUrl);
-      console.log('User session:', await supabase.auth.getSession());
+      console.log('Testing mark overdue functionality...');
+      
+      // Check authentication first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error('Authentication required');
+      }
+      
+      if (!session) {
+        throw new Error('User not authenticated');
+      }
+      
+      console.log('User authenticated, calling RPC...');
       
       const { data, error } = await supabase.rpc('mark_tasks_overdue');
       console.log('RPC Response:', { data, error });
       
-      if (error) throw error;
-      updateResult(0, 'success', `✅ Marked ${data} tasks overdue`, typeof data === 'number' ? data : Number(data));
+      if (error) {
+        console.error('RPC Error details:', error);
+        throw new Error(error.message || 'Failed to mark tasks overdue');
+      }
+      
+      const count = typeof data === 'number' ? data : Number(data) || 0;
+      updateResult(0, 'success', `✅ Marked ${count} tasks overdue`, count);
       toast({ 
         title: "Success", 
-        description: `${data} tasks marked as overdue` 
+        description: `${count} tasks marked as overdue` 
       });
     } catch (error: any) {
-      console.error('RPC Error:', error);
+      console.error('Mark overdue error:', error);
       updateResult(0, 'error', `❌ ${error.message}`);
       toast({ 
         title: "Error", 
@@ -73,15 +91,31 @@ export const TaskAutomationTester = () => {
   const generateRecurringTasks = async () => {
     updateResult(1, 'running', 'Generating recurring tasks...');
     try {
+      console.log('Starting recurring task generation...');
+      
+      // Check authentication first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error('Authentication required');
+      }
+      
+      if (!session) {
+        throw new Error('User not authenticated');
+      }
+      
       // Find completed recurring tasks
       const { data: completedTasks, error: findError } = await supabase
         .from('tasks')
-        .select('id, title, is_recurring, parent_task_id')
+        .select('id, title, is_recurring, parent_task_id, status')
         .eq('status', 'completed')
         .or('is_recurring.eq.true,parent_task_id.not.is.null')
         .limit(10);
 
-      if (findError) throw findError;
+      if (findError) {
+        console.error('Query error:', findError);
+        throw new Error(findError.message || 'Failed to fetch completed tasks');
+      }
 
       if (!completedTasks || completedTasks.length === 0) {
         updateResult(1, 'error', '❌ No completed recurring tasks found');
@@ -93,12 +127,16 @@ export const TaskAutomationTester = () => {
         return;
       }
 
+      console.log(`Found ${completedTasks.length} completed tasks to process`);
+
       let generatedCount = 0;
       let processedCount = 0;
 
       for (const task of completedTasks) {
         try {
           processedCount++;
+          console.log(`Processing task ${task.id}: ${task.title}`);
+          
           const { data: newTaskId, error: genError } = await supabase
             .rpc('generate_next_recurring_task', { completed_task_id: task.id });
           
@@ -124,6 +162,7 @@ export const TaskAutomationTester = () => {
         description: `Generated ${generatedCount} new recurring tasks from ${processedCount} completed tasks` 
       });
     } catch (error: any) {
+      console.error('Generate recurring tasks error:', error);
       updateResult(1, 'error', `❌ ${error.message}`);
       toast({ 
         title: "Error", 
@@ -136,9 +175,25 @@ export const TaskAutomationTester = () => {
   const runFullAutomation = async () => {
     updateResult(2, 'running', 'Running full automation...');
     try {
+      console.log('Starting full automation...');
+      
+      // Check authentication first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error('Authentication required');
+      }
+      
+      if (!session) {
+        throw new Error('User not authenticated');
+      }
+      
       // Run overdue check first
       const { data: overdueCount, error: overdueError } = await supabase.rpc('mark_tasks_overdue');
-      if (overdueError) throw overdueError;
+      if (overdueError) {
+        console.error('Overdue marking error:', overdueError);
+        throw new Error(overdueError.message || 'Failed to mark overdue tasks');
+      }
 
       // Run recurring generation
       const { data: completedTasks } = await supabase
@@ -157,16 +212,19 @@ export const TaskAutomationTester = () => {
             if (newTaskId) generatedCount++;
           } catch (err) {
             // Silent fail for individual tasks that don't meet generation criteria
+            console.log('Individual task generation skipped:', err);
           }
         }
       }
 
-      updateResult(2, 'success', `✅ Overdue: ${overdueCount}, Generated: ${generatedCount}`, (typeof overdueCount === 'number' ? overdueCount : Number(overdueCount)) + generatedCount);
+      const totalOverdue = typeof overdueCount === 'number' ? overdueCount : Number(overdueCount) || 0;
+      updateResult(2, 'success', `✅ Overdue: ${totalOverdue}, Generated: ${generatedCount}`, totalOverdue + generatedCount);
       toast({ 
         title: "Full Automation Complete", 
-        description: `Marked ${overdueCount} overdue tasks, generated ${generatedCount} new recurring tasks` 
+        description: `Marked ${totalOverdue} overdue tasks, generated ${generatedCount} new recurring tasks` 
       });
     } catch (error: any) {
+      console.error('Full automation error:', error);
       updateResult(2, 'error', `❌ ${error.message}`);
       toast({ 
         title: "Error", 
