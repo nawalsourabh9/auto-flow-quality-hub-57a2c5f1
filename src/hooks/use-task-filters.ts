@@ -40,6 +40,17 @@ export const useTaskFilters = (tasks: Task[]) => {
     return Array.from(membersMap.values());
   }, [tasks]);
 
+  // Create a map of parent tasks for quick lookup
+  const parentTasksMap = useMemo(() => {
+    const map = new Map<string, Task>();
+    tasks.forEach(task => {
+      if (!task.parentTaskId) { // This is a parent task
+        map.set(task.id, task);
+      }
+    });
+    return map;
+  }, [tasks]);
+
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
       // Search term filter
@@ -64,10 +75,23 @@ export const useTaskFilters = (tasks: Task[]) => {
       const matchesDueDate = !dueDateFilter || 
         (task.dueDate && isSameDay(new Date(task.dueDate), dueDateFilter));
       
-      // Frequency filter
-      const matchesFrequency = !frequencyFilter || 
-        (frequencyFilter === "non-recurring" ? !task.isRecurring : 
-         task.recurringFrequency === frequencyFilter);
+      // Enhanced Frequency filter - check both task's frequency and parent's frequency
+      let matchesFrequency = true;
+      if (frequencyFilter) {
+        if (frequencyFilter === "non-recurring") {
+          // Show only non-recurring tasks (no parent and not recurring)
+          matchesFrequency = !task.isRecurring && !task.parentTaskId;
+        } else {
+          // For specific frequencies, check:
+          // 1. If it's a parent recurring task with matching frequency
+          // 2. If it's an instance whose parent has matching frequency
+          const taskFrequency = task.recurringFrequency;
+          const parentTask = task.parentTaskId ? parentTasksMap.get(task.parentTaskId) : null;
+          const parentFrequency = parentTask?.recurringFrequency;
+          
+          matchesFrequency = taskFrequency === frequencyFilter || parentFrequency === frequencyFilter;
+        }
+      }
       
       return matchesSearch && 
              matchesStatus && 
@@ -77,7 +101,7 @@ export const useTaskFilters = (tasks: Task[]) => {
              matchesDueDate &&
              matchesFrequency;
     });
-  }, [tasks, searchTerm, statusFilter, priorityFilter, departmentFilter, assigneeFilter, dueDateFilter, frequencyFilter]);
+  }, [tasks, searchTerm, statusFilter, priorityFilter, departmentFilter, assigneeFilter, dueDateFilter, frequencyFilter, parentTasksMap]);
 
   return {
     searchTerm,
