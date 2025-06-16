@@ -831,8 +831,7 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-    }
+      }    }
     Views: {
       [_ in never]: never
     }
@@ -848,6 +847,10 @@ export type Database = {
       has_role: {
         Args: { user_id: string; role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
+      }
+      mark_tasks_overdue: {
+        Args: Record<string, never>
+        Returns: number
       }
       update_profile: {
         Args: {
