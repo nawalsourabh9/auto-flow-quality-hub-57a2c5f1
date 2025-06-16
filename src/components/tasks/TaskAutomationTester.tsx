@@ -258,7 +258,38 @@ export const TaskAutomationTester = () => {
         title: "Error", 
         description: error.message, 
         variant: "destructive" 
+      });    }
+  };
+
+  const refreshSession = async () => {
+    try {
+      console.log('Manually refreshing session...');
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('Session refresh failed:', error);
+        toast({ 
+          title: "Session Refresh Failed", 
+          description: "Please log out and log in again",
+          variant: "destructive" 
+        });
+        return false;
+      }
+      
+      console.log('Session refreshed successfully:', data);
+      toast({ 
+        title: "Session Refreshed", 
+        description: "Authentication updated successfully" 
       });
+      return true;
+    } catch (error) {
+      console.error('Session refresh error:', error);
+      toast({ 
+        title: "Refresh Error", 
+        description: "Unable to refresh session",
+        variant: "destructive" 
+      });
+      return false;
     }
   };
 
@@ -334,6 +365,9 @@ export const TaskAutomationTester = () => {
       </PopoverTrigger>
       <PopoverContent className="w-80" align="end">
         <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Task Automation Tester</h3>
+          </div>
           <div className="text-sm font-medium flex items-center gap-2">
             <TestTube className="h-4 w-4" />
             Task Automation Testing
@@ -371,9 +405,7 @@ export const TaskAutomationTester = () => {
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="pt-2 border-t space-y-2">
+          </div>          <div className="pt-2 border-t space-y-2">
             <Button 
               onClick={() => testFunctions.forEach(fn => fn())}
               className="w-full h-7 text-xs"
@@ -383,14 +415,23 @@ export const TaskAutomationTester = () => {
               Run All Tests
             </Button>
             
-            <Button 
-              onClick={resetResults}
-              variant="outline"
-              className="w-full h-7 text-xs"
-            >
-              <RotateCcw className="h-3 w-3 mr-1" />
-              Reset Results
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={refreshSession}
+                variant="outline"
+                className="flex-1 h-7 text-xs"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Refresh Session
+              </Button>
+                <Button 
+                onClick={resetResults}
+                variant="outline"
+                className="flex-1 h-7 text-xs"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Reset Results
+              </Button>            </div>
           </div>
 
           <div className="text-xs text-muted-foreground">
