@@ -831,7 +831,8 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }    }
+      }
+    }
     Views: {
       [_ in never]: never
     }
@@ -849,8 +850,12 @@ export type Database = {
         Returns: boolean
       }
       mark_tasks_overdue: {
-        Args: Record<string, never>
+        Args: Record<PropertyKey, never>
         Returns: number
+      }
+      run_task_automation: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       update_profile: {
         Args: {
