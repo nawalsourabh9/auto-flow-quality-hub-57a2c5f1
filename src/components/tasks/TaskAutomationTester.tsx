@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { 
   Popover, 
   PopoverContent, 
@@ -17,7 +17,8 @@ import {
   AlertCircle,
   Clock,
   RotateCcw,
-  Zap
+  Zap,
+  UserX
 } from 'lucide-react';
 
 interface TestResult {
@@ -32,6 +33,7 @@ interface TestResult {
 const SHOW_TESTING_MODE = true;
 
 export const TaskAutomationTester = () => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [results, setResults] = useState<TestResult[]>([
     { name: 'Mark Overdue', status: 'idle', message: 'Test overdue marking' },
@@ -39,29 +41,58 @@ export const TaskAutomationTester = () => {
     { name: 'Full Automation', status: 'idle', message: 'Run complete automation' }
   ]);
 
+  // Don't render if user is not authenticated
+  if (!user) {
+    return null;
+  }
+
   const updateResult = (index: number, status: TestResult['status'], message: string, count?: number) => {
     setResults(prev => prev.map((result, i) => 
       i === index ? { ...result, status, message, count } : result
     ));
   };
 
+  const checkAuthenticationBeforeExecution = async (): Promise<boolean> => {
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        toast({ 
+          title: "Authentication Error", 
+          description: "Please log in to use this feature",
+          variant: "destructive" 
+        });
+        return false;
+      }
+      
+      if (!session || !session.user) {
+        toast({ 
+          title: "Not Authenticated", 
+          description: "Please log in to use automation features",
+          variant: "destructive" 
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Auth check error:', error);
+      toast({ 
+        title: "Authentication Error", 
+        description: "Unable to verify authentication",
+        variant: "destructive" 
+      });
+      return false;
+    }
+  };
+
   const testMarkOverdue = async () => {
+    if (!(await checkAuthenticationBeforeExecution())) return;
+    
     updateResult(0, 'running', 'Marking overdue tasks...');
     try {
       console.log('Testing mark overdue functionality...');
-      
-      // Check authentication first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw new Error('Authentication required');
-      }
-      
-      if (!session) {
-        throw new Error('User not authenticated');
-      }
-      
-      console.log('User authenticated, calling RPC...');
       
       const { data, error } = await supabase.rpc('mark_tasks_overdue');
       console.log('RPC Response:', { data, error });
@@ -89,20 +120,11 @@ export const TaskAutomationTester = () => {
   };
 
   const generateRecurringTasks = async () => {
+    if (!(await checkAuthenticationBeforeExecution())) return;
+    
     updateResult(1, 'running', 'Generating recurring tasks...');
     try {
       console.log('Starting recurring task generation...');
-      
-      // Check authentication first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw new Error('Authentication required');
-      }
-      
-      if (!session) {
-        throw new Error('User not authenticated');
-      }
       
       // Find completed recurring tasks
       const { data: completedTasks, error: findError } = await supabase
@@ -173,20 +195,11 @@ export const TaskAutomationTester = () => {
   };
 
   const runFullAutomation = async () => {
+    if (!(await checkAuthenticationBeforeExecution())) return;
+    
     updateResult(2, 'running', 'Running full automation...');
     try {
       console.log('Starting full automation...');
-      
-      // Check authentication first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw new Error('Authentication required');
-      }
-      
-      if (!session) {
-        throw new Error('User not authenticated');
-      }
       
       // Run overdue check first
       const { data: overdueCount, error: overdueError } = await supabase.rpc('mark_tasks_overdue');
