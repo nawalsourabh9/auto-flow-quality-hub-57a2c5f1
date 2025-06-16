@@ -51,28 +51,43 @@ export const TaskAutomationTester = () => {
       i === index ? { ...result, status, message, count } : result
     ));
   };
-
   const checkAuthenticationBeforeExecution = async (): Promise<boolean> => {
     try {
+      // First check if user exists in our auth hook
+      console.log('Auth hook user:', user);
+      
+      // Check current Supabase session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Supabase session:', session);
+      console.log('Session error:', sessionError);
       
       if (sessionError) {
         console.error('Session error:', sessionError);
         toast({ 
           title: "Authentication Error", 
-          description: "Please log in to use this feature",
+          description: "Please refresh the page and log in again",
           variant: "destructive" 
         });
         return false;
       }
       
       if (!session || !session.user) {
-        toast({ 
-          title: "Not Authenticated", 
-          description: "Please log in to use automation features",
-          variant: "destructive" 
-        });
-        return false;
+        console.log('No valid session found');
+        
+        // Try to refresh the session
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        console.log('Refresh attempt:', { refreshData, refreshError });
+        
+        if (refreshError || !refreshData.session) {
+          toast({ 
+            title: "Session Expired", 
+            description: "Please log out and log in again to continue",
+            variant: "destructive" 
+          });
+          return false;
+        }
+        
+        console.log('Session refreshed successfully');
       }
 
       return true;
