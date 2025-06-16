@@ -43,11 +43,16 @@ export const TaskAutomationTester = () => {
       i === index ? { ...result, status, message, count } : result
     ));
   };
-
   const testMarkOverdue = async () => {
     updateResult(0, 'running', 'Marking overdue tasks...');
     try {
+      console.log('Testing Supabase connection...');
+      console.log('Supabase URL:', supabase.supabaseUrl);
+      console.log('User session:', await supabase.auth.getSession());
+      
       const { data, error } = await supabase.rpc('mark_tasks_overdue');
+      console.log('RPC Response:', { data, error });
+      
       if (error) throw error;
       updateResult(0, 'success', `✅ Marked ${data} tasks overdue`, typeof data === 'number' ? data : Number(data));
       toast({ 
@@ -55,6 +60,7 @@ export const TaskAutomationTester = () => {
         description: `${data} tasks marked as overdue` 
       });
     } catch (error: any) {
+      console.error('RPC Error:', error);
       updateResult(0, 'error', `❌ ${error.message}`);
       toast({ 
         title: "Error", 
