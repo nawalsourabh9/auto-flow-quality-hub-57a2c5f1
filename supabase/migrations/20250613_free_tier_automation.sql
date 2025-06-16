@@ -209,7 +209,7 @@ BEGIN
     END CASE;
     
     -- Check if beyond threshold
-    IF current_date_val > (task_record.due_date + overdue_threshold_days) THEN
+    IF current_date_val > (task_record.due_date + make_interval(days => overdue_threshold_days)) THEN
       UPDATE tasks SET status = 'overdue' WHERE id = task_record.id;
       updated_count := updated_count + 1;
     END IF;
