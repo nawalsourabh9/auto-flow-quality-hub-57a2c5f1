@@ -145,82 +145,79 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         });
         setIsEditDialogOpen(false);
         return;
-      }
-
-      // Update the task with the minimal payload
-      const { data, error } = await supabase
-        .from('tasks')
-        .update(updatePayload)
-        .eq('id', updatedTask.id)
-        .select();
-
-      if (error) {
-        console.error("useTaskUpdate: Database update error:", error);
-        throw error;
-      }
-
-      console.log("useTaskUpdate: Task updated successfully:", data);
-
-      // Check if status changed to completed and handle recurring task generation IMMEDIATELY
-      if (originalTaskData.status !== 'completed' && updatedTask.status === 'completed') {
-        console.log("useTaskUpdate: Task marked as completed, generating recurring task immediately");
+      }      // Check if status is changing to completed and this is a recurring task
+      const isMarkingAsCompleted = originalTaskData.status !== 'completed' && updatedTask.status === 'completed';
+      const isRecurringCandidate = originalTaskData.is_recurring || originalTaskData.parent_task_id;
+      
+      if (isMarkingAsCompleted && isRecurringCandidate) {
+        console.log("useTaskUpdate: Task being marked as completed, using secure completion function");
         
-        // Only try to generate next recurring task if this is a recurring task or task instance
-        const isRecurringCandidate = originalTaskData.is_recurring || originalTaskData.parent_task_id;
-        
-        if (isRecurringCandidate) {
-          console.log("useTaskUpdate: Calling generate_next_recurring_task immediately");
-          
-          try {
-            // Call the function immediately without timeout
-            const { data: newTaskId, error: recurringError } = await supabase
-              .rpc('generate_next_recurring_task', { completed_task_id: updatedTask.id });
+        try {
+          // Use the new secure wrapper function that handles both completion and recurring generation
+          const { data: result, error: recurringError } = await supabase
+            .rpc('complete_task_and_generate_next', { task_id: updatedTask.id });
 
-            if (recurringError) {
-              console.error("useTaskUpdate: Recurring generation error:", recurringError);
-              toast({
-                title: "Warning",
-                description: `Task updated but recurring task generation failed: ${recurringError.message}`,
-                variant: "destructive"
-              });
-            } else if (newTaskId) {
-              console.log("useTaskUpdate: Generated new recurring task immediately:", newTaskId);
+          if (recurringError) {
+            console.error("useTaskUpdate: Task completion error:", recurringError);
+            toast({
+              title: "Error",
+              description: `Task completion failed: ${recurringError.message}`,
+              variant: "destructive"
+            });
+            throw recurringError;
+          } else if (result?.success) {
+            if (result.new_recurring_task_id) {
+              console.log("useTaskUpdate: Generated new recurring task:", result.new_recurring_task_id);
               toast({
                 title: "Success",
                 description: `Task completed and new recurring instance generated!`,
               });
-              // Refresh the tasks list immediately to show the new task
-              await queryClient.invalidateQueries({ queryKey: ['tasks'] });
             } else {
-              console.log("useTaskUpdate: No new recurring task generated (conditions not met)");
+              console.log("useTaskUpdate: Task completed, no recurring generation needed");
               toast({
-                title: "Task Updated",
+                title: "Success",
                 description: "Task marked as completed.",
               });
             }
-            
-          } catch (recurringError) {
-            console.error("useTaskUpdate: Exception in recurring generation:", recurringError);
+            // Refresh the tasks list immediately to show the new task
+            await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          } else {
+            console.log("useTaskUpdate: Function returned false success");
             toast({
-              title: "Warning", 
-              description: "Task updated but recurring task generation encountered an error",
+              title: "Warning",
+              description: result?.message || "Task completion had issues",
               variant: "destructive"
             });
           }
-        } else {
-          console.log("useTaskUpdate: Task is not recurring, no generation needed");
+          
+        } catch (error) {
+          console.error("useTaskUpdate: Exception in recurring completion:", error);
           toast({
-            title: "Task Updated",
-            description: "Task marked as completed.",
+            title: "Error", 
+            description: "Task completion encountered an error",
+            variant: "destructive"
           });
+          throw error;
         }
       } else {
-        // Show normal success message for non-completion updates
+        // For non-completion updates, use the normal update process
+        const { data, error } = await supabase
+          .from('tasks')
+          .update(updatePayload)
+          .eq('id', updatedTask.id)
+          .select();
+
+        if (error) {
+          console.error("useTaskUpdate: Database update error:", error);
+          throw error;
+        }
+
+        console.log("useTaskUpdate: Task updated successfully:", data);
+        
         toast({
           title: "Task Updated",
           description: `Task "${updatedTask.title}" has been updated successfully.`
-        });
-      }
+        });      }
       
       // Process document uploads if any
       if (updatedTask.documents && updatedTask.documents.length > 0) {
@@ -228,8 +225,10 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         await processTaskDocuments(updatedTask.id, updatedTask.documents);
       }
 
-      // Invalidate the tasks query to refetch data
-      await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      // Invalidate the tasks query to refetch data (only if not already done above)
+      if (!(isMarkingAsCompleted && isRecurringCandidate)) {
+        await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      }
 
       setIsEditDialogOpen(false);
     } catch (error: any) {

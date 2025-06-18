@@ -157,24 +157,22 @@ const TaskRecurringDebugPanel = () => {
       }
 
       const testTask = completedTasks[0];
-      console.log("Testing recurring generation with task:", testTask);
-
-      const { data: newTaskId, error } = await supabase
-        .rpc('generate_next_recurring_task', { completed_task_id: testTask.id });
+      console.log("Testing recurring generation with task:", testTask);      const { data: result, error } = await supabase
+        .rpc('complete_task_and_generate_next', { task_id: testTask.id });
 
       if (error) {
         throw error;
       }
 
-      if (newTaskId) {
+      if (result?.success && result.new_recurring_task_id) {
         toast({
           title: "Test Successful",
-          description: `Generated new task ID: ${newTaskId}`
+          description: `Generated new task ID: ${result.new_recurring_task_id}`
         });
       } else {
         toast({
           title: "Test Result",
-          description: "No new task generated (conditions not met or duplicate prevented)"
+          description: result?.message || "No new task generated (conditions not met or duplicate prevented)"
         });
       }
 
