@@ -184,8 +184,8 @@ const TaskRecurringDebugPanel = () => {
         throw error;
       }
 
-      // Type assertion for the response
-      const typedResult = result as CompleteTaskResponse;
+      // Type assertion for the response - convert through unknown first
+      const typedResult = result as unknown as CompleteTaskResponse;
 
       if (typedResult?.success && typedResult.new_recurring_task_id) {
         toast({
