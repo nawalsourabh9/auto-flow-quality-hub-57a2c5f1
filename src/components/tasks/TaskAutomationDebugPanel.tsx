@@ -130,174 +130,22 @@ export const TaskAutomationDebugPanel = () => {
     } catch (error: any) {
       addLog(`💥 Test failed: ${error.message}`);
     }
-  };
-
-  const createCompatibilityFunctions = async () => {
+  };  const createCompatibilityFunctions = async () => {
     try {
       addLog("🔧 Creating compatibility functions...");
       
-      // Read the compatibility SQL file content
-      const compatibilitySQL = `
--- Compatibility functions for recurring task generation
-CREATE OR REPLACE FUNCTION complete_task_and_generate_next(task_id UUID)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    task_record tasks%ROWTYPE;
-    new_task_id UUID;
-    next_due_date DATE;
-    result JSONB;
-BEGIN
-    SELECT * INTO task_record FROM tasks WHERE id = task_id;
-    
-    IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'message', 'Task not found', 'completed_task_id', task_id, 'new_recurring_task_id', null);
-    END IF;
-    
-    IF task_record.status = 'completed' THEN
-        IF task_record.is_recurring = true OR task_record.parent_task_id IS NOT NULL THEN
-            IF task_record.recurring_frequency = 'daily' THEN
-                next_due_date := task_record.due_date + INTERVAL '1 day';
-            ELSIF task_record.recurring_frequency = 'weekly' THEN
-                next_due_date := task_record.due_date + INTERVAL '1 week';
-            ELSIF task_record.recurring_frequency = 'biweekly' THEN
-                next_due_date := task_record.due_date + INTERVAL '2 weeks';
-            ELSIF task_record.recurring_frequency = 'monthly' THEN
-                next_due_date := task_record.due_date + INTERVAL '1 month';
-            ELSIF task_record.recurring_frequency = 'quarterly' THEN
-                next_due_date := task_record.due_date + INTERVAL '3 months';
-            ELSIF task_record.recurring_frequency = 'annually' THEN
-                next_due_date := task_record.due_date + INTERVAL '1 year';
-            ELSE
-                next_due_date := NULL;
-            END IF;
-            
-            IF next_due_date IS NOT NULL AND next_due_date <= CURRENT_DATE THEN
-                INSERT INTO tasks (title, description, priority, department, assignee, status, due_date, is_recurring, recurring_frequency, parent_task_id, start_date, end_date, is_customer_related, customer_name, created_at, updated_at)
-                VALUES (task_record.title, task_record.description, task_record.priority, task_record.department, task_record.assignee, 'not-started', next_due_date, false, task_record.recurring_frequency, 
-                        CASE WHEN task_record.parent_task_id IS NOT NULL THEN task_record.parent_task_id ELSE task_record.id END,
-                        task_record.start_date, task_record.end_date, task_record.is_customer_related, task_record.customer_name, NOW(), NOW())
-                RETURNING id INTO new_task_id;
-                
-                RETURN jsonb_build_object('success', true, 'message', 'Task completed and new instance generated', 'completed_task_id', task_id, 'new_recurring_task_id', new_task_id);
-            ELSE
-                RETURN jsonb_build_object('success', true, 'message', 'Task completed, no new instance needed', 'completed_task_id', task_id, 'new_recurring_task_id', null);
-            END IF;
-        ELSE
-            RETURN jsonb_build_object('success', true, 'message', 'Task completed, not recurring', 'completed_task_id', task_id, 'new_recurring_task_id', null);
-        END IF;
-    ELSE
-        RETURN jsonb_build_object('success', false, 'message', 'Task is not completed', 'completed_task_id', task_id, 'new_recurring_task_id', null);
-    END IF;
-    
-EXCEPTION WHEN others THEN
-    RETURN jsonb_build_object('success', false, 'message', 'Error: ' || SQLERRM, 'completed_task_id', task_id, 'new_recurring_task_id', null);
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION mark_tasks_overdue_simple()
-RETURNS INTEGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    affected_count INTEGER;
-BEGIN
-    UPDATE tasks 
-    SET status = 'overdue', updated_at = NOW()
-    WHERE due_date < CURRENT_DATE
-      AND status IN ('not-started', 'in-progress')
-      AND (is_recurring IS FALSE OR is_recurring IS NULL)
-      AND (parent_task_id IS NOT NULL OR is_recurring IS FALSE);
-    
-    GET DIAGNOSTICS affected_count = ROW_COUNT;
-    RETURN affected_count;
-END;
-$$;
-
--- Create the old function that the Edge Function expects
-CREATE OR REPLACE FUNCTION generate_next_recurring_task(completed_task_id UUID)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    task_record tasks%ROWTYPE;
-    new_task_id UUID;
-    next_due_date DATE;
-BEGIN
-    SELECT * INTO task_record FROM tasks WHERE id = completed_task_id;
-    
-    IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'message', 'Task not found', 'task_id', completed_task_id);
-    END IF;
-    
-    IF task_record.is_recurring = true OR task_record.parent_task_id IS NOT NULL THEN
-        IF task_record.recurring_frequency = 'daily' THEN
-            next_due_date := task_record.due_date + INTERVAL '1 day';
-        ELSIF task_record.recurring_frequency = 'weekly' THEN
-            next_due_date := task_record.due_date + INTERVAL '1 week';
-        ELSIF task_record.recurring_frequency = 'biweekly' THEN
-            next_due_date := task_record.due_date + INTERVAL '2 weeks';
-        ELSIF task_record.recurring_frequency = 'monthly' THEN
-            next_due_date := task_record.due_date + INTERVAL '1 month';
-        ELSIF task_record.recurring_frequency = 'quarterly' THEN
-            next_due_date := task_record.due_date + INTERVAL '3 months';
-        ELSIF task_record.recurring_frequency = 'annually' THEN
-            next_due_date := task_record.due_date + INTERVAL '1 year';
-        ELSE
-            next_due_date := NULL;
-        END IF;
-        
-        IF next_due_date IS NOT NULL AND next_due_date <= CURRENT_DATE THEN
-            INSERT INTO tasks (title, description, priority, department, assignee, status, due_date, is_recurring, recurring_frequency, parent_task_id, start_date, end_date, is_customer_related, customer_name, created_at, updated_at)
-            VALUES (task_record.title, task_record.description, task_record.priority, task_record.department, task_record.assignee, 'not-started', next_due_date, false, task_record.recurring_frequency, 
-                    CASE WHEN task_record.parent_task_id IS NOT NULL THEN task_record.parent_task_id ELSE task_record.id END,
-                    task_record.start_date, task_record.end_date, task_record.is_customer_related, task_record.customer_name, NOW(), NOW())
-            RETURNING id INTO new_task_id;
-            
-            RETURN jsonb_build_object('success', true, 'message', 'Next recurring task created', 'task_id', new_task_id);
-        ELSE
-            RETURN jsonb_build_object('success', true, 'message', 'No new task needed', 'task_id', null);
-        END IF;
-    ELSE
-        RETURN jsonb_build_object('success', true, 'message', 'Task is not recurring', 'task_id', null);
-    END IF;
-    
-EXCEPTION WHEN others THEN
-    RETURN jsonb_build_object('success', false, 'message', 'Error: ' || SQLERRM, 'task_id', null);
-END;
-$$;
-
-GRANT EXECUTE ON FUNCTION complete_task_and_generate_next(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION mark_tasks_overdue_simple() TO authenticated;
-GRANT EXECUTE ON FUNCTION generate_next_recurring_task(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION complete_task_and_generate_next(UUID) TO service_role;
-GRANT EXECUTE ON FUNCTION mark_tasks_overdue_simple() TO service_role;
-GRANT EXECUTE ON FUNCTION generate_next_recurring_task(UUID) TO service_role;
-      `;
-
-      // Execute the SQL
-      const { error } = await supabase.rpc('exec_sql', { 
-        sql_query: compatibilitySQL 
+      // Since exec_sql doesn't exist, let's use a workaround
+      // We'll manually trigger the migration using the terminal
+      addLog("⚠️ Cannot execute SQL directly from frontend");
+      addLog("📋 Please run this command in your terminal:");
+      addLog("   supabase db push");
+      addLog("   OR copy the SQL from 20250618_compatibility_functions.sql");
+      addLog("   and execute it in your database directly");
+        toast({
+        title: "Manual Step Required",
+        description: "Please apply the migration manually using 'supabase db push' or execute the SQL directly in your database",
+        variant: "default"
       });
-
-      if (error) {
-        addLog(`❌ Function creation failed: ${error.message}`);
-        toast({
-          title: "Function Creation Failed",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        addLog("✅ Compatibility functions created successfully!");
-        toast({
-          title: "Success",
-          description: "Compatibility functions have been created"
-        });
-      }
 
     } catch (error: any) {
       addLog(`💥 Function creation failed: ${error.message}`);

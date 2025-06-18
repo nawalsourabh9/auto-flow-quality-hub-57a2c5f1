@@ -30,7 +30,7 @@ export const useTaskOperations = () => {
   const { handleApproveTask, handleRejectTask } = useTaskApproval();
   const { handleUpdateTask } = useTaskUpdate(setIsEditDialogOpen);
   const { handleCreateTask } = useTaskCreate(setIsCreateDialogOpen);
-  const { deleteTask } = useTaskDelete();
+  const { deleteTask, deleteTaskWithChildren } = useTaskDelete();
 
   const handleStatusUpdate = (task: Task) => {
     setCurrentStatusTask(task);
@@ -53,6 +53,7 @@ export const useTaskOperations = () => {
     handleRejectTask,
     handleUpdateTask,
     handleCreateTask,
-    deleteTask
+    deleteTask,
+    deleteTaskWithChildren
   };
 };
