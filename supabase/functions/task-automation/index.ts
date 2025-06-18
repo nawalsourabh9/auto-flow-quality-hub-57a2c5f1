@@ -92,34 +92,22 @@ serve(async (req) => {
           }
           
           if (shouldProcess) {
-            console.log(`Attempting to generate next task for: ${task.title}`)
-
-            // Use the completed task ID to trigger next instance generation via RPC
-            const { data: newTaskData, error: generateError } = await supabase
-              .rpc('generate_next_recurring_task', { completed_task_id: task.id })
+            console.log(`Attempting to generate next task for: ${task.title}`)            // Use the new secure wrapper function for completion and generation
+            const { data: result, error: generateError } = await supabase
+              .rpc('complete_task_and_generate_next', { task_id: task.id })
 
             if (generateError) {
               console.error(`Error generating next task for ${task.title}:`, generateError)
               results.errors.push(`Generate error for ${task.title}: ${generateError.message}`)
-            } else if (newTaskData) {
-              results.recurringCreated++
-              console.log(`Generated next task ID ${newTaskData} for ${task.title}`)
-
-              // If this was a parent task, reset its status for next cycle
-              if (task.is_recurring && !task.parent_task_id) {
-                const { error: resetError } = await supabase
-                  .from('tasks')
-                  .update({ status: 'not-started' })
-                  .eq('id', task.id)
-
-                if (resetError) {
-                  console.error(`Error resetting parent task status for ${task.title}:`, resetError)
-                } else {
-                  console.log(`Reset parent task status for ${task.title}`)
-                }
+            } else if (result?.success) {
+              if (result.new_recurring_task_id) {
+                results.recurringCreated++
+                console.log(`Generated next task ID ${result.new_recurring_task_id} for ${task.title}`)
+              } else {
+                console.log(`Task ${task.title} completed, no recurring generation needed`)
               }
             } else {
-              console.log(`No new task generated for ${task.title} (conditions not met or duplicate prevented)`)
+              console.log(`No new task generated for ${task.title}: ${result?.message || 'Unknown reason'}`)
             }
 
             // Mark as processed

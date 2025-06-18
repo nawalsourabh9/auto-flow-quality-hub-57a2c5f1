@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useTasks } from "@/hooks/use-tasks";
 import { useTaskOperations } from "@/hooks/use-task-operations";
 import { useTaskFilters } from "@/hooks/use-task-filters";
@@ -7,11 +7,15 @@ import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskFilters from "@/components/tasks/TaskFilters";
 import TasksContent from "@/components/tasks/TasksContent";
 import TaskDialogs from "@/components/tasks/TaskDialogs";
+import { TaskAutomationDebugPanel } from "@/components/tasks/TaskAutomationDebugPanel";
 import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { Bug } from "lucide-react";
 
 const Tasks = () => {
   const { data: tasks = [], isLoading } = useTasks();
   const { employee, isAdmin } = useAuth();
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
   
   console.log("Current user role:", employee?.role);
   console.log("Is admin?", isAdmin);
@@ -68,10 +72,26 @@ const Tasks = () => {
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
-      <TasksHeader onCreateTask={() => setIsCreateDialogOpen(true)} />
+      <div className="flex items-center justify-between">
+        <TasksHeader onCreateTask={() => setIsCreateDialogOpen(true)} />
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setShowDebugPanel(!showDebugPanel)}
+          className="flex items-center gap-2"
+        >
+          <Bug className="w-4 h-4" />
+          {showDebugPanel ? 'Hide' : 'Show'} Debug
+        </Button>
+      </div>
+
+      {showDebugPanel && (
+        <div className="mb-6">
+          <TaskAutomationDebugPanel />
+        </div>
+      )}
 
       <TaskFilters 
         searchTerm={searchTerm}
