@@ -50,7 +50,9 @@ export const TaskAutomationTester = () => {
     setResults(prev => prev.map((result, i) => 
       i === index ? { ...result, status, message, count } : result
     ));
-  };  const checkAuthenticationBeforeExecution = async (): Promise<boolean> => {
+  };
+
+  const checkAuthenticationBeforeExecution = async (): Promise<boolean> => {
     try {
       // For development/testing, we'll try to run the functions anyway
       // since we've set them to SECURITY DEFINER
@@ -161,7 +163,7 @@ export const TaskAutomationTester = () => {
           console.log(`Processing task ${task.id}: ${task.title}`);
           
           const { data: newTaskId, error: genError } = await supabase
-            .rpc('generate_next_recurring_task', { completed_task_id: task.id });
+            .rpc('generate_next_recurring_task', { p_completed_instance_id: task.id });
           
           if (genError) {
             console.log(`Task ${task.id} generation failed:`, genError.message);
@@ -222,7 +224,7 @@ export const TaskAutomationTester = () => {
         for (const task of completedTasks) {
           try {
             const { data: newTaskId } = await supabase
-              .rpc('generate_next_recurring_task', { completed_task_id: task.id });
+              .rpc('generate_next_recurring_task', { p_completed_instance_id: task.id });
             if (newTaskId) generatedCount++;
           } catch (err) {
             // Silent fail for individual tasks that don't meet generation criteria
@@ -244,8 +246,10 @@ export const TaskAutomationTester = () => {
         title: "Error", 
         description: error.message, 
         variant: "destructive" 
-      });    }
+      });
+    }
   };
+
   const refreshSession = async () => {
     try {
       console.log('Manually refreshing session...');
@@ -439,7 +443,9 @@ export const TaskAutomationTester = () => {
                 </div>
               </div>
             ))}
-          </div>          <div className="pt-2 border-t space-y-2">
+          </div>
+
+          <div className="pt-2 border-t space-y-2">
             <Button 
               onClick={() => testFunctions.forEach(fn => fn())}
               className="w-full h-7 text-xs"
@@ -458,14 +464,15 @@ export const TaskAutomationTester = () => {
                 <RotateCcw className="h-3 w-3 mr-1" />
                 Refresh Session
               </Button>
-                <Button 
+              <Button 
                 onClick={resetResults}
                 variant="outline"
                 className="flex-1 h-7 text-xs"
               >
                 <RotateCcw className="h-3 w-3 mr-1" />
                 Reset Results
-              </Button>            </div>
+              </Button>
+            </div>
           </div>
 
           <div className="text-xs text-muted-foreground">

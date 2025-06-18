@@ -7,6 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Trash2, RefreshCw, Database, TestTube } from "lucide-react";
 
+// Type for the database function response
+interface CompleteTaskResponse {
+  success: boolean;
+  completed_task_id?: string;
+  new_recurring_task_id?: string | null;
+  message?: string;
+  error?: string;
+}
+
 const TaskRecurringDebugPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
@@ -175,15 +184,18 @@ const TaskRecurringDebugPanel = () => {
         throw error;
       }
 
-      if (result?.success && result.new_recurring_task_id) {
+      // Type assertion for the response
+      const typedResult = result as CompleteTaskResponse;
+
+      if (typedResult?.success && typedResult.new_recurring_task_id) {
         toast({
           title: "Test Successful",
-          description: `Generated new task ID: ${result.new_recurring_task_id}`
+          description: `Generated new task ID: ${typedResult.new_recurring_task_id}`
         });
       } else {
         toast({
           title: "Test Result",
-          description: result?.message || "No new task generated (conditions not met or duplicate prevented)"
+          description: typedResult?.message || "No new task generated (conditions not met or duplicate prevented)"
         });
       }
 

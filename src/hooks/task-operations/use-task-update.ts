@@ -25,6 +25,15 @@ interface TaskUpdatePayload {
   original_task_name?: string | null;
 }
 
+// Type for the database function response
+interface CompleteTaskResponse {
+  success: boolean;
+  completed_task_id?: string;
+  new_recurring_task_id?: string | null;
+  message?: string;
+  error?: string;
+}
+
 export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) => {
   const queryClient = useQueryClient();
   const { processTaskDocuments } = useTaskDocumentUpload();
@@ -167,29 +176,34 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
               variant: "destructive"
             });
             throw recurringError;
-          } else if (result?.success) {
-            if (result.new_recurring_task_id) {
-              console.log("useTaskUpdate: Generated new recurring task:", result.new_recurring_task_id);
-              toast({
-                title: "Success",
-                description: `Task completed and new recurring instance generated!`,
-              });
+          } else {
+            // Type assertion for the response
+            const typedResult = result as CompleteTaskResponse;
+            
+            if (typedResult?.success) {
+              if (typedResult.new_recurring_task_id) {
+                console.log("useTaskUpdate: Generated new recurring task:", typedResult.new_recurring_task_id);
+                toast({
+                  title: "Success",
+                  description: `Task completed and new recurring instance generated!`,
+                });
+              } else {
+                console.log("useTaskUpdate: Task completed, no recurring generation needed");
+                toast({
+                  title: "Success",
+                  description: "Task marked as completed.",
+                });
+              }
+              // Refresh the tasks list immediately to show the new task
+              await queryClient.invalidateQueries({ queryKey: ['tasks'] });
             } else {
-              console.log("useTaskUpdate: Task completed, no recurring generation needed");
+              console.log("useTaskUpdate: Function returned false success");
               toast({
-                title: "Success",
-                description: "Task marked as completed.",
+                title: "Warning",
+                description: typedResult?.message || "Task completion had issues",
+                variant: "destructive"
               });
             }
-            // Refresh the tasks list immediately to show the new task
-            await queryClient.invalidateQueries({ queryKey: ['tasks'] });
-          } else {
-            console.log("useTaskUpdate: Function returned false success");
-            toast({
-              title: "Warning",
-              description: result?.message || "Task completion had issues",
-              variant: "destructive"
-            });
           }
           
         } catch (error) {
