@@ -217,10 +217,66 @@ BEGIN
 END;
 $$;
 
+-- Create the old function that the Edge Function expects
+CREATE OR REPLACE FUNCTION generate_next_recurring_task(completed_task_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    task_record tasks%ROWTYPE;
+    new_task_id UUID;
+    next_due_date DATE;
+BEGIN
+    SELECT * INTO task_record FROM tasks WHERE id = completed_task_id;
+    
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Task not found', 'task_id', completed_task_id);
+    END IF;
+    
+    IF task_record.is_recurring = true OR task_record.parent_task_id IS NOT NULL THEN
+        IF task_record.recurring_frequency = 'daily' THEN
+            next_due_date := task_record.due_date + INTERVAL '1 day';
+        ELSIF task_record.recurring_frequency = 'weekly' THEN
+            next_due_date := task_record.due_date + INTERVAL '1 week';
+        ELSIF task_record.recurring_frequency = 'biweekly' THEN
+            next_due_date := task_record.due_date + INTERVAL '2 weeks';
+        ELSIF task_record.recurring_frequency = 'monthly' THEN
+            next_due_date := task_record.due_date + INTERVAL '1 month';
+        ELSIF task_record.recurring_frequency = 'quarterly' THEN
+            next_due_date := task_record.due_date + INTERVAL '3 months';
+        ELSIF task_record.recurring_frequency = 'annually' THEN
+            next_due_date := task_record.due_date + INTERVAL '1 year';
+        ELSE
+            next_due_date := NULL;
+        END IF;
+        
+        IF next_due_date IS NOT NULL AND next_due_date <= CURRENT_DATE THEN
+            INSERT INTO tasks (title, description, priority, department, assignee, status, due_date, is_recurring, recurring_frequency, parent_task_id, start_date, end_date, is_customer_related, customer_name, created_at, updated_at)
+            VALUES (task_record.title, task_record.description, task_record.priority, task_record.department, task_record.assignee, 'not-started', next_due_date, false, task_record.recurring_frequency, 
+                    CASE WHEN task_record.parent_task_id IS NOT NULL THEN task_record.parent_task_id ELSE task_record.id END,
+                    task_record.start_date, task_record.end_date, task_record.is_customer_related, task_record.customer_name, NOW(), NOW())
+            RETURNING id INTO new_task_id;
+            
+            RETURN jsonb_build_object('success', true, 'message', 'Next recurring task created', 'task_id', new_task_id);
+        ELSE
+            RETURN jsonb_build_object('success', true, 'message', 'No new task needed', 'task_id', null);
+        END IF;
+    ELSE
+        RETURN jsonb_build_object('success', true, 'message', 'Task is not recurring', 'task_id', null);
+    END IF;
+    
+EXCEPTION WHEN others THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Error: ' || SQLERRM, 'task_id', null);
+END;
+$$;
+
 GRANT EXECUTE ON FUNCTION complete_task_and_generate_next(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION mark_tasks_overdue_simple() TO authenticated;
+GRANT EXECUTE ON FUNCTION generate_next_recurring_task(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION complete_task_and_generate_next(UUID) TO service_role;
 GRANT EXECUTE ON FUNCTION mark_tasks_overdue_simple() TO service_role;
+GRANT EXECUTE ON FUNCTION generate_next_recurring_task(UUID) TO service_role;
       `;
 
       // Execute the SQL
