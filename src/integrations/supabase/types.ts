@@ -715,26 +715,20 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           assignee: string | null
-          assignee_id: string | null
           attachments_required: string
           comments: string | null
           created_at: string
-          created_by: string | null
           customer_name: string | null
           department: string
           department_head_id: string | null
-          department_id: string | null
           description: string | null
           due_date: string | null
           end_date: string | null
-          frequency: string | null
           id: string
           is_customer_related: boolean | null
           is_recurring: boolean | null
           is_recurring_parent: boolean | null
           last_generated_date: string | null
-          name: string
-          organization_id: string | null
           original_task_name: string | null
           parent_task_id: string | null
           priority: string
@@ -744,8 +738,6 @@ export type Database = {
           rejected_at: string | null
           rejected_by: string | null
           rejection_reason: string | null
-          series_end_date: string | null
-          series_start_date: string | null
           start_date: string | null
           status: string
           title: string
@@ -755,26 +747,20 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           assignee?: string | null
-          assignee_id?: string | null
           attachments_required: string
           comments?: string | null
           created_at?: string
-          created_by?: string | null
           customer_name?: string | null
           department: string
           department_head_id?: string | null
-          department_id?: string | null
           description?: string | null
           due_date?: string | null
           end_date?: string | null
-          frequency?: string | null
           id?: string
           is_customer_related?: boolean | null
           is_recurring?: boolean | null
           is_recurring_parent?: boolean | null
           last_generated_date?: string | null
-          name: string
-          organization_id?: string | null
           original_task_name?: string | null
           parent_task_id?: string | null
           priority: string
@@ -784,8 +770,6 @@ export type Database = {
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
-          series_end_date?: string | null
-          series_start_date?: string | null
           start_date?: string | null
           status: string
           title: string
@@ -795,26 +779,20 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           assignee?: string | null
-          assignee_id?: string | null
           attachments_required?: string
           comments?: string | null
           created_at?: string
-          created_by?: string | null
           customer_name?: string | null
           department?: string
           department_head_id?: string | null
-          department_id?: string | null
           description?: string | null
           due_date?: string | null
           end_date?: string | null
-          frequency?: string | null
           id?: string
           is_customer_related?: boolean | null
           is_recurring?: boolean | null
           is_recurring_parent?: boolean | null
           last_generated_date?: string | null
-          name?: string
-          organization_id?: string | null
           original_task_name?: string | null
           parent_task_id?: string | null
           priority?: string
@@ -824,8 +802,6 @@ export type Database = {
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
-          series_end_date?: string | null
-          series_start_date?: string | null
           start_date?: string | null
           status?: string
           title?: string
@@ -925,6 +901,10 @@ export type Database = {
         Args: { start_date: string; frequency: string }
         Returns: string
       }
+      complete_task_and_generate_next: {
+        Args: { task_id: string }
+        Returns: Json
+      }
       create_first_recurring_instance: {
         Args: { p_parent_task_id: string }
         Returns: string
@@ -957,11 +937,21 @@ export type Database = {
       }
       mark_tasks_overdue: {
         Args: Record<PropertyKey, never>
-        Returns: undefined
+        Returns: number
       }
       run_task_automation: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      test_overdue_logic: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          task_id: string
+          title: string
+          status: string
+          due_date: string
+          would_be_marked_overdue: boolean
+        }[]
       }
       update_profile: {
         Args: {

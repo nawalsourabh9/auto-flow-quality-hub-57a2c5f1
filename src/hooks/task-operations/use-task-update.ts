@@ -145,7 +145,9 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         });
         setIsEditDialogOpen(false);
         return;
-      }      // Check if status is changing to completed and this is a recurring task
+      }
+
+      // Check if status is changing to completed and this is a recurring task
       const isMarkingAsCompleted = originalTaskData.status !== 'completed' && updatedTask.status === 'completed';
       const isRecurringCandidate = originalTaskData.is_recurring || originalTaskData.parent_task_id;
       
@@ -153,7 +155,7 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         console.log("useTaskUpdate: Task being marked as completed, using secure completion function");
         
         try {
-          // Use the new secure wrapper function that handles both completion and recurring generation
+          // Use the new complete_task_and_generate_next function
           const { data: result, error: recurringError } = await supabase
             .rpc('complete_task_and_generate_next', { task_id: updatedTask.id });
 
@@ -217,7 +219,8 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         toast({
           title: "Task Updated",
           description: `Task "${updatedTask.title}" has been updated successfully.`
-        });      }
+        });
+      }
       
       // Process document uploads if any
       if (updatedTask.documents && updatedTask.documents.length > 0) {

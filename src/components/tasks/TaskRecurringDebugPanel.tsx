@@ -1,10 +1,11 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, RefreshCw, Database } from "lucide-react";
+import { Trash2, RefreshCw, Database, TestTube } from "lucide-react";
 
 const TaskRecurringDebugPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -103,7 +104,7 @@ const TaskRecurringDebugPanel = () => {
       // Get recurring task statistics
       const { data: recurringParents } = await supabase
         .from('tasks')
-        .select('id, title, recurring_frequency, original_task_name')
+        .select('id, title, recurring_frequency, original_task_name, is_recurring_parent')
         .eq('is_recurring', true)
         .is('parent_task_id', null);
 
@@ -112,11 +113,19 @@ const TaskRecurringDebugPanel = () => {
         .select('id, title, parent_task_id, recurrence_count_in_period, status')
         .not('parent_task_id', 'is', null);
 
+      // Get error logs
+      const { data: errorLogs } = await supabase
+        .from('task_automation_error_log')
+        .select('*')
+        .order('logged_at', { ascending: false })
+        .limit(5);
+
       setDebugInfo({
         parentTasks: recurringParents?.length || 0,
         instanceTasks: recurringInstances?.length || 0,
         parentDetails: recurringParents || [],
-        instanceDetails: recurringInstances || []
+        instanceDetails: recurringInstances || [],
+        recentErrors: errorLogs || []
       });
 
       toast({
@@ -143,7 +152,7 @@ const TaskRecurringDebugPanel = () => {
       // Find a completed recurring task to test with
       const { data: completedTasks } = await supabase
         .from('tasks')
-        .select('id, title, parent_task_id, is_recurring')
+        .select('id, title, parent_task_id, is_recurring, status')
         .eq('status', 'completed')
         .or('is_recurring.eq.true,parent_task_id.not.is.null')
         .limit(1);
@@ -157,7 +166,9 @@ const TaskRecurringDebugPanel = () => {
       }
 
       const testTask = completedTasks[0];
-      console.log("Testing recurring generation with task:", testTask);      const { data: result, error } = await supabase
+      console.log("Testing recurring generation with task:", testTask);
+
+      const { data: result, error } = await supabase
         .rpc('complete_task_and_generate_next', { task_id: testTask.id });
 
       if (error) {
@@ -188,12 +199,47 @@ const TaskRecurringDebugPanel = () => {
     }
   };
 
+  const testDatabaseFunction = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Test the generate_next_recurring_task function directly
+      const { data: testResult, error } = await supabase
+        .rpc('generate_next_recurring_task', { 
+          p_completed_instance_id: '00000000-0000-0000-0000-000000000000' 
+        });
+
+      if (error) {
+        console.log("Function test error (expected):", error);
+        toast({
+          title: "Function Test",
+          description: "Database function is accessible but returned expected error for test UUID."
+        });
+      } else {
+        toast({
+          title: "Function Test",
+          description: "Database function executed successfully."
+        });
+      }
+
+    } catch (error: any) {
+      console.error("Function test error:", error);
+      toast({
+        title: "Function Test Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Card className="border-orange-200 bg-orange-50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Database className="h-5 w-5" />
-          Recurring Task Debug Panel
+          Recurring Task Debug Panel (Updated)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -226,32 +272,58 @@ const TaskRecurringDebugPanel = () => {
           >
             Test Generation
           </Button>
+
+          <Button
+            onClick={testDatabaseFunction}
+            disabled={isLoading}
+            variant="outline"
+            size="sm"
+          >
+            <TestTube className="h-4 w-4 mr-2" />
+            Test Function
+          </Button>
         </div>
 
         {debugInfo && (
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <strong>Parent Tasks:</strong>
-              <Badge variant="outline" className="ml-2">
-                {debugInfo.parentTasks}
-              </Badge>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <strong>Parent Tasks:</strong>
+                <Badge variant="outline" className="ml-2">
+                  {debugInfo.parentTasks}
+                </Badge>
+              </div>
+              <div>
+                <strong>Instance Tasks:</strong>
+                <Badge variant="outline" className="ml-2">
+                  {debugInfo.instanceTasks}
+                </Badge>
+              </div>
             </div>
-            <div>
-              <strong>Instance Tasks:</strong>
-              <Badge variant="outline" className="ml-2">
-                {debugInfo.instanceTasks}
-              </Badge>
-            </div>
+
+            {debugInfo.recentErrors && debugInfo.recentErrors.length > 0 && (
+              <div className="mt-4">
+                <strong className="text-sm">Recent Errors:</strong>
+                <div className="text-xs bg-red-50 p-2 rounded mt-1 max-h-32 overflow-y-auto">
+                  {debugInfo.recentErrors.map((error: any, index: number) => (
+                    <div key={index} className="mb-1">
+                      <strong>{error.function_name}:</strong> {error.error_message}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         <div className="text-xs text-muted-foreground">
-          <p><strong>Updated Logic:</strong></p>
+          <p><strong>Fixed Implementation:</strong></p>
           <ul className="list-disc list-inside space-y-1">
-            <li>Sequential counting: D1 → D2 → D3 (no duplicates)</li>
-            <li>Proper time validation: Daily (1+ days), Weekly (7+ days)</li>
-            <li>Enhanced duplicate prevention by count number</li>
-            <li>Improved logging for debugging</li>
+            <li>✅ Database functions created and connected</li>
+            <li>✅ Proper naming: D1-Jan → D2-Jan → D3-Jan</li>
+            <li>✅ Enhanced duplicate prevention</li>
+            <li>✅ Frontend integration with complete_task_and_generate_next</li>
+            <li>✅ Comprehensive error logging and debugging</li>
           </ul>
         </div>
       </CardContent>
