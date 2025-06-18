@@ -23,11 +23,10 @@ BEGIN
     IF NOT FOUND THEN
         RETURN jsonb_build_object('success', false, 'message', 'Task not found', 'completed_task_id', task_id, 'new_recurring_task_id', null);
     END IF;
-    
-    -- FIRST: Mark the task as completed (if it isn't already)
+      -- FIRST: Mark the task as completed (if it isn't already)
     IF task_record.status != 'completed' THEN
         UPDATE tasks 
-        SET status = 'completed', updated_at = NOW()
+        SET status = 'completed'
         WHERE id = task_id;
         
         -- Refresh the task record to get updated status
@@ -51,13 +50,53 @@ BEGIN
             next_due_date := task_record.due_date + INTERVAL '1 year';
         ELSE
             next_due_date := NULL;
-        END IF;
-        
+        END IF;        
         IF next_due_date IS NOT NULL AND next_due_date <= CURRENT_DATE THEN
-            INSERT INTO tasks (title, description, priority, department, assignee, status, due_date, is_recurring, recurring_frequency, parent_task_id, start_date, end_date, is_customer_related, customer_name, created_at, updated_at)
-            VALUES (task_record.title, task_record.description, task_record.priority, task_record.department, task_record.assignee, 'not-started', next_due_date, false, task_record.recurring_frequency, 
-                    CASE WHEN task_record.parent_task_id IS NOT NULL THEN task_record.parent_task_id ELSE task_record.id END,
-                    task_record.start_date, task_record.end_date, task_record.is_customer_related, task_record.customer_name, NOW(), NOW())
+            INSERT INTO tasks (
+                title, 
+                description, 
+                department, 
+                priority, 
+                due_date, 
+                assignee, 
+                status, 
+                is_recurring, 
+                recurring_frequency, 
+                parent_task_id, 
+                start_date, 
+                end_date, 
+                is_customer_related, 
+                customer_name, 
+                attachments_required,
+                approval_status,
+                original_task_name,
+                recurrence_count_in_period,
+                created_at
+            )
+            VALUES (
+                task_record.title,
+                task_record.description,
+                task_record.department,
+                task_record.priority,
+                next_due_date,
+                task_record.assignee,
+                'not-started',
+                false, -- Child tasks are not recurring themselves
+                task_record.recurring_frequency,
+                CASE 
+                    WHEN task_record.parent_task_id IS NOT NULL THEN task_record.parent_task_id
+                    ELSE task_record.id
+                END,
+                task_record.start_date,
+                task_record.end_date,
+                task_record.is_customer_related,
+                task_record.customer_name,
+                COALESCE(task_record.attachments_required, 'none'),
+                'approved',
+                COALESCE(task_record.original_task_name, task_record.title),
+                COALESCE(task_record.recurrence_count_in_period, 1) + 1,
+                NOW()
+            )
             RETURNING id INTO new_task_id;
             
             RETURN jsonb_build_object('success', true, 'message', 'Task completed and new instance generated', 'completed_task_id', task_id, 'new_recurring_task_id', new_task_id);
@@ -81,10 +120,9 @@ SECURITY DEFINER
 AS $$
 DECLARE
     affected_count INTEGER;
-BEGIN
-    -- FIXED: Only mark not-started and in-progress tasks as overdue (never completed tasks)
+BEGIN    -- FIXED: Only mark not-started and in-progress tasks as overdue (never completed tasks)
     UPDATE tasks 
-    SET status = 'overdue', updated_at = NOW()
+    SET status = 'overdue'
     WHERE due_date < CURRENT_DATE
       AND status IN ('not-started', 'in-progress')  -- KEY FIX: exclude completed tasks
       AND (is_recurring IS FALSE OR is_recurring IS NULL);
@@ -127,13 +165,52 @@ BEGIN
             next_due_date := task_record.due_date + INTERVAL '1 year';
         ELSE
             next_due_date := NULL;
-        END IF;
-        
-        IF next_due_date IS NOT NULL AND next_due_date <= CURRENT_DATE THEN
-            INSERT INTO tasks (title, description, priority, department, assignee, status, due_date, is_recurring, recurring_frequency, parent_task_id, start_date, end_date, is_customer_related, customer_name, created_at, updated_at)
-            VALUES (task_record.title, task_record.description, task_record.priority, task_record.department, task_record.assignee, 'not-started', next_due_date, false, task_record.recurring_frequency, 
-                    CASE WHEN task_record.parent_task_id IS NOT NULL THEN task_record.parent_task_id ELSE task_record.id END,
-                    task_record.start_date, task_record.end_date, task_record.is_customer_related, task_record.customer_name, NOW(), NOW())
+        END IF;          IF next_due_date IS NOT NULL AND next_due_date <= CURRENT_DATE THEN
+            INSERT INTO tasks (
+                title, 
+                description, 
+                department, 
+                priority, 
+                due_date, 
+                assignee, 
+                status, 
+                is_recurring, 
+                recurring_frequency, 
+                parent_task_id, 
+                start_date, 
+                end_date, 
+                is_customer_related, 
+                customer_name, 
+                attachments_required,
+                approval_status,
+                original_task_name,
+                recurrence_count_in_period,
+                created_at
+            )
+            VALUES (
+                task_record.title,
+                task_record.description,
+                task_record.department,
+                task_record.priority,
+                next_due_date,
+                task_record.assignee,
+                'not-started',
+                false, -- Child tasks are not recurring themselves
+                task_record.recurring_frequency,
+                CASE 
+                    WHEN task_record.parent_task_id IS NOT NULL THEN task_record.parent_task_id
+                    ELSE task_record.id
+                END,
+                task_record.start_date,
+                task_record.end_date,
+                task_record.is_customer_related,
+                task_record.customer_name,
+                COALESCE(task_record.attachments_required, 'none'),
+                'approved',
+                COALESCE(task_record.original_task_name, task_record.title),
+                COALESCE(task_record.recurrence_count_in_period, 1) + 1,
+                NOW()
+            )
             RETURNING id INTO new_task_id;
             
             RETURN jsonb_build_object('success', true, 'message', 'Next recurring task created', 'task_id', new_task_id);
