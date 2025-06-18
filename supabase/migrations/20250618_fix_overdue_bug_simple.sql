@@ -425,6 +425,8 @@ END;
 $function$;
 
 -- **FIX: Update handle_task_completion function for status compatibility**
+-- Drop trigger first, then function, then recreate both
+DROP TRIGGER IF EXISTS handle_task_completion_trigger ON public.tasks;
 DROP FUNCTION IF EXISTS public.handle_task_completion();
 
 CREATE OR REPLACE FUNCTION public.handle_task_completion()
@@ -456,8 +458,7 @@ BEGIN
 END;
 $function$;
 
--- Recreate trigger to ensure it exists
-DROP TRIGGER IF EXISTS handle_task_completion_trigger ON public.tasks;
+-- Recreate trigger
 CREATE TRIGGER handle_task_completion_trigger
     AFTER UPDATE ON public.tasks
     FOR EACH ROW
