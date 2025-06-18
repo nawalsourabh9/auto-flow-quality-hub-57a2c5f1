@@ -32,11 +32,18 @@ BEGIN
             'new_recurring_task_id', null
         );
     END IF;
+      -- FIRST: Mark the task as completed (if it isn't already)
+    IF task_record.status != 'completed' THEN
+        UPDATE tasks 
+        SET status = 'completed', updated_at = NOW()
+        WHERE id = task_id;
+        
+        -- Refresh the task record to get updated status
+        SELECT * INTO task_record FROM tasks WHERE id = task_id;
+    END IF;
     
-    -- If task is already completed, just return success
-    IF task_record.status = 'completed' THEN
-        -- Check if this should generate a recurring task
-        IF task_record.is_recurring = true OR task_record.parent_task_id IS NOT NULL THEN
+    -- THEN: Check if we should generate a recurring task
+    IF task_record.is_recurring = true OR task_record.parent_task_id IS NOT NULL THEN
             -- Calculate next due date
             IF task_record.recurring_frequency = 'daily' THEN
                 next_due_date := task_record.due_date + INTERVAL '1 day';
@@ -95,33 +102,24 @@ BEGIN
                     NOW(),
                     NOW()
                 ) RETURNING id INTO new_task_id;
-                
-                RETURN jsonb_build_object(
-                    'success', true,
-                    'message', 'Task completed and new instance generated',
-                    'completed_task_id', task_id,
-                    'new_recurring_task_id', new_task_id
-                );
-            ELSE
-                RETURN jsonb_build_object(
-                    'success', true,
-                    'message', 'Task completed, no new instance needed',
-                    'completed_task_id', task_id,
-                    'new_recurring_task_id', null
-                );
-            END IF;
+              RETURN jsonb_build_object(
+                'success', true,
+                'message', 'Task completed and new instance generated',
+                'completed_task_id', task_id,
+                'new_recurring_task_id', new_task_id
+            );
         ELSE
             RETURN jsonb_build_object(
                 'success', true,
-                'message', 'Task completed, not recurring',
+                'message', 'Task completed, no new instance needed',
                 'completed_task_id', task_id,
                 'new_recurring_task_id', null
             );
         END IF;
     ELSE
         RETURN jsonb_build_object(
-            'success', false,
-            'message', 'Task is not completed',
+            'success', true,
+            'message', 'Task completed, not recurring',
             'completed_task_id', task_id,
             'new_recurring_task_id', null
         );

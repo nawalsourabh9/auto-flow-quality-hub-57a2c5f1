@@ -7,7 +7,7 @@ DROP FUNCTION IF EXISTS mark_tasks_overdue_simple();
 DROP FUNCTION IF EXISTS generate_next_recurring_task(UUID);
 DROP FUNCTION IF EXISTS test_recurring_system();
 
--- 1. Frontend completion function
+-- 1. Frontend completion function (FIXED)
 CREATE OR REPLACE FUNCTION complete_task_and_generate_next(task_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -24,42 +24,50 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'message', 'Task not found', 'completed_task_id', task_id, 'new_recurring_task_id', null);
     END IF;
     
-    IF task_record.status = 'completed' THEN
-        IF task_record.is_recurring = true OR task_record.parent_task_id IS NOT NULL THEN
-            -- Calculate next due date
-            IF task_record.recurring_frequency = 'daily' THEN
-                next_due_date := task_record.due_date + INTERVAL '1 day';
-            ELSIF task_record.recurring_frequency = 'weekly' THEN
-                next_due_date := task_record.due_date + INTERVAL '1 week';
-            ELSIF task_record.recurring_frequency = 'biweekly' THEN
-                next_due_date := task_record.due_date + INTERVAL '2 weeks';
-            ELSIF task_record.recurring_frequency = 'monthly' THEN
-                next_due_date := task_record.due_date + INTERVAL '1 month';
-            ELSIF task_record.recurring_frequency = 'quarterly' THEN
-                next_due_date := task_record.due_date + INTERVAL '3 months';
-            ELSIF task_record.recurring_frequency = 'annually' THEN
-                next_due_date := task_record.due_date + INTERVAL '1 year';
-            ELSE
-                next_due_date := NULL;
-            END IF;
-            
-            IF next_due_date IS NOT NULL AND next_due_date <= CURRENT_DATE THEN
-                INSERT INTO tasks (title, description, priority, department, assignee, status, due_date, is_recurring, recurring_frequency, parent_task_id, start_date, end_date, is_customer_related, customer_name, created_at, updated_at)
-                VALUES (task_record.title, task_record.description, task_record.priority, task_record.department, task_record.assignee, 'not-started', next_due_date, false, task_record.recurring_frequency, 
-                        CASE WHEN task_record.parent_task_id IS NOT NULL THEN task_record.parent_task_id ELSE task_record.id END,
-                        task_record.start_date, task_record.end_date, task_record.is_customer_related, task_record.customer_name, NOW(), NOW())
-                RETURNING id INTO new_task_id;
-                
-                RETURN jsonb_build_object('success', true, 'message', 'New instance generated', 'completed_task_id', task_id, 'new_recurring_task_id', new_task_id);
-            ELSE
-                RETURN jsonb_build_object('success', true, 'message', 'No new instance needed', 'completed_task_id', task_id, 'new_recurring_task_id', null);
-            END IF;
+    -- FIRST: Mark the task as completed (if it isn't already)
+    IF task_record.status != 'completed' THEN
+        UPDATE tasks 
+        SET status = 'completed', updated_at = NOW()
+        WHERE id = task_id;
+        
+        -- Refresh the task record to get updated status
+        SELECT * INTO task_record FROM tasks WHERE id = task_id;
+    END IF;
+    
+    -- THEN: Check if we should generate a recurring task
+    IF task_record.is_recurring = true OR task_record.parent_task_id IS NOT NULL THEN
+        -- Calculate next due date
+        IF task_record.recurring_frequency = 'daily' THEN
+            next_due_date := task_record.due_date + INTERVAL '1 day';
+        ELSIF task_record.recurring_frequency = 'weekly' THEN
+            next_due_date := task_record.due_date + INTERVAL '1 week';
+        ELSIF task_record.recurring_frequency = 'biweekly' THEN
+            next_due_date := task_record.due_date + INTERVAL '2 weeks';
+        ELSIF task_record.recurring_frequency = 'monthly' THEN
+            next_due_date := task_record.due_date + INTERVAL '1 month';
+        ELSIF task_record.recurring_frequency = 'quarterly' THEN
+            next_due_date := task_record.due_date + INTERVAL '3 months';
+        ELSIF task_record.recurring_frequency = 'annually' THEN
+            next_due_date := task_record.due_date + INTERVAL '1 year';
         ELSE
-            RETURN jsonb_build_object('success', true, 'message', 'Not recurring', 'completed_task_id', task_id, 'new_recurring_task_id', null);
+            next_due_date := NULL;
+        END IF;
+        
+        IF next_due_date IS NOT NULL AND next_due_date <= CURRENT_DATE THEN
+            INSERT INTO tasks (title, description, priority, department, assignee, status, due_date, is_recurring, recurring_frequency, parent_task_id, start_date, end_date, is_customer_related, customer_name, created_at, updated_at)
+            VALUES (task_record.title, task_record.description, task_record.priority, task_record.department, task_record.assignee, 'not-started', next_due_date, false, task_record.recurring_frequency, 
+                    CASE WHEN task_record.parent_task_id IS NOT NULL THEN task_record.parent_task_id ELSE task_record.id END,
+                    task_record.start_date, task_record.end_date, task_record.is_customer_related, task_record.customer_name, NOW(), NOW())
+            RETURNING id INTO new_task_id;
+            
+            RETURN jsonb_build_object('success', true, 'message', 'Task completed and new instance generated', 'completed_task_id', task_id, 'new_recurring_task_id', new_task_id);
+        ELSE
+            RETURN jsonb_build_object('success', true, 'message', 'Task completed, no new instance needed', 'completed_task_id', task_id, 'new_recurring_task_id', null);
         END IF;
     ELSE
-        RETURN jsonb_build_object('success', false, 'message', 'Task not completed', 'completed_task_id', task_id, 'new_recurring_task_id', null);
+        RETURN jsonb_build_object('success', true, 'message', 'Task completed, not recurring', 'completed_task_id', task_id, 'new_recurring_task_id', null);
     END IF;
+    
 EXCEPTION WHEN others THEN
     RETURN jsonb_build_object('success', false, 'message', 'Error: ' || SQLERRM, 'completed_task_id', task_id, 'new_recurring_task_id', null);
 END;
