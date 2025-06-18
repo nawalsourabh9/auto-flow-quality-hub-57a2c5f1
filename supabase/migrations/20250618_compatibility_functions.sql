@@ -1,6 +1,12 @@
 -- Compatibility functions for recurring task generation
 -- This creates minimal functions needed for the system to work without full migration
 
+-- Drop existing functions first to avoid conflicts
+DROP FUNCTION IF EXISTS complete_task_and_generate_next(UUID);
+DROP FUNCTION IF EXISTS mark_tasks_overdue_simple();
+DROP FUNCTION IF EXISTS generate_next_recurring_task(UUID);
+DROP FUNCTION IF EXISTS test_recurring_system();
+
 -- First, create the complete_task_and_generate_next function that the frontend expects
 CREATE OR REPLACE FUNCTION complete_task_and_generate_next(task_id UUID)
 RETURNS JSONB
@@ -154,6 +160,9 @@ BEGIN
     RETURN affected_count;
 END;
 $$;
+
+-- Drop existing function first to avoid return type conflicts
+DROP FUNCTION IF EXISTS generate_next_recurring_task(UUID);
 
 -- Create the old function that the Edge Function expects
 CREATE OR REPLACE FUNCTION generate_next_recurring_task(completed_task_id UUID)
