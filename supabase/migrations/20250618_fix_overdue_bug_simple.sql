@@ -464,6 +464,78 @@ CREATE TRIGGER handle_task_completion_trigger
     FOR EACH ROW
     EXECUTE FUNCTION public.handle_task_completion();
 
+-- **FRONTEND COMPATIBILITY: Create wrapper functions for easier frontend access**
+
+-- Wrapper function for frontend task completion that handles authentication better
+CREATE OR REPLACE FUNCTION public.complete_task_and_generate_next(task_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+    v_updated_task RECORD;
+    v_new_task_id uuid;
+    v_result jsonb;
+BEGIN
+    -- First, mark the task as completed
+    UPDATE public.tasks 
+    SET status = 'completed', 
+        approved_at = NOW()
+    WHERE id = task_id
+    RETURNING * INTO v_updated_task;
+    
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Task not found',
+            'task_id', task_id
+        );
+    END IF;
+    
+    -- Try to generate next recurring task if applicable
+    BEGIN
+        IF v_updated_task.is_recurring = true OR v_updated_task.parent_task_id IS NOT NULL THEN
+            SELECT generate_next_recurring_task(task_id) INTO v_new_task_id;
+            
+            v_result := jsonb_build_object(
+                'success', true,
+                'completed_task_id', task_id,
+                'new_recurring_task_id', v_new_task_id,
+                'message', CASE 
+                    WHEN v_new_task_id IS NOT NULL THEN 'Task completed and next instance generated'
+                    ELSE 'Task completed, no new instance needed'
+                END
+            );
+        ELSE
+            v_result := jsonb_build_object(
+                'success', true,
+                'completed_task_id', task_id,
+                'new_recurring_task_id', null,
+                'message', 'Task completed (not recurring)'
+            );
+        END IF;
+    EXCEPTION
+        WHEN OTHERS THEN
+            -- Log the error but still return success for task completion
+            INSERT INTO public.task_automation_error_log (function_name, params, error_message, error_details)
+            VALUES ('complete_task_and_generate_next', jsonb_build_object('task_id', task_id), SQLERRM, 'SQLSTATE: ' || SQLSTATE);
+            
+            v_result := jsonb_build_object(
+                'success', true,
+                'completed_task_id', task_id,
+                'new_recurring_task_id', null,
+                'message', 'Task completed, but recurring generation failed',
+                'error', SQLERRM
+            );
+    END;
+    
+    RETURN v_result;
+END;
+$function$;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION public.complete_task_and_generate_next(uuid) TO authenticated;
+
 -- **VERIFICATION: Complete test function**
 CREATE OR REPLACE FUNCTION public.test_overdue_logic()
 RETURNS TABLE (
@@ -499,6 +571,50 @@ CHECK (status IN (
     'PENDING', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE', 'CANCELLED', 'ARCHIVED',
     'pending', 'approved', 'rejected'
 ));
+
+-- **SECURITY FIX: Add proper RLS policies and function permissions**
+
+-- Enable RLS on error logging table
+ALTER TABLE public.task_automation_error_log ENABLE ROW LEVEL SECURITY;
+
+-- Allow authenticated users to insert error logs
+CREATE POLICY "Allow authenticated users to insert error logs" 
+ON public.task_automation_error_log FOR INSERT 
+TO authenticated 
+WITH CHECK (true);
+
+-- Allow service role to read error logs  
+CREATE POLICY "Allow service role to read error logs" 
+ON public.task_automation_error_log FOR ALL 
+TO service_role 
+WITH CHECK (true);
+
+-- Enable RLS on task_recurrence_rules_config
+ALTER TABLE public.task_recurrence_rules_config ENABLE ROW LEVEL SECURITY;
+
+-- Allow all authenticated users to read recurrence config
+CREATE POLICY "Allow authenticated users to read recurrence config" 
+ON public.task_recurrence_rules_config FOR SELECT 
+TO authenticated 
+USING (true);
+
+-- Allow service role full access to recurrence config
+CREATE POLICY "Allow service role full access to recurrence config" 
+ON public.task_recurrence_rules_config FOR ALL 
+TO service_role 
+WITH CHECK (true);
+
+-- **FUNCTION SECURITY: Grant proper permissions**
+
+-- Grant execute permissions to authenticated users for key functions
+GRANT EXECUTE ON FUNCTION public.mark_tasks_overdue() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.generate_next_recurring_task(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_first_recurring_instance(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.run_task_automation() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.test_overdue_logic() TO authenticated;
+
+-- Grant service role full access
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
 
 -- Log completion
 DO $$
