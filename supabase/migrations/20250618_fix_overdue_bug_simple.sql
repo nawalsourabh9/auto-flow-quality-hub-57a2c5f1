@@ -40,20 +40,20 @@ $function$;
 -- Uncomment these if you want to remove the duplicate columns:
 
 -- Remove duplicate name column (title is sufficient)
--- ALTER TABLE public.tasks DROP COLUMN IF EXISTS name;
+ALTER TABLE public.tasks DROP COLUMN IF EXISTS name;
 
 -- Remove duplicate frequency column (recurring_frequency is sufficient)  
--- ALTER TABLE public.tasks DROP COLUMN IF EXISTS frequency;
+ALTER TABLE public.tasks DROP COLUMN IF EXISTS frequency;
 
 -- Remove series columns (start_date/end_date are sufficient)
--- ALTER TABLE public.tasks DROP COLUMN IF EXISTS series_start_date;
--- ALTER TABLE public.tasks DROP COLUMN IF EXISTS series_end_date;
+ALTER TABLE public.tasks DROP COLUMN IF EXISTS series_start_date;
+ALTER TABLE public.tasks DROP COLUMN IF EXISTS series_end_date;
 
 -- Remove duplicate organization/assignee/department ID columns (text fields are primary)
--- ALTER TABLE public.tasks DROP COLUMN IF EXISTS organization_id;
--- ALTER TABLE public.tasks DROP COLUMN IF EXISTS assignee_id;
--- ALTER TABLE public.tasks DROP COLUMN IF EXISTS department_id;
--- ALTER TABLE public.tasks DROP COLUMN IF EXISTS created_by;
+ALTER TABLE public.tasks DROP COLUMN IF EXISTS organization_id;
+ALTER TABLE public.tasks DROP COLUMN IF EXISTS assignee_id;
+ALTER TABLE public.tasks DROP COLUMN IF EXISTS department_id;
+ALTER TABLE public.tasks DROP COLUMN IF EXISTS created_by;
 
 -- **VERIFICATION: Add test function to check the fix**
 CREATE OR REPLACE FUNCTION public.test_overdue_logic()
