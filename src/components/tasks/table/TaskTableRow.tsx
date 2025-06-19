@@ -45,7 +45,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
     } catch (error) {
       return dateString;
     }
-  };  // Determine if this is an instance task (indented display)
+  };// Determine if this is an instance task (indented display)
   const isInstanceTask = !!task.parentTaskId;
   const isTemplate = task.isTemplate;
     // Get frequency-based colors for templates (using CSS variables for better compatibility)
@@ -115,10 +115,10 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
           style: { backgroundColor: 'rgb(249 250 251)', borderLeftColor: 'rgb(156 163 175)' }
         };
     }
-  };
-  // Build row className with frequency-based coloring for templates
+  };  // Build row className with frequency-based coloring for templates
   let rowClassName = "";
   let rowStyle = {};
+  
   if (isTemplate) {
     const colors = getFrequencyColors(task.recurringFrequency);
     rowClassName = `template-row border-l-4 shadow-sm transition-all duration-300 ease-in-out ${colors.border} ${colors.text}`;
@@ -126,8 +126,6 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
       ...colors.style,
       borderLeftWidth: '4px'
     };
-    // Debug: Log to see if colors are being applied
-    console.log('Template row colors for', task.recurringFrequency, ':', colors);
   } else if (isInstanceTask) {
     // Instance rows: Subtle blue tint with left border
     rowClassName = "bg-blue-50/30 border-l-4 border-l-blue-300 hover:bg-blue-50/50 transition-colors duration-200";
@@ -136,8 +134,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
     rowClassName = "hover:bg-muted/50 transition-colors duration-200";
   }
   
-  return (
-    <TableRow className={rowClassName} style={rowStyle}>      <TableCell className="font-medium min-w-[250px]">
+  return (    <TableRow className={rowClassName} style={rowStyle}><TableCell className="font-medium min-w-[250px]">
         <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : ''}`}>          <div className="flex items-center gap-2">            {isTemplate && (
               <span className={`template-badge px-2 py-1 text-xs font-semibold rounded-full border shadow-sm ${
                 getFrequencyColors(task.recurringFrequency).badge

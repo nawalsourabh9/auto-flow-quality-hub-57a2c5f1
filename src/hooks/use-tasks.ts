@@ -17,9 +17,13 @@ export const useTasks = () => {
       if (tasksError) {
         console.error("useTasks: Error fetching tasks:", tasksError);
         throw tasksError;
+      }      console.log(`useTasks: Retrieved ${tasksData.length} tasks`);
+      
+      // Debug: Check if is_template field exists in the data
+      if (tasksData.length > 0) {
+        console.log('Sample task fields:', Object.keys(tasksData[0]));
+        console.log('Does is_template exist?', 'is_template' in tasksData[0]);
       }
-
-      console.log(`useTasks: Retrieved ${tasksData.length} tasks`);
 
       // Get unique employee IDs from tasks, filtering out null or empty values
       const employeeIds = tasksData
@@ -173,9 +177,7 @@ export const useTasks = () => {
                 rejectionReason: approvalHierarchy.rejection_reason
               } : undefined
             };
-          });
-
-        // Create clean task object - NEVER include recurrenceCountInPeriod
+          });        // Create clean task object - NEVER include recurrenceCountInPeriod
         const cleanTask: Task = {
           id: item.id,
           title: item.title,
@@ -187,6 +189,7 @@ export const useTasks = () => {
           status: item.status as 'completed' | 'in-progress' | 'overdue' | 'not-started',
           createdAt: item.created_at || "",
           isRecurring: item.is_recurring || false,
+          isTemplate: item.is_template || false, // Column exists, no type assertion needed
           isCustomerRelated: item.is_customer_related || false,
           customerName: item.customer_name || "",
           recurringFrequency: item.recurring_frequency || "",
@@ -204,20 +207,12 @@ export const useTasks = () => {
           rejectedBy: item.rejected_by,
           rejectedAt: item.rejected_at,
           rejectionReason: item.rejection_reason,
-          departmentHeadId: item.department_head_id,
-          comments: item.comments
+          departmentHeadId: item.department_head_id,          comments: item.comments
           // NOTE: recurrenceCountInPeriod is intentionally excluded to prevent frontend issues
         };
 
-        console.log(`useTasks: Processed task ${item.id} (no recurrenceCountInPeriod):`, {
-          id: cleanTask.id,
-          hasRecurrenceCount: 'recurrenceCountInPeriod' in cleanTask
-        });
+        return cleanTask;      });
 
-        return cleanTask;
-      });
-
-      console.log("useTasks: All tasks processed successfully (recurrenceCountInPeriod excluded)");
       return tasks;
     }
   });
