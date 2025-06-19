@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -215,22 +214,20 @@ const TaskRecurringDebugPanel = () => {
     try {
       setIsLoading(true);
       
-      // Test the generate_next_recurring_task function directly
+      // Test a valid function with a test parameter
       const { data: testResult, error } = await supabase
-        .rpc('generate_next_recurring_task', { 
-          p_completed_instance_id: '00000000-0000-0000-0000-000000000000' 
-        });
+        .rpc('mark_tasks_overdue_simple');
 
       if (error) {
-        console.log("Function test error (expected):", error);
+        console.log("Function test error:", error);
         toast({
           title: "Function Test",
-          description: "Database function is accessible but returned expected error for test UUID."
+          description: `Function accessible but returned: ${error.message}`
         });
       } else {
         toast({
           title: "Function Test",
-          description: "Database function executed successfully."
+          description: `Database function executed successfully. Marked ${testResult || 0} tasks overdue.`
         });
       }
 

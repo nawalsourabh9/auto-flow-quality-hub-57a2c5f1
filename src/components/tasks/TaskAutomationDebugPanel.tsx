@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,14 @@ interface AutomationResult {
   overdueUpdated: number;
   recurringCreated: number;
   errors: string[];
+}
+
+interface CompleteTaskResponse {
+  success: boolean;
+  completed_task_id?: string;
+  new_recurring_task_id?: string | null;
+  message?: string;
+  error?: string;
 }
 
 export const TaskAutomationDebugPanel = () => {
@@ -69,6 +78,7 @@ export const TaskAutomationDebugPanel = () => {
       setIsRunning(false);
     }
   };
+
   const checkCompletedTasks = async () => {
     try {
       addLog("🔍 Checking templates and instances...");
@@ -110,7 +120,9 @@ export const TaskAutomationDebugPanel = () => {
     } catch (error: any) {
       addLog(`💥 Check failed: ${error.message}`);
     }
-  };  const testSingleTask = async () => {
+  };
+
+  const testSingleTask = async () => {
     try {
       addLog("🧪 Testing single instance completion...");
       
@@ -140,10 +152,11 @@ export const TaskAutomationDebugPanel = () => {
         addLog(`❌ RPC Error: ${rpcError.message}`);
       } else {
         addLog(`✅ Result: ${JSON.stringify(result)}`);
-        if (result?.success) {
+        const typedResult = result as unknown as CompleteTaskResponse;
+        if (typedResult?.success) {
           addLog(`✅ Task completed successfully`);
-          if (result.new_recurring_task_id) {
-            addLog(`✅ New instance generated: ${result.new_recurring_task_id}`);
+          if (typedResult.new_recurring_task_id) {
+            addLog(`✅ New instance generated: ${typedResult.new_recurring_task_id}`);
           } else {
             addLog(`ℹ️ No new instance generated (may not meet criteria)`);
           }

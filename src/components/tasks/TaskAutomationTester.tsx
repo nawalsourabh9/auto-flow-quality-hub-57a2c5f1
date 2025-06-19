@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,14 @@ interface TestResult {
   status: 'idle' | 'running' | 'success' | 'error';
   message: string;
   count?: number;
+}
+
+interface CompleteTaskResponse {
+  success: boolean;
+  completed_task_id?: string;
+  new_recurring_task_id?: string | null;
+  message?: string;
+  error?: string;
 }
 
 // Set to true to show the testing features (for development)
@@ -90,6 +99,7 @@ export const TaskAutomationTester = () => {
       return true;
     }
   };
+
   const testMarkOverdue = async () => {
     if (!(await checkAuthenticationBeforeExecution())) return;
     
@@ -121,6 +131,7 @@ export const TaskAutomationTester = () => {
       });
     }
   };
+
   const createManualInstance = async () => {
     if (!(await checkAuthenticationBeforeExecution())) return;
     
@@ -239,11 +250,12 @@ export const TaskAutomationTester = () => {
             continue;
           }
           
-          if (result?.success) {
+          const typedResult = result as unknown as CompleteTaskResponse;
+          if (typedResult?.success) {
             completedCount++;
-            if (result.new_recurring_task_id) {
+            if (typedResult.new_recurring_task_id) {
               generatedCount++;
-              console.log(`Completed ${instance.id} and generated ${result.new_recurring_task_id}`);
+              console.log(`Completed ${instance.id} and generated ${typedResult.new_recurring_task_id}`);
             } else {
               console.log(`Completed ${instance.id} but no new task generated`);
             }
@@ -305,23 +317,6 @@ export const TaskAutomationTester = () => {
         instanceCount += instances.length;
         
         console.log(`Template ${template.title}: ${instances.length} instances`);
-        
-        // Test template name cascade (optional - comment out if not needed)
-        // You can enable this to test name cascading
-        /*
-        if (instances.length > 0) {
-          const testName = `${template.title} (Updated)`;
-          const { data: updateResult, error: updateError } = await supabase
-            .rpc('update_template_name_cascade', { 
-              template_id: template.id, 
-              new_name: testName 
-            });
-          
-          if (!updateError) {
-            console.log(`Updated template ${template.id} and ${updateResult} instances`);
-          }
-        }
-        */
       }
 
       updateResult(3, 'success', `✅ Found ${templateCount} templates with ${instanceCount} total instances`, templateCount);
@@ -339,6 +334,7 @@ export const TaskAutomationTester = () => {
       });
     }
   };
+
   const refreshSession = async () => {
     try {
       console.log('Manually refreshing session...');
@@ -469,7 +465,7 @@ export const TaskAutomationTester = () => {
         variant="outline" 
         size="sm"
         className="gap-2"
-        onClick={generateRecurringTasks}
+        onClick={createManualInstance}
         disabled={results[1].status === 'running'}
       >
         {results[1].status === 'running' ? (
