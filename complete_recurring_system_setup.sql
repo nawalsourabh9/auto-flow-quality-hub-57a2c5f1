@@ -23,11 +23,24 @@ ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 -- Create recurring naming rules table
 CREATE TABLE IF NOT EXISTS recurring_naming_rules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    frequency TEXT NOT NULL,
+    frequency TEXT NOT NULL UNIQUE,
     naming_pattern TEXT NOT NULL,
     counter_reset_frequency TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Clean up any existing duplicate naming rules first
+WITH duplicates_to_delete AS (
+    SELECT id
+    FROM (
+        SELECT id, 
+               ROW_NUMBER() OVER (PARTITION BY frequency ORDER BY created_at, id) as rn
+        FROM recurring_naming_rules
+    ) ranked
+    WHERE rn > 1
+)
+DELETE FROM recurring_naming_rules 
+WHERE id IN (SELECT id FROM duplicates_to_delete);
 
 -- Insert default naming rules (with correct bi-weekly pattern)
 INSERT INTO recurring_naming_rules (frequency, naming_pattern, counter_reset_frequency) VALUES
@@ -37,7 +50,7 @@ INSERT INTO recurring_naming_rules (frequency, naming_pattern, counter_reset_fre
 ('monthly', 'M{counter}-{year}', 'yearly'),
 ('quarterly', 'Q{counter}-{year}', 'yearly'),
 ('annually', 'Y{counter}-{year}', 'yearly')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (frequency) DO NOTHING;
 
 -- Drop existing functions first to avoid conflicts
 DROP FUNCTION IF EXISTS complete_task_and_generate_next(UUID);
@@ -376,17 +389,24 @@ BEGIN
             'new_recurring_task_id', null
         );
     END IF;
-    
-    -- Calculate next due date using configurable rules
+      -- Calculate next due date using configurable rules
     next_due_date := calculate_next_due_date(task_record.due_date, template_record.recurring_frequency);
     
     -- Check if we should generate the next instance
-    -- Only generate if within the end_date (if specified) and instance was generated
+    -- Only generate if within the end_date (if specified)
     IF next_due_date IS NOT NULL AND 
        (template_record.end_date IS NULL OR next_due_date <= template_record.end_date) THEN
         
-        -- Check if this instance was already generated (prevent duplicates)
-        IF task_record.is_generated = TRUE THEN
+        -- Check if an instance already exists for this date (prevent duplicates)
+        SELECT id INTO new_task_id
+        FROM tasks 
+        WHERE parent_task_id = template_id 
+          AND due_date = next_due_date
+          AND is_template = FALSE
+        LIMIT 1;
+        
+        -- Only create if no instance exists for this date
+        IF new_task_id IS NULL THEN
             -- Calculate counter for next instance
             counter := calculate_recurring_counter(template_id, template_record.recurring_frequency, next_due_date);
             
@@ -405,54 +425,53 @@ BEGIN
             
             -- Create the next instance
             INSERT INTO tasks (
-                title,
-                description,
-                department,
-                priority,
-                due_date,
-                assignee,
-                status,
-                is_recurring,
-                recurring_frequency,
-                parent_task_id,
-                start_date,
-                end_date,
-                is_customer_related,
-                customer_name,
-                attachments_required,
-                approval_status,
-                original_task_name,
-                recurrence_count_in_period,
-                is_generated,
-                is_template,
-                created_at,
-                updated_at
-            )
-            VALUES (
-                instance_name,
-                template_record.description,
-                template_record.department,
-                template_record.priority,
-                next_due_date,
-                template_record.assignee,
-                'not-started',
-                FALSE,
-                template_record.recurring_frequency,
-                template_id,
-                template_record.start_date,
-                template_record.end_date,
-                template_record.is_customer_related,
-                template_record.customer_name,
-                COALESCE(template_record.attachments_required, 'none'),
-                'approved',
-                template_record.title,
-                counter,
-                TRUE, -- Mark as generated
-                FALSE, -- Not a template
-                NOW(),
-                NOW()
-            )
-            RETURNING id INTO new_task_id;
+                    title,
+                    description,
+                    department,
+                    priority,
+                    due_date,
+                    assignee,
+                    status,
+                    is_recurring,
+                    recurring_frequency,
+                    parent_task_id,
+                    start_date,
+                    end_date,
+                    is_customer_related,
+                    customer_name,
+                    attachments_required,
+                    approval_status,
+                    original_task_name,
+                    recurrence_count_in_period,
+                    is_generated,
+                    is_template,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    instance_name,
+                    template_record.description,
+                    template_record.department,
+                    template_record.priority,
+                    next_due_date,
+                    template_record.assignee,
+                    'not-started',
+                    FALSE,
+                    template_record.recurring_frequency,
+                    template_id,
+                    template_record.start_date,
+                    template_record.end_date,
+                    template_record.is_customer_related,
+                    template_record.customer_name,
+                    COALESCE(template_record.attachments_required, 'none'),
+                    'approved',
+                    template_record.title,
+                    counter,
+                    TRUE, -- Mark as generated
+                    FALSE, -- Not a template
+                    NOW(),
+                    NOW()            )
+                RETURNING id INTO new_task_id;
         END IF;
     END IF;
     
@@ -465,7 +484,7 @@ BEGIN
 END;
 $$;
 
--- Function to create first instance from template
+-- Function to create first instance from template (with duplicate protection)
 CREATE OR REPLACE FUNCTION create_first_recurring_instance(template_id UUID)
 RETURNS UUID
 LANGUAGE plpgsql
@@ -477,6 +496,7 @@ DECLARE
     instance_name TEXT;
     first_due_date DATE;
     counter INTEGER := 1;
+    existing_instance_id UUID;
 BEGIN
     -- Get template details
     SELECT * INTO template_record FROM tasks WHERE id = template_id AND is_template = TRUE;
@@ -484,16 +504,34 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Template not found or task is not a template';
     END IF;
+
+    -- Check if an instance already exists (prevent duplicates)
+    SELECT id INTO existing_instance_id
+    FROM tasks 
+    WHERE parent_task_id = template_id 
+      AND is_template = FALSE
+    LIMIT 1;
     
-    -- Calculate first due date using configurable rules
-    first_due_date := calculate_next_due_date(template_record.start_date::DATE, template_record.recurring_frequency);
+    IF existing_instance_id IS NOT NULL THEN
+        -- Instance already exists, return it
+        RETURN existing_instance_id;
+    END IF;
+
+    -- Calculate first due date - use start_date directly as the first instance due date
+    -- This matches the original working behavior from manual_fix.sql
+    IF template_record.start_date IS NOT NULL THEN
+        first_due_date := template_record.start_date::DATE;
+    ELSE
+        -- Fallback: Use current date as base for first instance
+        first_due_date := CURRENT_DATE;
+    END IF;
     
     -- Generate instance name
     instance_name := template_record.title || ' (' || 
         REPLACE(
             REPLACE(
                 REPLACE(
-                    (SELECT naming_pattern FROM recurring_naming_rules WHERE frequency = template_record.recurring_frequency),
+                    (SELECT naming_pattern FROM recurring_naming_rules WHERE frequency = template_record.recurring_frequency LIMIT 1),
                     '{counter}', counter::TEXT
                 ),
                 '{month_abbrev}', get_month_abbrev(first_due_date)
@@ -775,7 +813,47 @@ COMMENT ON COLUMN recurring_naming_rules.is_active IS 'Whether this rule is curr
 COMMENT ON COLUMN tasks.is_template IS 'TRUE for recurring task templates (no due_date/status), FALSE for instances';
 COMMENT ON COLUMN tasks.is_generated IS 'TRUE for auto-generated instances, FALSE for manually created tasks';
 
--- PART 8: VERIFICATION QUERIES
+-- PART 8: DATA CLEANUP BEFORE VERIFICATION
+-- =====================================================================
+
+-- Fix any existing tasks that should be marked as is_generated = TRUE
+UPDATE tasks 
+SET is_generated = TRUE,
+    updated_at = NOW()
+WHERE parent_task_id IS NOT NULL 
+  AND is_generated = FALSE
+  AND is_template = FALSE;
+
+-- Remove any duplicate instances that might exist
+WITH duplicate_instances AS (
+    SELECT id
+    FROM (
+        SELECT id,
+               ROW_NUMBER() OVER (
+                   PARTITION BY parent_task_id, due_date 
+                   ORDER BY created_at, id
+               ) as rn
+        FROM tasks 
+        WHERE parent_task_id IS NOT NULL 
+          AND is_template = FALSE
+    ) ranked
+    WHERE rn > 1
+)
+DELETE FROM tasks 
+WHERE id IN (SELECT id FROM duplicate_instances);
+
+-- Clean up orphaned instances (parent template doesn't exist)
+DELETE FROM tasks 
+WHERE parent_task_id IS NOT NULL 
+  AND parent_task_id NOT IN (SELECT id FROM tasks WHERE is_template = TRUE);
+
+-- Fix templates that have due_date or status set (should be NULL for templates)
+UPDATE tasks 
+SET due_date = NULL, status = NULL, updated_at = NOW()
+WHERE is_template = TRUE 
+  AND (due_date IS NOT NULL OR status IS NOT NULL);
+
+-- PART 9: VERIFICATION QUERIES
 -- =====================================================================
 
 -- Verify the setup
@@ -813,3 +891,59 @@ ORDER BY routine_name;
 -- Final success message
 SELECT 'Complete recurring task system setup completed successfully!' as status,
        'You can now create recurring task templates with bi-weekly pattern support!' as message;
+
+-- PART 9: AUTO-GENERATE MISSING INSTANCES
+-- =====================================================================
+
+-- Helper function to generate instances for existing templates that don't have any
+CREATE OR REPLACE FUNCTION generate_missing_instances()
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    template_rec RECORD;
+    instance_count INTEGER;
+    new_instance_id UUID;
+    result_text TEXT := '';
+BEGIN
+    -- Loop through all templates that don't have instances
+    FOR template_rec IN 
+        SELECT t.*
+        FROM tasks t
+        WHERE t.is_template = TRUE 
+          AND t.is_recurring = TRUE
+          AND NOT EXISTS (
+              SELECT 1 FROM tasks i 
+              WHERE i.parent_task_id = t.id
+          )
+    LOOP
+        -- Create first instance for this template
+        BEGIN
+            SELECT create_first_recurring_instance(template_rec.id) INTO new_instance_id;
+            result_text := result_text || 'Created instance for template "' || template_rec.title || '": ' || new_instance_id::TEXT || E'\n';
+        EXCEPTION WHEN OTHERS THEN
+            result_text := result_text || 'ERROR creating instance for "' || template_rec.title || '": ' || SQLERRM || E'\n';
+        END;
+    END LOOP;
+    
+    IF result_text = '' THEN
+        result_text := 'No templates without instances found.';
+    END IF;
+    
+    RETURN result_text;
+END;
+$$;
+
+-- Run the function to generate missing instances
+SELECT 'Auto-generating missing instances:' as step;
+SELECT generate_missing_instances() as generation_result;
+
+-- Grant permissions for the helper function
+GRANT EXECUTE ON FUNCTION generate_missing_instances() TO authenticated;
+GRANT EXECUTE ON FUNCTION generate_missing_instances() TO service_role;
+
+-- Clean up the helper function (optional - remove this line if you want to keep it)
+DROP FUNCTION IF EXISTS generate_missing_instances();
+
+SELECT 'Instance generation completed!' as final_status;
