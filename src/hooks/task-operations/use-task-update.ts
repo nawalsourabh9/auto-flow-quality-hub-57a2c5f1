@@ -37,7 +37,6 @@ interface CompleteTaskResponse {
 export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) => {
   const queryClient = useQueryClient();
   const { processTaskDocuments } = useTaskDocumentUpload();
-
   const handleUpdateTask = async (updatedTask: Task) => {
     try {
       console.log("useTaskUpdate: Starting task update with task ID:", updatedTask.id);
@@ -154,11 +153,20 @@ export const useTaskUpdate = (setIsEditDialogOpen: (isOpen: boolean) => void) =>
         });
         setIsEditDialogOpen(false);
         return;
-      }
-
-      // Check if status is changing to completed and this is a recurring task
+      }      // Check if status is changing to completed and this is a recurring task
       const isMarkingAsCompleted = originalTaskData.status !== 'completed' && updatedTask.status === 'completed';
       const isRecurringCandidate = originalTaskData.is_recurring || originalTaskData.parent_task_id;
+      const isTemplate = originalTaskData.is_template;
+      
+      // Prevent completion of template tasks
+      if (isMarkingAsCompleted && isTemplate) {
+        toast({
+          title: "Cannot Complete Template",
+          description: "Template tasks cannot be completed. Only instances can be completed.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       if (isMarkingAsCompleted && isRecurringCandidate) {
         console.log("useTaskUpdate: Task being marked as completed, using secure completion function");

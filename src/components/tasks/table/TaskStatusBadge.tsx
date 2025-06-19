@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, AlertCircle, HelpCircle } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, HelpCircle, Settings } from "lucide-react";
 import { 
   Tooltip,
   TooltipContent,
@@ -10,12 +10,22 @@ import {
 } from "@/components/ui/tooltip";
 
 interface TaskStatusBadgeProps {
-  status: string;
+  status: string | null;
   comments?: string;
+  isTemplate?: boolean;
 }
 
-export const TaskStatusBadge: React.FC<TaskStatusBadgeProps> = ({ status, comments }) => {
+export const TaskStatusBadge: React.FC<TaskStatusBadgeProps> = ({ status, comments, isTemplate }) => {
   const getStatusBadge = () => {
+    // Handle templates (null status)
+    if (status === null || isTemplate) {
+      return (
+        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1">
+          <Settings className="h-3 w-3" /> Template
+        </Badge>
+      );
+    }
+
     switch (status) {
       case 'completed':
         return (

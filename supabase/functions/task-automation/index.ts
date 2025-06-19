@@ -14,13 +14,13 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     
     const supabase = createClient(supabaseUrl, supabaseKey)
-
+    
     console.log('Task automation started')
     
     const results = {
       overdueUpdated: 0,
       recurringCreated: 0,
-      errors: []
+      errors: [] as string[]
     }
 
     // Get current IST time
@@ -29,91 +29,74 @@ serve(async (req) => {
     const istNow = new Date(now.getTime() + istOffset)
     const today = istNow.toISOString().split('T')[0]
     
-    console.log('Current IST date:', today)    // 1. Mark overdue tasks using smart frequency-based logic
+    console.log('Current IST date:', today)    // 1. Mark overdue tasks using template-aware logic (excludes templates)
     const { data: overdueResult, error: overdueError } = await supabase
-      .rpc('mark_tasks_overdue')
+      .rpc('mark_tasks_overdue_simple')
 
     if (overdueError) {
       console.error('Error updating overdue tasks:', overdueError)
       results.errors.push(`Overdue update error: ${overdueError.message}`)
     } else if (overdueResult) {
       results.overdueUpdated = overdueResult
-      console.log(`Marked ${overdueResult} tasks as overdue using smart frequency logic`)
+      console.log(`Marked ${overdueResult} instance tasks as overdue (templates excluded)`)
     }
 
-    // 2. Handle recurring tasks - Find completed tasks that might need processing
-    const { data: completedTasks, error: completedError } = await supabase
+    // 2. Handle recurring tasks - Find completed instances that can generate next tasks
+    const { data: completedInstances, error: completedError } = await supabase
       .from('tasks')
       .select(`
         id, title, description, department, priority, assignee,
         is_recurring, recurring_frequency, start_date, end_date,
         is_customer_related, customer_name, attachments_required,
         due_date, status, parent_task_id, original_task_name,
-        recurrence_count_in_period
+        recurrence_count_in_period, is_template, is_generated
       `)
       .eq('status', 'completed')
+      .eq('is_template', false)
+      .eq('is_generated', true)
+      .not('parent_task_id', 'is', null)
 
     if (completedError) {
-      console.error('Error fetching completed tasks:', completedError)
-      results.errors.push(`Completed tasks fetch error: ${completedError.message}`)
-    } else if (completedTasks && completedTasks.length > 0) {
-      console.log(`Found ${completedTasks.length} completed tasks to process`)
+      console.error('Error fetching completed instances:', completedError)
+      results.errors.push(`Completed instances fetch error: ${completedError.message}`)
+    } else if (completedInstances && completedInstances.length > 0) {
+      console.log(`Found ${completedInstances.length} completed instances to process`)
 
       // Track processed tasks to avoid duplicates
       const processedTasks = new Set<string>()
 
-      for (const task of completedTasks) {
-        try {
+      for (const task of completedInstances) {        try {
           // Skip if already processed
           if (processedTasks.has(task.id)) {
             console.log(`Task ${task.id} already processed, skipping`)
             continue
           }
 
-          // Check if this task can trigger recurring generation
-          let shouldProcess = false
+          // This is a completed instance from a template - process it
+          console.log(`Processing completed instance: ${task.title}`)
           
-          if (task.is_recurring && !task.parent_task_id) {
-            // This is a parent recurring task
-            shouldProcess = true
-            console.log(`Processing parent recurring task: ${task.title}`)
-          } else if (task.parent_task_id) {
-            // This is a child task - get parent to check if it's recurring
-            const { data: parentTask } = await supabase
-              .from('tasks')
-              .select('is_recurring, recurring_frequency')
-              .eq('id', task.parent_task_id)
-              .single()
-              
-            if (parentTask && parentTask.is_recurring) {
-              shouldProcess = true
-              console.log(`Processing child task of recurring parent: ${task.title}`)
-            }
-          }
-          
-          if (shouldProcess) {
-            console.log(`Attempting to generate next task for: ${task.title}`)            // Use the new secure wrapper function for completion and generation
-            const { data: result, error: generateError } = await supabase
-              .rpc('complete_task_and_generate_next', { task_id: task.id })
-
-            if (generateError) {
-              console.error(`Error generating next task for ${task.title}:`, generateError)
-              results.errors.push(`Generate error for ${task.title}: ${generateError.message}`)
-            } else if (result?.success) {
-              if (result.new_recurring_task_id) {
-                results.recurringCreated++
-                console.log(`Generated next task ID ${result.new_recurring_task_id} for ${task.title}`)
-              } else {
-                console.log(`Task ${task.title} completed, no recurring generation needed`)
-              }
+          console.log(`Attempting to generate next task for: ${task.title}`)            
+            // Use the secure wrapper function for completion and generation
+          const { data: result, error: generateError } = await supabase
+            .rpc('complete_task_and_generate_next', { task_id: task.id })
+            
+          if (generateError) {
+            console.error(`Error generating next task for ${task.title}:`, generateError)
+            results.errors.push(`Generate error for ${task.title}: ${generateError.message}`)
+          } else if (result?.success) {
+            if (result.new_recurring_task_id) {
+              results.recurringCreated++
+              console.log(`Generated next task ID ${result.new_recurring_task_id} for ${task.title}`)
             } else {
-              console.log(`No new task generated for ${task.title}: ${result?.message || 'Unknown reason'}`)
+              console.log(`Task ${task.title} completed, no recurring generation needed`)
             }
-
-            // Mark as processed
-            processedTasks.add(task.id)
+          } else {
+            console.log(`No new task generated for ${task.title}: ${result?.message || 'Unknown reason'}`)
           }
-        } catch (taskError) {
+
+          // Mark as processed
+          processedTasks.add(task.id)
+        } catch (taskError: any) {
           console.error(`Error processing task ${task.id}:`, taskError)
           results.errors.push(`Task ${task.id} processing error: ${taskError.message}`)
         }

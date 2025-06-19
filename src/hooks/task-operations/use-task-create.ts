@@ -20,10 +20,12 @@ interface TaskPayload {
   end_date?: string | null;
   attachments_required: 'none' | 'optional' | 'required';
   assignee: string | null;
-  status: 'not-started' | 'in-progress' | 'completed' | 'overdue';
+  status: 'not-started' | 'in-progress' | 'completed' | 'overdue' | null;
   approval_status: 'pending' | 'approved' | 'rejected';
-  original_task_name?: string | null; // New field
-  recurrence_count_in_period?: number; // New field
+  original_task_name?: string | null;
+  recurrence_count_in_period?: number;
+  is_template?: boolean; // New field
+  is_generated?: boolean; // New field
 }
 
 export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) => {
@@ -41,14 +43,13 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       
       // Handle assignee conversion
       const assigneeValue = newTask.assignee === "unassigned" ? null : newTask.assignee;
-      
-      // Create the task payload with new fields
+        // Create the task payload with new fields
       const taskPayload: TaskPayload = {
         title: newTask.title || "",
         description: newTask.description || null,
         department: newTask.department || "Quality",
         priority: newTask.priority || "medium",
-        due_date: formattedDueDate || null,
+        due_date: newTask.isRecurring ? null : formattedDueDate || null, // Templates have no due_date
         is_recurring: newTask.isRecurring || false,
         is_customer_related: newTask.isCustomerRelated || false,
         customer_name: newTask.customerName || null,
@@ -57,11 +58,13 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         end_date: newTask.isRecurring ? formattedEndDate : null,
         attachments_required: newTask.attachmentsRequired || "none",
         assignee: assigneeValue,
-        status: "not-started",
+        status: newTask.isRecurring ? null : "not-started", // Templates have no status
         approval_status: "approved",
         // Set original_task_name for recurring tasks - this will be used for naming instances
         original_task_name: newTask.isRecurring ? newTask.title || null : null,
-        recurrence_count_in_period: newTask.isRecurring ? 1 : undefined // First instance starts at 1
+        recurrence_count_in_period: newTask.isRecurring ? 1 : undefined, // First instance starts at 1
+        is_template: newTask.isRecurring || false, // Recurring tasks are templates
+        is_generated: false // User-created tasks are not auto-generated
       };
       
       console.log("Task payload with new recurring fields:", taskPayload);
@@ -75,9 +78,33 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       if (error) {
         console.error("Task creation error:", error);
         throw error;
+      }      console.log("Task created successfully:", data);
+      
+      // If this is a recurring task (template), create the first instance if needed
+      if (newTask.isRecurring && formattedStartDate) {
+        const startDate = new Date(formattedStartDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Create first instance if start date is today or in the past
+        if (startDate <= today) {
+          try {
+            console.log("Creating first instance for template:", data.id);
+            const { data: instanceData, error: instanceError } = await supabase
+              .rpc('create_first_recurring_instance', { template_id: data.id });
+            
+            if (instanceError) {
+              console.error("Error creating first instance:", instanceError);
+              // Don't fail the whole operation, just log the error
+            } else {
+              console.log("First instance created:", instanceData);
+            }
+          } catch (instanceError) {
+            console.error("Exception creating first instance:", instanceError);
+            // Don't fail the whole operation
+          }
+        }
       }
-
-      console.log("Task created successfully:", data);
       
       // Process document uploads if any
       if (newTask.documentUploads && newTask.documentUploads.length > 0) {

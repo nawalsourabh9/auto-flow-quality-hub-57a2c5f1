@@ -69,68 +69,130 @@ export const TaskAutomationDebugPanel = () => {
       setIsRunning(false);
     }
   };
-
   const checkCompletedTasks = async () => {
     try {
-      addLog("🔍 Checking completed recurring tasks...");
+      addLog("🔍 Checking templates and instances...");
       
-      const { data: completedTasks, error } = await supabase
+      // Check templates
+      const { data: templates, error: templateError } = await supabase
         .from('tasks')
-        .select(`
-          id, title, status, is_recurring, parent_task_id, 
-          recurring_frequency, due_date, created_at
-        `)
-        .eq('status', 'completed')
-        .or('is_recurring.eq.true,parent_task_id.not.is.null');
+        .select('id, title, recurring_frequency, is_template, is_generated')
+        .eq('is_template', true)
+        .eq('is_recurring', true);
 
-      if (error) {
-        addLog(`❌ Query error: ${error.message}`);
+      if (templateError) {
+        addLog(`❌ Template query error: ${templateError.message}`);
         return;
       }
 
-      addLog(`📋 Found ${completedTasks?.length || 0} completed recurring tasks:`);
-      completedTasks?.forEach(task => {
-        const type = task.is_recurring ? 'Parent' : 'Child';
-        addLog(`   • ${type}: "${task.title}" (${task.due_date})`);
+      addLog(`📋 Found ${templates?.length || 0} recurring templates`);
+      
+      // Check instances
+      const { data: instances, error: instanceError } = await supabase
+        .from('tasks')
+        .select('id, title, status, is_template, is_generated, parent_task_id, due_date')
+        .eq('is_template', false)
+        .not('parent_task_id', 'is', null);
+
+      if (instanceError) {
+        addLog(`❌ Instance query error: ${instanceError.message}`);
+        return;
+      }
+
+      addLog(`📋 Found ${instances?.length || 0} task instances`);
+      
+      instances?.forEach(instance => {
+        const status = instance.status || 'pending';
+        const generated = instance.is_generated ? 'auto' : 'manual';
+        addLog(`   • Instance: "${instance.title}" (${status}, ${generated})`);
       });
 
     } catch (error: any) {
       addLog(`💥 Check failed: ${error.message}`);
     }
-  };
-  const testSingleTask = async () => {
+  };  const testSingleTask = async () => {
     try {
-      addLog("🧪 Testing single task completion...");
+      addLog("🧪 Testing single instance completion...");
       
-      // Get a completed recurring task
-      const { data: task, error } = await supabase
+      // Get an active instance (not template, not completed)
+      const { data: instance, error } = await supabase
         .from('tasks')
-        .select('id, title, is_recurring, parent_task_id')
-        .eq('status', 'completed')
-        .or('is_recurring.eq.true,parent_task_id.not.is.null')
+        .select('id, title, status, is_template, is_generated, parent_task_id')
+        .eq('is_template', false)
+        .neq('status', 'completed')
+        .not('parent_task_id', 'is', null)
         .limit(1)
         .single();
 
-      if (error || !task) {
-        addLog("❌ No completed recurring task found for testing");
+      if (error || !instance) {
+        addLog("❌ No active task instance found for testing");
+        addLog("💡 Try creating an instance first using 'Manual Instance Creation'");
         return;
       }
 
-      addLog(`🎯 Testing with task: "${task.title}"`);
+      addLog(`🎯 Testing completion of instance: "${instance.title}"`);
+      addLog(`   Instance ID: ${instance.id}, Generated: ${instance.is_generated ? 'auto' : 'manual'}`);
 
       const { data: result, error: rpcError } = await supabase
-        .rpc('complete_task_and_generate_next', { task_id: task.id });
+        .rpc('complete_task_and_generate_next', { task_id: instance.id });
 
       if (rpcError) {
         addLog(`❌ RPC Error: ${rpcError.message}`);
       } else {
         addLog(`✅ Result: ${JSON.stringify(result)}`);
+        if (result?.success) {
+          addLog(`✅ Task completed successfully`);
+          if (result.new_recurring_task_id) {
+            addLog(`✅ New instance generated: ${result.new_recurring_task_id}`);
+          } else {
+            addLog(`ℹ️ No new instance generated (may not meet criteria)`);
+          }
+        }
       }
 
     } catch (error: any) {
       addLog(`💥 Test failed: ${error.message}`);
     }
-  };  const createCompatibilityFunctions = async () => {
+  };
+
+  const testTemplateInstanceCreation = async () => {
+    try {
+      addLog("🧪 Testing template instance creation...");
+      
+      // Get a template
+      const { data: template, error } = await supabase
+        .from('tasks')
+        .select('id, title, recurring_frequency')
+        .eq('is_template', true)
+        .eq('is_recurring', true)
+        .limit(1)
+        .single();
+
+      if (error || !template) {
+        addLog("❌ No recurring template found for testing");
+        addLog("💡 Try creating a recurring task first");
+        return;
+      }
+
+      addLog(`🎯 Testing instance creation from template: "${template.title}"`);
+
+      const { data: instanceId, error: rpcError } = await supabase
+        .rpc('create_first_recurring_instance', { template_id: template.id });
+
+      if (rpcError) {
+        addLog(`❌ RPC Error: ${rpcError.message}`);
+      } else if (instanceId) {
+        addLog(`✅ Created new instance: ${instanceId}`);
+      } else {
+        addLog(`ℹ️ No instance created (may already exist or other condition)`);
+      }
+
+    } catch (error: any) {
+      addLog(`💥 Test failed: ${error.message}`);
+    }
+  };
+
+  const createCompatibilityFunctions = async () => {
     try {
       addLog("🔧 Creating compatibility functions...");
       
@@ -179,12 +241,16 @@ export const TaskAutomationDebugPanel = () => {
             {isRunning ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
             Run Full Automation
           </Button>
-          
-          <Button variant="outline" onClick={checkCompletedTasks}>
-            Check Completed Tasks
+            <Button variant="outline" onClick={checkCompletedTasks}>
+            Check Templates & Instances
           </Button>
-            <Button variant="outline" onClick={testSingleTask}>
-            Test Single Task
+          
+          <Button variant="outline" onClick={testTemplateInstanceCreation}>
+            Test Instance Creation
+          </Button>
+          
+          <Button variant="outline" onClick={testSingleTask}>
+            Test Instance Completion
           </Button>
 
           <Button variant="secondary" onClick={createCompatibilityFunctions}>

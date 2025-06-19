@@ -7,8 +7,8 @@ export interface Task {
   department: string;
   assignee: string;
   priority: 'low' | 'medium' | 'high';
-  dueDate: string;
-  status: 'completed' | 'in-progress' | 'overdue' | 'not-started';
+  dueDate: string | null; // Allow null for templates
+  status: 'completed' | 'in-progress' | 'overdue' | 'not-started' | null; // Allow null for templates
   createdAt: string;
   isRecurring: boolean;
   isCustomerRelated?: boolean; // Added field for customer tasks
@@ -22,6 +22,8 @@ export interface Task {
   originalTaskName?: string; // New field for original_task_name
   recurrenceCountInPeriod?: number; // New field for recurrence_count_in_period
   lastGeneratedDate?: string; // New field for last_generated_date
+  isTemplate?: boolean; // New field to identify templates
+  isGenerated?: boolean; // New field to identify auto-generated instances
   assigneeDetails?: {
     name: string;
     avatar?: string;

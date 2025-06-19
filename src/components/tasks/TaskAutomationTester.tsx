@@ -36,9 +36,10 @@ export const TaskAutomationTester = () => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [results, setResults] = useState<TestResult[]>([
-    { name: 'Mark Overdue', status: 'idle', message: 'Test overdue marking' },
-    { name: 'Generate Recurring', status: 'idle', message: 'Generate next recurring tasks' },
-    { name: 'Full Automation', status: 'idle', message: 'Run complete automation' }
+    { name: 'Mark Overdue', status: 'idle', message: 'Test overdue marking (excludes templates)' },
+    { name: 'Manual Instance Creation', status: 'idle', message: 'Create instance from template manually' },
+    { name: 'Complete & Generate Next', status: 'idle', message: 'Complete instance and generate next' },
+    { name: 'Template Management', status: 'idle', message: 'Test template operations' }
   ]);
 
   // Don't render if user is not authenticated
@@ -89,15 +90,14 @@ export const TaskAutomationTester = () => {
       return true;
     }
   };
-
   const testMarkOverdue = async () => {
     if (!(await checkAuthenticationBeforeExecution())) return;
     
-    updateResult(0, 'running', 'Marking overdue tasks...');
+    updateResult(0, 'running', 'Marking overdue tasks (excluding templates)...');
     try {
-      console.log('Testing mark overdue functionality...');
+      console.log('Testing new overdue marking functionality...');
       
-      const { data, error } = await supabase.rpc('mark_tasks_overdue');
+      const { data, error } = await supabase.rpc('mark_tasks_overdue_simple');
       console.log('RPC Response:', { data, error });
       
       if (error) {
@@ -106,10 +106,10 @@ export const TaskAutomationTester = () => {
       }
       
       const count = typeof data === 'number' ? data : Number(data) || 0;
-      updateResult(0, 'success', `✅ Marked ${count} tasks overdue`, count);
+      updateResult(0, 'success', `✅ Marked ${count} tasks overdue (templates excluded)`, count);
       toast({ 
         title: "Success", 
-        description: `${count} tasks marked as overdue` 
+        description: `${count} instance tasks marked as overdue. Templates were excluded.` 
       });
     } catch (error: any) {
       console.error('Mark overdue error:', error);
@@ -121,73 +121,67 @@ export const TaskAutomationTester = () => {
       });
     }
   };
-
-  const generateRecurringTasks = async () => {
+  const createManualInstance = async () => {
     if (!(await checkAuthenticationBeforeExecution())) return;
     
-    updateResult(1, 'running', 'Generating recurring tasks...');
+    updateResult(1, 'running', 'Creating manual instance from template...');
     try {
-      console.log('Starting recurring task generation...');
+      console.log('Finding available templates...');
       
-      // Find completed recurring tasks
-      const { data: completedTasks, error: findError } = await supabase
+      // Find active templates (recurring tasks with is_template = true)
+      const { data: templates, error: findError } = await supabase
         .from('tasks')
-        .select('id, title, is_recurring, parent_task_id, status')
-        .eq('status', 'completed')
-        .or('is_recurring.eq.true,parent_task_id.not.is.null')
-        .limit(10);
+        .select('id, title, recurring_frequency, start_date, end_date')
+        .eq('is_template', true)
+        .eq('is_recurring', true)
+        .limit(5);
 
       if (findError) {
         console.error('Query error:', findError);
-        throw new Error(findError.message || 'Failed to fetch completed tasks');
+        throw new Error(findError.message || 'Failed to fetch templates');
       }
 
-      if (!completedTasks || completedTasks.length === 0) {
-        updateResult(1, 'error', '❌ No completed recurring tasks found');
+      if (!templates || templates.length === 0) {
+        updateResult(1, 'error', '❌ No recurring templates found');
         toast({ 
-          title: "No Tasks Found", 
-          description: "No completed recurring tasks available for generation",
+          title: "No Templates Found", 
+          description: "Create a recurring task first to generate templates",
           variant: "destructive"
         });
         return;
       }
 
-      console.log(`Found ${completedTasks.length} completed tasks to process`);
+      console.log(`Found ${templates.length} templates to test`);
+      let createdCount = 0;
 
-      let generatedCount = 0;
-      let processedCount = 0;
-
-      for (const task of completedTasks) {
+      for (const template of templates) {
         try {
-          processedCount++;
-          console.log(`Processing task ${task.id}: ${task.title}`);
+          console.log(`Creating instance from template ${template.id}: ${template.title}`);
           
-          const { data: newTaskId, error: genError } = await supabase
-            .rpc('generate_next_recurring_task', { p_completed_instance_id: task.id });
+          const { data: instanceId, error: createError } = await supabase
+            .rpc('create_first_recurring_instance', { template_id: template.id });
           
-          if (genError) {
-            console.log(`Task ${task.id} generation failed:`, genError.message);
+          if (createError) {
+            console.log(`Template ${template.id} instance creation failed:`, createError.message);
             continue;
           }
           
-          if (newTaskId) {
-            generatedCount++;
-            console.log(`Generated new task ${newTaskId} from parent ${task.id}`);
-          } else {
-            console.log(`Task ${task.id} - no new task needed (conditions not met)`);
+          if (instanceId) {
+            createdCount++;
+            console.log(`Created instance ${instanceId} from template ${template.id}`);
           }
         } catch (err: any) {
-          console.log(`Task ${task.id} generation error:`, err.message);
+          console.log(`Template ${template.id} instance creation error:`, err.message);
         }
       }
 
-      updateResult(1, 'success', `✅ Generated ${generatedCount}/${processedCount} new tasks`, generatedCount);
+      updateResult(1, 'success', `✅ Created ${createdCount} instances from ${templates.length} templates`, createdCount);
       toast({ 
-        title: "Generation Complete", 
-        description: `Generated ${generatedCount} new recurring tasks from ${processedCount} completed tasks` 
+        title: "Instance Creation Complete", 
+        description: `Created ${createdCount} new instances from templates` 
       });
     } catch (error: any) {
-      console.error('Generate recurring tasks error:', error);
+      console.error('Create manual instance error:', error);
       updateResult(1, 'error', `❌ ${error.message}`);
       toast({ 
         title: "Error", 
@@ -197,50 +191,75 @@ export const TaskAutomationTester = () => {
     }
   };
 
-  const runFullAutomation = async () => {
+  const testCompleteAndGenerate = async () => {
     if (!(await checkAuthenticationBeforeExecution())) return;
     
-    updateResult(2, 'running', 'Running full automation...');
+    updateResult(2, 'running', 'Testing completion and next generation...');
     try {
-      console.log('Starting full automation...');
+      console.log('Finding completed instances that can generate next...');
       
-      // Run overdue check first
-      const { data: overdueCount, error: overdueError } = await supabase.rpc('mark_tasks_overdue');
-      if (overdueError) {
-        console.error('Overdue marking error:', overdueError);
-        throw new Error(overdueError.message || 'Failed to mark overdue tasks');
+      // Find instances that are not completed and not templates
+      const { data: instances, error: findError } = await supabase
+        .from('tasks')
+        .select('id, title, status, is_template, is_generated, parent_task_id')
+        .eq('is_template', false)
+        .neq('status', 'completed')
+        .eq('is_generated', true)
+        .not('parent_task_id', 'is', null)
+        .limit(3);
+
+      if (findError) {
+        console.error('Query error:', findError);
+        throw new Error(findError.message || 'Failed to fetch instances');
       }
 
-      // Run recurring generation
-      const { data: completedTasks } = await supabase
-        .from('tasks')
-        .select('id')
-        .eq('status', 'completed')
-        .or('is_recurring.eq.true,parent_task_id.not.is.null')
-        .limit(10);
+      if (!instances || instances.length === 0) {
+        updateResult(2, 'error', '❌ No suitable instances found');
+        toast({ 
+          title: "No Instances Found", 
+          description: "Create some recurring task instances first",
+          variant: "destructive"
+        });
+        return;
+      }
 
+      console.log(`Found ${instances.length} instances to test completion`);
+      let completedCount = 0;
       let generatedCount = 0;
-      if (completedTasks && completedTasks.length > 0) {
-        for (const task of completedTasks) {
-          try {
-            const { data: newTaskId } = await supabase
-              .rpc('generate_next_recurring_task', { p_completed_instance_id: task.id });
-            if (newTaskId) generatedCount++;
-          } catch (err) {
-            // Silent fail for individual tasks that don't meet generation criteria
-            console.log('Individual task generation skipped:', err);
+
+      for (const instance of instances) {
+        try {
+          console.log(`Completing instance ${instance.id}: ${instance.title}`);
+          
+          const { data: result, error: completeError } = await supabase
+            .rpc('complete_task_and_generate_next', { task_id: instance.id });
+          
+          if (completeError) {
+            console.log(`Instance ${instance.id} completion failed:`, completeError.message);
+            continue;
           }
+          
+          if (result?.success) {
+            completedCount++;
+            if (result.new_recurring_task_id) {
+              generatedCount++;
+              console.log(`Completed ${instance.id} and generated ${result.new_recurring_task_id}`);
+            } else {
+              console.log(`Completed ${instance.id} but no new task generated`);
+            }
+          }
+        } catch (err: any) {
+          console.log(`Instance ${instance.id} completion error:`, err.message);
         }
       }
 
-      const totalOverdue = typeof overdueCount === 'number' ? overdueCount : Number(overdueCount) || 0;
-      updateResult(2, 'success', `✅ Overdue: ${totalOverdue}, Generated: ${generatedCount}`, totalOverdue + generatedCount);
+      updateResult(2, 'success', `✅ Completed ${completedCount}, generated ${generatedCount} new instances`, generatedCount);
       toast({ 
-        title: "Full Automation Complete", 
-        description: `Marked ${totalOverdue} overdue tasks, generated ${generatedCount} new recurring tasks` 
+        title: "Completion Test Complete", 
+        description: `Completed ${completedCount} instances, generated ${generatedCount} new ones` 
       });
     } catch (error: any) {
-      console.error('Full automation error:', error);
+      console.error('Complete and generate test error:', error);
       updateResult(2, 'error', `❌ ${error.message}`);
       toast({ 
         title: "Error", 
@@ -250,6 +269,76 @@ export const TaskAutomationTester = () => {
     }
   };
 
+  const testTemplateManagement = async () => {
+    if (!(await checkAuthenticationBeforeExecution())) return;
+    
+    updateResult(3, 'running', 'Testing template management...');
+    try {
+      console.log('Testing template operations...');
+      
+      // Find templates and their instances
+      const { data: templates, error: findError } = await supabase
+        .from('tasks')
+        .select(`
+          id, title, recurring_frequency, is_template,
+          instances:tasks!parent_task_id(id, title, status, due_date, is_template)
+        `)
+        .eq('is_template', true)
+        .limit(3);
+
+      if (findError) {
+        console.error('Query error:', findError);
+        throw new Error(findError.message || 'Failed to fetch templates');
+      }
+
+      if (!templates || templates.length === 0) {
+        updateResult(3, 'error', '❌ No templates found for testing');
+        return;
+      }
+
+      let templateCount = 0;
+      let instanceCount = 0;
+
+      for (const template of templates) {
+        templateCount++;
+        const instances = (template as any).instances || [];
+        instanceCount += instances.length;
+        
+        console.log(`Template ${template.title}: ${instances.length} instances`);
+        
+        // Test template name cascade (optional - comment out if not needed)
+        // You can enable this to test name cascading
+        /*
+        if (instances.length > 0) {
+          const testName = `${template.title} (Updated)`;
+          const { data: updateResult, error: updateError } = await supabase
+            .rpc('update_template_name_cascade', { 
+              template_id: template.id, 
+              new_name: testName 
+            });
+          
+          if (!updateError) {
+            console.log(`Updated template ${template.id} and ${updateResult} instances`);
+          }
+        }
+        */
+      }
+
+      updateResult(3, 'success', `✅ Found ${templateCount} templates with ${instanceCount} total instances`, templateCount);
+      toast({ 
+        title: "Template Analysis Complete", 
+        description: `Found ${templateCount} templates managing ${instanceCount} instances` 
+      });
+    } catch (error: any) {
+      console.error('Template management test error:', error);
+      updateResult(3, 'error', `❌ ${error.message}`);
+      toast({ 
+        title: "Error", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
+  };
   const refreshSession = async () => {
     try {
       console.log('Manually refreshing session...');
@@ -331,7 +420,12 @@ export const TaskAutomationTester = () => {
     }
   };
 
-  const testFunctions = [testMarkOverdue, generateRecurringTasks, runFullAutomation];
+  const testFunctions = [
+    testMarkOverdue, 
+    createManualInstance, 
+    testCompleteAndGenerate, 
+    testTemplateManagement
+  ];
 
   const getStatusIcon = (status: TestResult['status']) => {
     switch (status) {

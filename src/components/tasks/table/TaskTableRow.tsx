@@ -46,14 +46,20 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
       return dateString;
     }
   };
-
   // Determine if this is an instance task (indented display)
   const isInstanceTask = !!task.parentTaskId;
+  const isTemplate = task.isTemplate;
+  
+  // Build row className with template styling
+  let rowClassName = "hover:bg-muted/50";
+  if (isTemplate) {
+    rowClassName += " border-l-4 border-l-purple-300 bg-purple-50/30";
+  } else if (isInstanceTask) {
+    rowClassName += " bg-muted/20 border-l-4 border-l-blue-200";
+  }
   
   return (
-    <TableRow 
-      className={`hover:bg-muted/50 ${isInstanceTask ? 'bg-muted/20 border-l-4 border-l-blue-200' : ''}`}
-    >
+    <TableRow className={rowClassName}>
       <TableCell className="font-medium min-w-[250px]">
         <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : ''}`}>
           <div className="flex items-center gap-2">
@@ -105,7 +111,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
         <TaskPriorityBadge priority={task.priority} />
       </TableCell>
       <TableCell className="min-w-[120px]">
-        <TaskStatusBadge status={task.status} comments={task.comments} />
+        <TaskStatusBadge status={task.status} comments={task.comments} isTemplate={task.isTemplate} />
       </TableCell>
       <TableCell className="min-w-[200px]">
         <div className="flex flex-wrap gap-1">
