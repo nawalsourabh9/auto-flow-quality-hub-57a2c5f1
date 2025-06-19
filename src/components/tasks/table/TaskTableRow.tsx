@@ -118,7 +118,6 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
   };  // Build row className with frequency-based coloring for templates
   let rowClassName = "";
   let rowStyle = {};
-  
   if (isTemplate) {
     const colors = getFrequencyColors(task.recurringFrequency);
     rowClassName = `template-row border-l-4 shadow-sm transition-all duration-300 ease-in-out ${colors.border} ${colors.text}`;
@@ -134,8 +133,8 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
     rowClassName = "hover:bg-muted/50 transition-colors duration-200";
   }
   
-  return (    <TableRow className={rowClassName} style={rowStyle}><TableCell className="font-medium min-w-[250px]">
-        <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : ''}`}>          <div className="flex items-center gap-2">            <span className={`${isInstanceTask ? 'text-sm text-muted-foreground' : ''} ${
+  return (    <TableRow className={rowClassName} style={rowStyle}>      <TableCell className={`font-medium min-w-[250px] ${isTemplate ? 'pl-2' : ''}`}>
+        <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : 'ml-0'}`}><div className="flex items-center gap-2">            <span className={`${isInstanceTask ? 'text-sm text-muted-foreground' : ''} ${
               isTemplate ? `font-semibold ${getFrequencyColors(task.recurringFrequency).text}` : ''
             }`}>
               {task.title}
