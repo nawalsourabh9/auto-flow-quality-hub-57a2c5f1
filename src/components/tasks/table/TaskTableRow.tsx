@@ -1,4 +1,3 @@
-
 import React from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -48,9 +47,37 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
   };
 
   const isTemplate = task.isTemplate;
+
+  // Get frequency-based background colors for templates
+  const getFrequencyBackgroundColor = (frequency: string | undefined) => {
+    switch (frequency) {
+      case 'daily':
+        return 'bg-emerald-50';
+      case 'weekly':
+        return 'bg-blue-50';
+      case 'bi-weekly':
+        return 'bg-indigo-50';
+      case 'monthly':
+        return 'bg-amber-50';
+      case 'quarterly':
+        return 'bg-rose-50';
+      case 'annually':
+        return 'bg-purple-50';
+      default:
+        return 'bg-gray-50';
+    }
+  };
+
+  // Build row className
+  let rowClassName = "hover:bg-muted/50 transition-colors duration-200";
+  
+  if (isTemplate) {
+    const bgColor = getFrequencyBackgroundColor(task.recurringFrequency);
+    rowClassName = `${bgColor} hover:opacity-80 transition-colors duration-200`;
+  }
   
   return (
-    <TableRow className="hover:bg-muted/50 transition-colors duration-200">
+    <TableRow className={rowClassName}>
       <TableCell className="font-medium min-w-[250px]">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
