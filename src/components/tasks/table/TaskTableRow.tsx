@@ -97,8 +97,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
   }
   
   return (
-    <TableRow className={rowClassName} style={rowStyle}>
-      <TableCell className="font-medium min-w-[250px]">
+    <TableRow className={rowClassName} style={rowStyle}>      <TableCell className="font-medium min-w-[250px] pl-3">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span className={isTemplate ? 'font-semibold' : ''}>
@@ -110,9 +109,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             <TaskCustomerBadge isCustomerRelated={task.isCustomerRelated} customerName={task.customerName} />
           </div>
         </div>
-      </TableCell>
-
-      <TableCell className="min-w-[120px]">
+      </TableCell>      <TableCell className="min-w-[120px] pl-3">
         <div className="flex items-center gap-2">
           {task.assigneeDetails ? (
             <>
@@ -131,15 +128,11 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             </span>
           )}
         </div>
-      </TableCell>
-
-      <TableCell className="min-w-[100px]">
+      </TableCell>      <TableCell className="min-w-[100px] pl-3">
         <span className="text-sm">
           {task.department}
         </span>
-      </TableCell>
-
-      <TableCell className="min-w-[120px]">
+      </TableCell>      <TableCell className="min-w-[120px] pl-3">
         <div className="flex flex-col gap-1">
           <span className={`text-sm ${isTemplate ? 'italic' : ''}`}>
             {isTemplate ? 'No due date (Template)' : formatDateForDisplay(task.dueDate)}
