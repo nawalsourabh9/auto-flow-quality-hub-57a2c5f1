@@ -92,6 +92,9 @@ END;
 $$;
 
 -- Part 3: Update the completion function to use configurable due dates
+-- Drop existing function first to handle return type change
+DROP FUNCTION IF EXISTS complete_task_and_generate_next(UUID);
+
 CREATE OR REPLACE FUNCTION complete_task_and_generate_next(task_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -307,7 +310,7 @@ CREATE OR REPLACE FUNCTION add_recurring_frequency_rule(
     counter_reset TEXT,
     interval_value INTEGER,
     interval_unit TEXT,
-    desc TEXT DEFAULT NULL
+    rule_description TEXT DEFAULT NULL
 )
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -338,7 +341,7 @@ BEGIN
         counter_reset,
         interval_value,
         interval_unit,
-        desc,
+        rule_description,
         TRUE
     );
     
