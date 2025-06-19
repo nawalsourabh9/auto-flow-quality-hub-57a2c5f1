@@ -24,9 +24,8 @@ WHERE frequency = 'weekly';
 
 UPDATE recurring_naming_rules SET 
     due_date_interval_value = 2, 
-    due_date_interval_unit = 'week',
-    description = 'Biweekly recurring tasks - next instance due 2 weeks after completion'
-WHERE frequency = 'biweekly';
+    due_date_interval_unit = 'week',    description = 'Bi-weekly recurring tasks - next instance due 2 weeks after completion'
+WHERE frequency = 'bi-weekly';
 
 UPDATE recurring_naming_rules SET 
     due_date_interval_value = 1, 

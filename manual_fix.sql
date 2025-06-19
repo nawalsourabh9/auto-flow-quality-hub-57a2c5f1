@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS recurring_naming_rules (
 INSERT INTO recurring_naming_rules (frequency, naming_pattern, counter_reset_frequency) VALUES
 ('daily', 'D{counter}-{month_abbrev}', 'monthly'),
 ('weekly', 'W{counter}-{month_abbrev}', 'monthly'),
-('biweekly', 'B{counter}-{month_abbrev}', 'monthly'),
+('bi-weekly', 'BW{counter}-{month_abbrev}', 'monthly'),
 ('monthly', 'M{counter}-{year}', 'yearly'),
 ('quarterly', 'Q{counter}-{year}', 'yearly'),
 ('annually', 'Y{counter}-{year}', 'yearly')
@@ -265,7 +265,7 @@ BEGIN
     RETURN CASE frequency
         WHEN 'daily' THEN current_due_date + INTERVAL '1 day'
         WHEN 'weekly' THEN current_due_date + INTERVAL '1 week'
-        WHEN 'biweekly' THEN current_due_date + INTERVAL '2 weeks'
+        WHEN 'bi-weekly' THEN current_due_date + INTERVAL '2 weeks'
         WHEN 'monthly' THEN current_due_date + INTERVAL '1 month'
         WHEN 'quarterly' THEN current_due_date + INTERVAL '3 months'
         WHEN 'annually' THEN current_due_date + INTERVAL '1 year'

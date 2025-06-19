@@ -49,7 +49,7 @@ BEGIN
                 next_due_date := task_record.due_date + INTERVAL '1 day';
             ELSIF task_record.recurring_frequency = 'weekly' THEN
                 next_due_date := task_record.due_date + INTERVAL '1 week';
-            ELSIF task_record.recurring_frequency = 'biweekly' THEN
+            ELSIF task_record.recurring_frequency = 'bi-weekly' THEN
                 next_due_date := task_record.due_date + INTERVAL '2 weeks';
             ELSIF task_record.recurring_frequency = 'monthly' THEN
                 next_due_date := task_record.due_date + INTERVAL '1 month';
@@ -194,7 +194,7 @@ BEGIN
             next_due_date := task_record.due_date + INTERVAL '1 day';
         ELSIF task_record.recurring_frequency = 'weekly' THEN
             next_due_date := task_record.due_date + INTERVAL '1 week';
-        ELSIF task_record.recurring_frequency = 'biweekly' THEN
+        ELSIF task_record.recurring_frequency = 'bi-weekly' THEN
             next_due_date := task_record.due_date + INTERVAL '2 weeks';
         ELSIF task_record.recurring_frequency = 'monthly' THEN
             next_due_date := task_record.due_date + INTERVAL '1 month';

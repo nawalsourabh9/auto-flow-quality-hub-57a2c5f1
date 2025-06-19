@@ -45,7 +45,7 @@ SELECT * FROM recurring_naming_rules ORDER BY frequency;
 
 #### Table: `recurring_naming_rules`
 **Key Columns:**
-- `frequency`: 'daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'annually'
+- `frequency`: 'daily', 'weekly', 'bi-weekly', 'monthly', 'quarterly', 'annually'
 - `naming_pattern`: Pattern with placeholders like 'D{counter}-{month_abbrev}'
 - `counter_reset_frequency`: 'monthly' or 'yearly'
 
@@ -167,7 +167,7 @@ const updateDueDateInterval = async (frequency: string, value: number, unit: str
 - **Instance naming**: Uses pattern-based naming (e.g., "Daily Task (D1-Jun)", "Weekly Task (W2-Jul)")
 
 ### 3. Naming Rules System
-- **Daily/Weekly/Biweekly**: Counter resets monthly (D1-Jan, D2-Jan, D1-Feb, D2-Feb...)
+- **Daily/Weekly/Bi-weekly**: Counter resets monthly (D1-Jan, D2-Jan, D1-Feb, D2-Feb...)
 - **Monthly/Quarterly/Yearly**: Counter resets yearly (M1-2025, M2-2025, M1-2026...)
 - **Configurable patterns**: Stored in `recurring_naming_rules` table
 
@@ -219,7 +219,7 @@ const updateDueDateInterval = async (frequency: string, value: number, unit: str
 5. Only creates if within end_date (if specified)
 
 ### Counter Reset Logic
-- **Monthly reset**: Daily (D1, D2...), Weekly (W1, W2...), Biweekly (B1, B2...)
+- **Monthly reset**: Daily (D1, D2...), Weekly (W1, W2...), Bi-weekly (B1, B2...)
 - **Yearly reset**: Monthly (M1, M2...), Quarterly (Q1, Q2...), Yearly (Y1, Y2...)
 
 ### Visual Indicators

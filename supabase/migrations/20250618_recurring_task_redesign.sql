@@ -19,7 +19,7 @@ ADD COLUMN IF NOT EXISTS is_template BOOLEAN DEFAULT FALSE;
 -- Create recurring naming rules table for flexible naming patterns
 CREATE TABLE IF NOT EXISTS recurring_naming_rules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    frequency TEXT NOT NULL, -- 'daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'annually'
+    frequency TEXT NOT NULL, -- 'daily', 'weekly', 'bi-weekly', 'monthly', 'quarterly', 'annually'
     naming_pattern TEXT NOT NULL, -- e.g., 'D{counter}-{month_abbrev}', 'W{counter}-{month_abbrev}'
     counter_reset_frequency TEXT NOT NULL, -- 'monthly', 'yearly'
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS recurring_naming_rules (
 INSERT INTO recurring_naming_rules (frequency, naming_pattern, counter_reset_frequency) VALUES
 ('daily', 'D{counter}-{month_abbrev}', 'monthly'),
 ('weekly', 'W{counter}-{month_abbrev}', 'monthly'),
-('biweekly', 'B{counter}-{month_abbrev}', 'monthly'),
+('bi-weekly', 'BW{counter}-{month_abbrev}', 'monthly'),
 ('monthly', 'M{counter}-{year}', 'yearly'),
 ('quarterly', 'Q{counter}-{year}', 'yearly'),
 ('annually', 'Y{counter}-{year}', 'yearly')
@@ -360,14 +360,13 @@ BEGIN
             'new_recurring_task_id', null
         );
     END IF;
-    
-    -- Calculate next due date based on current task's due date
+      -- Calculate next due date based on current task's due date
     CASE template_record.recurring_frequency
         WHEN 'daily' THEN
             next_due_date := task_record.due_date + INTERVAL '1 day';
         WHEN 'weekly' THEN
             next_due_date := task_record.due_date + INTERVAL '1 week';
-        WHEN 'biweekly' THEN
+        WHEN 'bi-weekly' THEN
             next_due_date := task_record.due_date + INTERVAL '2 weeks';
         WHEN 'monthly' THEN
             next_due_date := task_record.due_date + INTERVAL '1 month';

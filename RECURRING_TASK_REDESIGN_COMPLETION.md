@@ -74,7 +74,7 @@ The recurring task system has been successfully redesigned to separate templates
 ### Rule-Based Configuration
 - **Naming Rules**: Stored in `recurring_task_rules` table
 - **Due Date Intervals**: Configurable via rules table
-- **Counter Resets**: Daily/weekly/biweekly reset monthly; monthly/quarterly/yearly reset yearly
+- **Counter Resets**: Daily/weekly/bi-weekly reset monthly; monthly/quarterly/yearly reset yearly
 
 ## 🛡️ Key Protections
 
@@ -141,7 +141,7 @@ WHERE frequency = 'monthly';
 ```sql
 UPDATE recurring_task_rules 
 SET due_date_interval = '2 weeks' 
-WHERE frequency = 'biweekly';
+WHERE frequency = 'bi-weekly';
 ```
 
 ## ✨ Benefits of New Design
