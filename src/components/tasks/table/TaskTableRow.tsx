@@ -181,17 +181,11 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
         }`}>
           {task.department}
         </span>
-      </TableCell>      <TableCell className="min-w-[120px]">
-        <div className="flex flex-col gap-1">          <span className={`text-sm ${
+      </TableCell>      <TableCell className="min-w-[120px]">        <div className="flex flex-col gap-1">          <span className={`text-sm ${
             isTemplate ? `italic ${getFrequencyColors(task.recurringFrequency).text}` : ''
           }`}>
             {isTemplate ? 'No due date (Template)' : formatDateForDisplay(task.dueDate)}
           </span>
-          {isInstanceTask && task.startDate && (
-            <span className="text-xs text-muted-foreground">
-              Started: {formatDateForDisplay(task.startDate)}
-            </span>
-          )}
         </div>
       </TableCell>
       <TableCell className="min-w-[80px]">
