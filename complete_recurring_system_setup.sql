@@ -648,6 +648,28 @@ BEGIN
 END;
 $$;
 
+-- Function to mark tasks as overdue
+CREATE OR REPLACE FUNCTION mark_tasks_overdue_simple()
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    overdue_count INTEGER := 0;
+BEGIN
+    -- Mark tasks as overdue if they are past due date and not completed
+    UPDATE tasks 
+    SET status = 'overdue', updated_at = NOW()
+    WHERE due_date < CURRENT_DATE
+      AND status NOT IN ('completed', 'overdue')
+      AND is_template = FALSE; -- Don't mark templates as overdue
+    
+    GET DIAGNOSTICS overdue_count = ROW_COUNT;
+    
+    RETURN overdue_count;
+END;
+$$;
+
 -- PART 4: TEMPLATE PROTECTION TRIGGER
 -- =====================================================================
 
@@ -789,6 +811,7 @@ GRANT EXECUTE ON FUNCTION update_template_name_cascade(UUID, TEXT) TO authentica
 GRANT EXECUTE ON FUNCTION update_recurring_naming_pattern(TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION update_recurring_due_date_interval(TEXT, INTEGER, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION add_recurring_frequency_rule(TEXT, TEXT, TEXT, INTEGER, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION mark_tasks_overdue_simple() TO authenticated;
 
 GRANT EXECUTE ON FUNCTION get_month_abbrev(DATE) TO service_role;
 GRANT EXECUTE ON FUNCTION calculate_recurring_counter(UUID, TEXT, DATE) TO service_role;
@@ -801,6 +824,7 @@ GRANT EXECUTE ON FUNCTION update_template_name_cascade(UUID, TEXT) TO service_ro
 GRANT EXECUTE ON FUNCTION update_recurring_naming_pattern(TEXT, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION update_recurring_due_date_interval(TEXT, INTEGER, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION add_recurring_frequency_rule(TEXT, TEXT, TEXT, INTEGER, TEXT, TEXT) TO service_role;
+GRANT EXECUTE ON FUNCTION mark_tasks_overdue_simple() TO service_role;
 
 -- PART 7: COMMENTS AND DOCUMENTATION
 -- =====================================================================
@@ -884,7 +908,8 @@ WHERE routine_name IN (
     'complete_task_and_generate_next',
     'create_first_recurring_instance',
     'update_template_name_cascade',
-    'protect_template_fields'
+    'protect_template_fields',
+    'mark_tasks_overdue_simple'
 )
 ORDER BY routine_name;
 

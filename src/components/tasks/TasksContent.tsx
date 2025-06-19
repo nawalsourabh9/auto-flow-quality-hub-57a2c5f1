@@ -73,34 +73,48 @@ const TasksContent: React.FC<TasksContentProps> = ({
           <div className="text-sm text-muted-foreground">
             {groupedTasks.taskGroups.filter(g => g.parent.isRecurring).length} recurring series
           </div>
-        </CardTitle>
-        {/* Legend for recurring task naming */}
-        <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg border">
-          <div className="text-sm font-medium text-muted-foreground mb-2 w-full">
+        </CardTitle>        {/* Legend for recurring task naming and colors */}
+        <div className="flex flex-col gap-3 p-4 bg-muted/30 rounded-lg border">
+          <div className="text-sm font-medium text-muted-foreground">
             Recurring Task Legend:
           </div>
-          <Badge variant="outline" className="bg-purple-50 text-purple-700">
-            D → Daily
-          </Badge>
-          <Badge variant="outline" className="bg-purple-50 text-purple-700">
-            W → Weekly  
-          </Badge>
-          <Badge variant="outline" className="bg-purple-50 text-purple-700">
-            BW → Bi-weekly
-          </Badge>
-          <Badge variant="outline" className="bg-purple-50 text-purple-700">
-            M → Monthly
-          </Badge>
-          <Badge variant="outline" className="bg-purple-50 text-purple-700">
-            Q → Quarterly
-          </Badge>
-          <Badge variant="outline" className="bg-purple-50 text-purple-700">
-            A → Annually
-          </Badge>
-          <div className="w-full mt-1">
-            <span className="text-xs text-muted-foreground">
-              D1-Jan, D2-Jan → Instance numbers within the period (1st Daily in January, 2nd Daily in January)
-            </span>
+          
+          {/* Frequency Colors */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+              <div className="w-3 h-3 bg-emerald-500 rounded mr-2"></div>
+              Daily (D)
+            </Badge>
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+              Weekly (W)
+            </Badge>
+            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+              <div className="w-3 h-3 bg-indigo-500 rounded mr-2"></div>
+              Bi-weekly (BW)
+            </Badge>
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+              <div className="w-3 h-3 bg-amber-500 rounded mr-2"></div>
+              Monthly (M)
+            </Badge>
+            <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200">
+              <div className="w-3 h-3 bg-rose-500 rounded mr-2"></div>
+              Quarterly (Q)
+            </Badge>
+            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+              <div className="w-3 h-3 bg-purple-500 rounded mr-2"></div>
+              Annually (A)
+            </Badge>
+          </div>
+
+          {/* Naming Convention */}
+          <div className="border-t pt-3">
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div><strong>Naming:</strong> D1-Jan, D2-Jan → Instance numbers within the period (1st Daily in January, 2nd Daily in January)</div>
+              <div><strong>Start Date:</strong> When the recurring template becomes active (first instance due date)</div>
+              <div><strong>End Date:</strong> When to stop generating new instances (optional - leave blank for indefinite)</div>
+              <div><strong>Templates:</strong> Master definitions with colored rows based on frequency - no due dates, used to generate instances</div>
+            </div>
           </div>
         </div>
       </CardHeader>

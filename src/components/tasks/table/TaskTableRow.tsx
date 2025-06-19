@@ -48,11 +48,74 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
   };  // Determine if this is an instance task (indented display)
   const isInstanceTask = !!task.parentTaskId;
   const isTemplate = task.isTemplate;
-    // Build row className with enhanced template styling
+  
+  // Get frequency-based colors for templates
+  const getFrequencyColors = (frequency: string | undefined) => {
+    switch (frequency) {
+      case 'daily':
+        return {
+          bg: 'from-emerald-50 via-green-50 to-teal-50',
+          border: 'border-l-emerald-500',
+          hover: 'hover:from-emerald-100 hover:via-green-100 hover:to-teal-100',
+          text: 'text-emerald-800',
+          badge: 'bg-emerald-100 text-emerald-700 border-emerald-200'
+        };
+      case 'weekly':
+        return {
+          bg: 'from-blue-50 via-cyan-50 to-sky-50',
+          border: 'border-l-blue-500',
+          hover: 'hover:from-blue-100 hover:via-cyan-100 hover:to-sky-100',
+          text: 'text-blue-800',
+          badge: 'bg-blue-100 text-blue-700 border-blue-200'
+        };
+      case 'bi-weekly':
+        return {
+          bg: 'from-indigo-50 via-purple-50 to-violet-50',
+          border: 'border-l-indigo-500',
+          hover: 'hover:from-indigo-100 hover:via-purple-100 hover:to-violet-100',
+          text: 'text-indigo-800',
+          badge: 'bg-indigo-100 text-indigo-700 border-indigo-200'
+        };
+      case 'monthly':
+        return {
+          bg: 'from-amber-50 via-yellow-50 to-orange-50',
+          border: 'border-l-amber-500',
+          hover: 'hover:from-amber-100 hover:via-yellow-100 hover:to-orange-100',
+          text: 'text-amber-800',
+          badge: 'bg-amber-100 text-amber-700 border-amber-200'
+        };
+      case 'quarterly':
+        return {
+          bg: 'from-rose-50 via-pink-50 to-red-50',
+          border: 'border-l-rose-500',
+          hover: 'hover:from-rose-100 hover:via-pink-100 hover:to-red-100',
+          text: 'text-rose-800',
+          badge: 'bg-rose-100 text-rose-700 border-rose-200'
+        };
+      case 'annually':
+        return {
+          bg: 'from-purple-50 via-violet-50 to-fuchsia-50',
+          border: 'border-l-purple-500',
+          hover: 'hover:from-purple-100 hover:via-violet-100 hover:to-fuchsia-100',
+          text: 'text-purple-800',
+          badge: 'bg-purple-100 text-purple-700 border-purple-200'
+        };
+      default:
+        return {
+          bg: 'from-gray-50 via-slate-50 to-zinc-50',
+          border: 'border-l-gray-400',
+          hover: 'hover:from-gray-100 hover:via-slate-100 hover:to-zinc-100',
+          text: 'text-gray-800',
+          badge: 'bg-gray-100 text-gray-700 border-gray-200'
+        };
+    }
+  };
+  
+  // Build row className with frequency-based coloring for templates
   let rowClassName = "";
   if (isTemplate) {
-    // Template rows: Light lavender background with purple accent and custom styling
-    rowClassName = "template-row bg-gradient-to-r from-purple-50 via-lavender-50 to-indigo-50 border-l-4 border-l-purple-400 shadow-sm hover:from-purple-100 hover:via-purple-75 hover:to-indigo-100 transition-all duration-300 ease-in-out";
+    const colors = getFrequencyColors(task.recurringFrequency);
+    rowClassName = `template-row bg-gradient-to-r ${colors.bg} border-l-4 ${colors.border} shadow-sm ${colors.hover} transition-all duration-300 ease-in-out`;
   } else if (isInstanceTask) {
     // Instance rows: Subtle blue tint with left border
     rowClassName = "bg-blue-50/30 border-l-4 border-l-blue-300 hover:bg-blue-50/50 transition-colors duration-200";
@@ -63,12 +126,15 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
   
   return (
     <TableRow className={rowClassName}>      <TableCell className="font-medium min-w-[250px]">
-        <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : ''}`}>
-          <div className="flex items-center gap-2">            {isTemplate && (
-              <span className="template-badge px-2 py-1 text-xs font-semibold bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 rounded-full border border-purple-200 shadow-sm">
+        <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : ''}`}>          <div className="flex items-center gap-2">            {isTemplate && (
+              <span className={`template-badge px-2 py-1 text-xs font-semibold rounded-full border shadow-sm ${
+                getFrequencyColors(task.recurringFrequency).badge
+              }`}>
                 ✨ TEMPLATE
               </span>
-            )}            <span className={`${isInstanceTask ? 'text-sm text-muted-foreground' : ''} ${isTemplate ? 'font-semibold text-purple-900' : ''}`}>
+            )}            <span className={`${isInstanceTask ? 'text-sm text-muted-foreground' : ''} ${
+              isTemplate ? `font-semibold ${getFrequencyColors(task.recurringFrequency).text}` : ''
+            }`}>
               {task.title}
             </span>
           </div>
@@ -81,12 +147,15 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
         <div className="flex items-center gap-2">
           {task.assigneeDetails ? (
             <>
-              <Avatar className={`h-6 w-6 ${isTemplate ? 'ring-2 ring-purple-200' : ''}`}>
+              <Avatar className={`h-6 w-6 ${
+                isTemplate ? `ring-2 ${getFrequencyColors(task.recurringFrequency).border.replace('border-l-', 'ring-')}` : ''
+              }`}>
                 <AvatarFallback className={`text-xs ${isTemplate ? 'bg-purple-100 text-purple-700' : ''}`}>
                   {task.assigneeDetails.initials}
                 </AvatarFallback>
-              </Avatar>
-              <span className={`text-sm ${isTemplate ? 'font-medium text-purple-800' : ''}`}>
+              </Avatar>              <span className={`text-sm ${
+                isTemplate ? `font-medium ${getFrequencyColors(task.recurringFrequency).text}` : ''
+              }`}>
                 {task.assigneeDetails.name}
               </span>
             </>
@@ -96,13 +165,15 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             </span>
           )}
         </div>
-      </TableCell>      <TableCell className="min-w-[100px]">
-        <span className={`text-sm ${isTemplate ? 'font-medium text-purple-800' : ''}`}>
+      </TableCell>      <TableCell className="min-w-[100px]">        <span className={`text-sm ${
+          isTemplate ? `font-medium ${getFrequencyColors(task.recurringFrequency).text}` : ''
+        }`}>
           {task.department}
         </span>
       </TableCell>      <TableCell className="min-w-[120px]">
-        <div className="flex flex-col gap-1">
-          <span className={`text-sm ${isTemplate ? 'italic text-purple-600' : ''}`}>
+        <div className="flex flex-col gap-1">          <span className={`text-sm ${
+            isTemplate ? `italic ${getFrequencyColors(task.recurringFrequency).text}` : ''
+          }`}>
             {isTemplate ? 'No due date (Template)' : formatDateForDisplay(task.dueDate)}
           </span>
           {isInstanceTask && task.startDate && (
