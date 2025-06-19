@@ -594,6 +594,141 @@ BEGIN
 END;
 $$;
 
+-- Add overloaded version that accepts custom due date for first instance
+CREATE OR REPLACE FUNCTION public.create_first_recurring_instance(
+    p_parent_task_id uuid,
+    p_custom_due_date timestamp with time zone DEFAULT NULL
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+    v_parent_task RECORD;
+    v_config_rule RECORD;
+    v_new_task_id UUID;
+    v_instance_start_date TIMESTAMPTZ;
+    v_instance_end_date TIMESTAMPTZ;
+    v_instance_due_date TIMESTAMPTZ;
+    v_instance_name TEXT;
+    v_period_str TEXT;
+    v_instance_count_for_period INTEGER;
+    v_interval INTERVAL;
+    v_existing_instance_check UUID;
+BEGIN
+    -- Fetch parent task details
+    SELECT * INTO v_parent_task
+    FROM public.tasks
+    WHERE id = p_parent_task_id AND (is_recurring_parent = TRUE OR is_template = TRUE);
+
+    IF NOT FOUND THEN
+        RAISE WARNING 'Parent task with ID % not found or is not a recurring parent/template.', p_parent_task_id;
+        RETURN NULL;
+    END IF;
+
+    -- Use custom due date if provided, otherwise use start_date
+    IF p_custom_due_date IS NOT NULL THEN
+        v_instance_due_date := p_custom_due_date;
+    ELSIF v_parent_task.start_date IS NOT NULL THEN
+        v_instance_due_date := v_parent_task.start_date;
+    ELSE
+        RAISE WARNING 'No due date available for instance creation.';
+        RETURN NULL;
+    END IF;
+
+    -- Fetch recurrence configuration
+    SELECT * INTO v_config_rule
+    FROM public.task_recurrence_rules_config
+    WHERE frequency = v_parent_task.recurring_frequency;
+
+    IF NOT FOUND THEN
+        RAISE WARNING 'No recurrence configuration found for frequency: %', v_parent_task.recurring_frequency;
+        RETURN NULL;
+    END IF;
+
+    -- Generate instance name using our naming function
+    SELECT generate_recurring_task_name(
+        v_parent_task.original_task_name,
+        v_parent_task.recurring_frequency,
+        v_instance_due_date::DATE
+    ) INTO v_instance_name;
+
+    -- Check if an instance already exists for this period
+    SELECT id INTO v_existing_instance_check
+    FROM public.tasks
+    WHERE parent_task_id = p_parent_task_id
+      AND title = v_instance_name
+      AND is_template = FALSE;
+
+    IF FOUND THEN
+        RAISE WARNING 'Instance already exists for this period: %', v_instance_name;
+        RETURN v_existing_instance_check;
+    END IF;
+
+    -- Create the instance
+    INSERT INTO public.tasks (
+        title,
+        description,
+        department,
+        priority,
+        due_date,
+        start_date,
+        end_date,
+        is_recurring,
+        is_template,
+        is_generated,
+        recurring_frequency,
+        parent_task_id,
+        original_task_name,
+        recurrence_count_in_period,
+        assignee,
+        status,
+        approval_status,
+        is_customer_related,
+        customer_name,
+        attachments_required,
+        created_by
+    ) VALUES (
+        v_instance_name,
+        v_parent_task.description,
+        v_parent_task.department,
+        v_parent_task.priority,
+        v_instance_due_date,
+        v_parent_task.start_date,
+        v_parent_task.end_date,
+        FALSE, -- instances are not recurring
+        FALSE, -- instances are not templates
+        TRUE,  -- instances are generated
+        v_parent_task.recurring_frequency,
+        p_parent_task_id,
+        v_parent_task.original_task_name,
+        1, -- first instance
+        v_parent_task.assignee,
+        'not-started',
+        'approved',
+        v_parent_task.is_customer_related,
+        v_parent_task.customer_name,
+        v_parent_task.attachments_required,
+        v_parent_task.created_by
+    ) RETURNING id INTO v_new_task_id;
+
+    RAISE NOTICE 'Created first instance % for template %', v_new_task_id, p_parent_task_id;
+    RETURN v_new_task_id;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Log error to our error table if it exists
+        INSERT INTO public.task_automation_error_log (function_name, input_parameters, error_message, error_details)
+        VALUES ('create_first_recurring_instance', jsonb_build_object('p_parent_task_id', p_parent_task_id, 'p_custom_due_date', p_custom_due_date), SQLERRM, 'SQLSTATE: ' || SQLSTATE);
+        RAISE WARNING 'Error in create_first_recurring_instance: %', SQLERRM;
+        RETURN NULL;
+END;
+$function$;
+
+-- Grant permissions for the overloaded function
+GRANT EXECUTE ON FUNCTION public.create_first_recurring_instance(uuid, timestamp with time zone) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_first_recurring_instance(uuid, timestamp with time zone) TO service_role;
+
 -- Function to update template name and cascade to instances
 CREATE OR REPLACE FUNCTION update_template_name_cascade(
     template_id UUID,

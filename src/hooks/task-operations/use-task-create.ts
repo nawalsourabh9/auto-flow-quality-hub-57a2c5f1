@@ -54,7 +54,7 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
         is_customer_related: newTask.isCustomerRelated || false,
         customer_name: newTask.customerName || null,
         recurring_frequency: newTask.isRecurring ? newTask.recurringFrequency || null : null,
-        start_date: newTask.isRecurring ? formattedStartDate : null,
+        start_date: newTask.isRecurring ? formattedStartDate || formattedDueDate : null,
         end_date: newTask.isRecurring ? formattedEndDate : null,
         attachments_required: newTask.attachmentsRequired || "none",
         assignee: assigneeValue,
@@ -78,20 +78,21 @@ export const useTaskCreate = (setIsCreateDialogOpen: (isOpen: boolean) => void) 
       if (error) {
         console.error("Task creation error:", error);
         throw error;
-      }      console.log("Task created successfully:", data);
-      
-      // If this is a recurring task (template), create the first instance if needed
-      if (newTask.isRecurring && formattedStartDate) {
-        const startDate = new Date(formattedStartDate);
+      }      console.log("Task created successfully:", data);      // If this is a recurring task (template), create the first instance if needed
+      if (newTask.isRecurring && (formattedStartDate || formattedDueDate)) {
+        const startDate = new Date(formattedStartDate || formattedDueDate);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
         // Create first instance if start date is today or in the past
         if (startDate <= today) {
           try {
-            console.log("Creating first instance for template:", data.id);
+            console.log("Creating first instance for template:", data.id, "with due date:", formattedDueDate);
             const { data: instanceData, error: instanceError } = await supabase
-              .rpc('create_first_recurring_instance', { template_id: data.id });
+              .rpc('create_first_recurring_instance', { 
+                p_parent_task_id: data.id,
+                p_custom_due_date: formattedDueDate 
+              });
             
             if (instanceError) {
               console.error("Error creating first instance:", instanceError);
