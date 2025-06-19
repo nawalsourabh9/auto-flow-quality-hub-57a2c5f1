@@ -68,15 +68,9 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
               <span className="template-badge px-2 py-1 text-xs font-semibold bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 rounded-full border border-purple-200 shadow-sm">
                 ✨ TEMPLATE
               </span>
-            )}
-            <span className={`${isInstanceTask ? 'text-sm text-muted-foreground' : ''} ${isTemplate ? 'font-semibold text-purple-900' : ''}`}>
+            )}            <span className={`${isInstanceTask ? 'text-sm text-muted-foreground' : ''} ${isTemplate ? 'font-semibold text-purple-900' : ''}`}>
               {task.title}
             </span>
-            {task.originalTaskName && isInstanceTask && (
-              <span className="text-xs text-muted-foreground">
-                (from "{task.originalTaskName}")
-              </span>
-            )}
           </div>
           <div className="flex flex-wrap gap-1">
             <TaskRecurringBadge task={task} />
