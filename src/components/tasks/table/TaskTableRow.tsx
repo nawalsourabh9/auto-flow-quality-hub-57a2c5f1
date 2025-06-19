@@ -135,13 +135,7 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
   }
   
   return (    <TableRow className={rowClassName} style={rowStyle}><TableCell className="font-medium min-w-[250px]">
-        <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : ''}`}>          <div className="flex items-center gap-2">            {isTemplate && (
-              <span className={`template-badge px-2 py-1 text-xs font-semibold rounded-full border shadow-sm ${
-                getFrequencyColors(task.recurringFrequency).badge
-              }`}>
-                ✨ TEMPLATE
-              </span>
-            )}            <span className={`${isInstanceTask ? 'text-sm text-muted-foreground' : ''} ${
+        <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : ''}`}>          <div className="flex items-center gap-2">            <span className={`${isInstanceTask ? 'text-sm text-muted-foreground' : ''} ${
               isTemplate ? `font-semibold ${getFrequencyColors(task.recurringFrequency).text}` : ''
             }`}>
               {task.title}
