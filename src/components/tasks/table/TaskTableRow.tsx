@@ -48,56 +48,10 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
   };
 
   const isTemplate = task.isTemplate;
-
-  // Get frequency-based colors for templates
-  const getFrequencyColors = (frequency: string | undefined) => {
-    switch (frequency) {
-      case 'daily':
-        return {
-          style: { backgroundColor: 'rgb(236 253 245)', borderLeftColor: 'rgb(16 185 129)' }
-        };
-      case 'weekly':
-        return {
-          style: { backgroundColor: 'rgb(239 246 255)', borderLeftColor: 'rgb(59 130 246)' }
-        };
-      case 'bi-weekly':
-        return {
-          style: { backgroundColor: 'rgb(238 242 255)', borderLeftColor: 'rgb(99 102 241)' }
-        };
-      case 'monthly':
-        return {
-          style: { backgroundColor: 'rgb(255 251 235)', borderLeftColor: 'rgb(245 158 11)' }
-        };
-      case 'quarterly':
-        return {
-          style: { backgroundColor: 'rgb(255 241 242)', borderLeftColor: 'rgb(244 63 94)' }
-        };
-      case 'annually':
-        return {
-          style: { backgroundColor: 'rgb(250 245 255)', borderLeftColor: 'rgb(168 85 247)' }
-        };
-      default:
-        return {
-          style: { backgroundColor: 'rgb(249 250 251)', borderLeftColor: 'rgb(156 163 175)' }
-        };
-    }
-  };
-
-  // Build row className and style
-  let rowClassName = "hover:bg-muted/50 transition-colors duration-200";
-  let rowStyle = {};
-  
-  if (isTemplate) {
-    const colors = getFrequencyColors(task.recurringFrequency);
-    rowClassName = "template-row border-l-4 shadow-sm transition-all duration-300 ease-in-out";
-    rowStyle = {
-      ...colors.style,
-      borderLeftWidth: '4px'
-    };
-  }
   
   return (
-    <TableRow className={rowClassName} style={rowStyle}>      <TableCell className="font-medium min-w-[250px] pl-3">
+    <TableRow className="hover:bg-muted/50 transition-colors duration-200">
+      <TableCell className="font-medium min-w-[250px]">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span className={isTemplate ? 'font-semibold' : ''}>
@@ -109,7 +63,9 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             <TaskCustomerBadge isCustomerRelated={task.isCustomerRelated} customerName={task.customerName} />
           </div>
         </div>
-      </TableCell>      <TableCell className="min-w-[120px] pl-3">
+      </TableCell>
+
+      <TableCell className="min-w-[120px]">
         <div className="flex items-center gap-2">
           {task.assigneeDetails ? (
             <>
@@ -128,11 +84,15 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             </span>
           )}
         </div>
-      </TableCell>      <TableCell className="min-w-[100px] pl-3">
+      </TableCell>
+
+      <TableCell className="min-w-[100px]">
         <span className="text-sm">
           {task.department}
         </span>
-      </TableCell>      <TableCell className="min-w-[120px] pl-3">
+      </TableCell>
+
+      <TableCell className="min-w-[120px]">
         <div className="flex flex-col gap-1">
           <span className={`text-sm ${isTemplate ? 'italic' : ''}`}>
             {isTemplate ? 'No due date (Template)' : formatDateForDisplay(task.dueDate)}
