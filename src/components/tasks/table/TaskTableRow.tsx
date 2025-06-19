@@ -45,10 +45,13 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
     } catch (error) {
       return dateString;
     }
-  };// Determine if this is an instance task (indented display)
+  };
+
+  // Determine if this is an instance task (indented display)
   const isInstanceTask = !!task.parentTaskId;
   const isTemplate = task.isTemplate;
-    // Get frequency-based colors for templates (using CSS variables for better compatibility)
+
+  // Get frequency-based colors for templates (using CSS variables for better compatibility)
   const getFrequencyColors = (frequency: string | undefined) => {
     switch (frequency) {
       case 'daily':
@@ -115,7 +118,9 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
           style: { backgroundColor: 'rgb(249 250 251)', borderLeftColor: 'rgb(156 163 175)' }
         };
     }
-  };  // Build row className with frequency-based coloring for templates
+  };
+
+  // Build row className with frequency-based coloring for templates
   let rowClassName = "";
   let rowStyle = {};
   if (isTemplate) {
@@ -133,8 +138,12 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
     rowClassName = "hover:bg-muted/50 transition-colors duration-200";
   }
   
-  return (    <TableRow className={rowClassName} style={rowStyle}>      <TableCell className={`font-medium min-w-[250px] ${isTemplate ? 'pl-2' : ''}`}>
-        <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : 'ml-0'}`}><div className="flex items-center gap-2">            <span className={`${isInstanceTask ? 'text-sm text-muted-foreground' : ''} ${
+  return (
+    <TableRow className={rowClassName} style={rowStyle}>
+      <TableCell className="font-medium min-w-[250px]">
+        <div className={`flex flex-col gap-2 ${isInstanceTask ? 'ml-4' : isTemplate ? 'ml-0' : 'ml-0'}`}>
+          <div className="flex items-center gap-2">
+            <span className={`${isInstanceTask ? 'text-sm text-muted-foreground' : ''} ${
               isTemplate ? `font-semibold ${getFrequencyColors(task.recurringFrequency).text}` : ''
             }`}>
               {task.title}
@@ -145,7 +154,9 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             <TaskCustomerBadge isCustomerRelated={task.isCustomerRelated} customerName={task.customerName} />
           </div>
         </div>
-      </TableCell>      <TableCell className="min-w-[120px]">
+      </TableCell>
+
+      <TableCell className="min-w-[120px]">
         <div className="flex items-center gap-2">
           {task.assigneeDetails ? (
             <>
@@ -157,7 +168,8 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
                 }`}>
                   {task.assigneeDetails.initials}
                 </AvatarFallback>
-              </Avatar>              <span className={`text-sm ${
+              </Avatar>
+              <span className={`text-sm ${
                 isTemplate ? `font-medium ${getFrequencyColors(task.recurringFrequency).text}` : ''
               }`}>
                 {task.assigneeDetails.name}
@@ -169,30 +181,41 @@ const TaskTableRow: React.FC<TaskTableRowProps> = ({
             </span>
           )}
         </div>
-      </TableCell>      <TableCell className="min-w-[100px]">        <span className={`text-sm ${
+      </TableCell>
+
+      <TableCell className="min-w-[100px]">
+        <span className={`text-sm ${
           isTemplate ? `font-medium ${getFrequencyColors(task.recurringFrequency).text}` : ''
         }`}>
           {task.department}
         </span>
-      </TableCell>      <TableCell className="min-w-[120px]">        <div className="flex flex-col gap-1">          <span className={`text-sm ${
+      </TableCell>
+
+      <TableCell className="min-w-[120px]">
+        <div className="flex flex-col gap-1">
+          <span className={`text-sm ${
             isTemplate ? `italic ${getFrequencyColors(task.recurringFrequency).text}` : ''
           }`}>
             {isTemplate ? 'No due date (Template)' : formatDateForDisplay(task.dueDate)}
           </span>
         </div>
       </TableCell>
+
       <TableCell className="min-w-[80px]">
         <TaskPriorityBadge priority={task.priority} />
       </TableCell>
+
       <TableCell className="min-w-[120px]">
         <TaskStatusBadge status={task.status} comments={task.comments} isTemplate={task.isTemplate} />
       </TableCell>
+
       <TableCell className="min-w-[200px]">
         <div className="flex flex-wrap gap-1">
           <TaskDocumentBadges task={task} setViewingDocument={setViewingDocument} />
           <TaskAttachmentBadge attachmentsRequired={task.attachmentsRequired} />
         </div>
       </TableCell>
+
       <TableCell className="min-w-[200px]">
         <div className="flex items-center gap-1">
           <Button 

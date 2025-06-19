@@ -611,6 +611,42 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_naming_rules: {
+        Row: {
+          counter_reset_frequency: string
+          created_at: string | null
+          description: string | null
+          due_date_interval_unit: string | null
+          due_date_interval_value: number | null
+          frequency: string
+          id: string
+          is_active: boolean | null
+          naming_pattern: string
+        }
+        Insert: {
+          counter_reset_frequency: string
+          created_at?: string | null
+          description?: string | null
+          due_date_interval_unit?: string | null
+          due_date_interval_value?: number | null
+          frequency: string
+          id?: string
+          is_active?: boolean | null
+          naming_pattern: string
+        }
+        Update: {
+          counter_reset_frequency?: string
+          created_at?: string | null
+          description?: string | null
+          due_date_interval_unit?: string | null
+          due_date_interval_value?: number | null
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          naming_pattern?: string
+        }
+        Relationships: []
+      }
       task_attachments: {
         Row: {
           file_path: string
@@ -726,8 +762,10 @@ export type Database = {
           end_date: string | null
           id: string
           is_customer_related: boolean | null
+          is_generated: boolean | null
           is_recurring: boolean | null
           is_recurring_parent: boolean | null
+          is_template: boolean | null
           last_generated_date: string | null
           original_task_name: string | null
           parent_task_id: string | null
@@ -739,8 +777,9 @@ export type Database = {
           rejected_by: string | null
           rejection_reason: string | null
           start_date: string | null
-          status: string
+          status: string | null
           title: string
+          updated_at: string | null
         }
         Insert: {
           approval_status?: string | null
@@ -758,8 +797,10 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_customer_related?: boolean | null
+          is_generated?: boolean | null
           is_recurring?: boolean | null
           is_recurring_parent?: boolean | null
+          is_template?: boolean | null
           last_generated_date?: string | null
           original_task_name?: string | null
           parent_task_id?: string | null
@@ -771,8 +812,9 @@ export type Database = {
           rejected_by?: string | null
           rejection_reason?: string | null
           start_date?: string | null
-          status: string
+          status?: string | null
           title: string
+          updated_at?: string | null
         }
         Update: {
           approval_status?: string | null
@@ -790,8 +832,10 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_customer_related?: boolean | null
+          is_generated?: boolean | null
           is_recurring?: boolean | null
           is_recurring_parent?: boolean | null
+          is_template?: boolean | null
           last_generated_date?: string | null
           original_task_name?: string | null
           parent_task_id?: string | null
@@ -803,8 +847,9 @@ export type Database = {
           rejected_by?: string | null
           rejection_reason?: string | null
           start_date?: string | null
-          status?: string
+          status?: string | null
           title?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -897,16 +942,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_recurring_frequency_rule: {
+        Args: {
+          freq: string
+          pattern: string
+          counter_reset: string
+          interval_value: number
+          interval_unit: string
+          rule_description?: string
+        }
+        Returns: boolean
+      }
       calculate_due_date: {
         Args: { start_date: string; frequency: string }
         Returns: string
+      }
+      calculate_next_due_date: {
+        Args:
+          | { current_due_date: string; frequency: string }
+          | { current_due_date: string; frequency: string }
+        Returns: string
+      }
+      calculate_recurring_counter: {
+        Args: { template_id: string; frequency: string; target_date: string }
+        Returns: number
       }
       complete_task_and_generate_next: {
         Args: { task_id: string }
         Returns: Json
       }
       create_first_recurring_instance: {
-        Args: { p_parent_task_id: string }
+        Args:
+          | { p_parent_task_id: string; p_custom_due_date?: string }
+          | { template_id: string }
         Returns: string
       }
       create_pending_first_instances: {
@@ -927,9 +995,27 @@ export type Database = {
         }
         Returns: Json
       }
-      generate_next_recurring_task: {
-        Args: { p_completed_instance_id: string }
+      generate_instance_name: {
+        Args: { template_title: string; frequency: string; due_date: string }
         Returns: string
+      }
+      get_month_abbrev: {
+        Args: { date_input: string }
+        Returns: string
+      }
+      get_overdue_tasks: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          title: string
+          due_date: string
+          status: string
+          assignee: string
+          department: string
+          priority: string
+          is_template: boolean
+          days_overdue: number
+        }[]
       }
       has_role: {
         Args: { user_id: string; role: Database["public"]["Enums"]["app_role"] }
@@ -939,9 +1025,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      mark_tasks_overdue_simple: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       run_task_automation: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      send_overdue_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       test_overdue_logic: {
         Args: Record<PropertyKey, never>
@@ -961,6 +1055,22 @@ export type Database = {
           email_val: string
         }
         Returns: undefined
+      }
+      update_recurring_due_date_interval: {
+        Args: {
+          freq: string
+          new_interval_value: number
+          new_interval_unit: string
+        }
+        Returns: boolean
+      }
+      update_recurring_naming_pattern: {
+        Args: { freq: string; new_pattern: string }
+        Returns: boolean
+      }
+      update_template_name_cascade: {
+        Args: { template_id: string; new_title: string }
+        Returns: boolean
       }
     }
     Enums: {
