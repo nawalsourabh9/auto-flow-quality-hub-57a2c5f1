@@ -113,10 +113,9 @@ const TasksContent: React.FC<TasksContentProps> = ({
           <div className="border-t pt-3">
             <div className="text-xs text-muted-foreground space-y-1">
               <div><strong>Naming:</strong> D1-Jan, D2-Jan → Instance numbers within the period (1st Daily in January, 2nd Daily in January)</div>
-              <div><strong>Due Date Setup:</strong> When creating a recurring task, the due date you provide becomes the first instance's due date</div>
-              <div><strong>Start Date:</strong> When the recurring template becomes active (defaults to due date if not provided)</div>
-              <div><strong>End Date:</strong> When to stop generating new instances (optional - leave blank for indefinite)</div>
-              <div><strong>First Instance Due Date:</strong> The first generated instance will use the start date as its due date - you may need to manually update it to match your intended schedule</div>
+              <div><strong>Due Date Setup:</strong> When creating a recurring task, the start date you provide becomes the first instance's due date</div>
+              <div><strong>Start Date:</strong> When the recurring template becomes active </div>
+              <div><strong>End Date:</strong> When to stop generating new instances </div>
               <div><strong>Templates:</strong> Master definitions with colored rows based on frequency - have no due dates, used to generate instances</div>
             </div>
           </div>
